@@ -1,5 +1,0 @@
-{
-  "name": "spec2plan",
-  "description": "Transform feature specifications into context-rich implementation plans and executable task registries. Outputs implementation-plan.md (approach, decisions, risks, traceability) and tasks.md (self-sufficient tasks with pattern references, imports, gotchas and runnable validation commands). Story-first phasing with shippable checkpoints and explicit parallel-safety. Includes spec2plan orchestrator and spec2plan_sub domain expert agents.",
-  "version": "2.0.0"
-}
