@@ -1,5 +1,0 @@
-{
-  "name": "ai-dev",
-  "description": "Production-grade agentic AI patterns using LangGraph + Pydantic AI + CrewAI. Adds a /ai-dev skill for building multi-agent systems, graph-based pipelines, and observability.",
-  "version": "1.0.0"
-}
