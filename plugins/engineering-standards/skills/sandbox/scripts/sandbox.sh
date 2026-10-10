@@ -6,6 +6,7 @@
 #   sandbox.sh preflight
 #   sandbox.sh create [--branch <type>/<name>] [--base <branch>] [--path <dir>]
 #                     [--kit <dir>] [--clone] [--recreate]
+#                     [--stack [--docker-size 40g] [--memory 12g]]
 #   sandbox.sh check  <sandbox-name>
 #   sandbox.sh done   <sandbox-name> [--force]
 #
@@ -80,7 +81,7 @@ cmd_preflight() {
 }
 
 cmd_create() {
-  local branch="" base="" path="" kit="" clone=0 recreate=0
+  local branch="" base="" path="" kit="" clone=0 recreate=0 stack=0 dsize=40g mem=12g
   while [ $# -gt 0 ]; do
     case $1 in
       --branch) branch=$2; shift 2 ;;
@@ -89,6 +90,9 @@ cmd_create() {
       --kit) kit=$2; shift 2 ;;
       --clone) clone=1; shift ;;
       --recreate) recreate=1; shift ;;
+      --stack) stack=1; shift ;;
+      --docker-size) dsize=$2; shift 2 ;;
+      --memory) mem=$2; shift 2 ;;
       *) die "unknown option $1" ;;
     esac
   done
@@ -140,13 +144,27 @@ cmd_create() {
     fi
   fi
 
+  local sizing=() envsz=()
+  if [ $stack -eq 1 ]; then
+    # Sizes are fixed at creation; the default 10 GB Docker disk is too small for a full stack.
+    sizing=(-m "$mem")
+    envsz=(DOCKER_SANDBOXES_DOCKER_SIZE="$dsize" DOCKER_SANDBOXES_ROOT_SIZE=30g)
+    info "stack mode: Docker disk $dsize, memory $mem"
+  fi
   info "creating sandbox $name (first creation runs the kit's install steps; can take minutes)"
   if [ $clone -eq 1 ]; then
-    sbx create --name "$name" --clone claude --kit "$kit" "$ws" >/dev/null || die "sbx create failed"
+    env "${envsz[@]}" sbx create --name "$name" "${sizing[@]}" --clone claude --kit "$kit" "$ws" >/dev/null || die "sbx create failed"
   else
-    sbx create --name "$name" claude --kit "$kit" "$ws" "${extra[@]}" >/dev/null || die "sbx create failed"
+    env "${envsz[@]}" sbx create --name "$name" "${sizing[@]}" claude --kit "$kit" "$ws" "${extra[@]}" >/dev/null || die "sbx create failed"
   fi
   ok "sandbox $name created"
+  if [ $stack -eq 1 ]; then
+    local df; df=$(sbx exec "$name" sh -c "df -h /var/lib/docker | awk 'NR==2{print \$2}'" </dev/null 2>/dev/null | tail -1)
+    ok "docker disk in sandbox: ${df:-unknown}"
+    local ov; ov=$(cd "$ws" && git ls-files | grep -E '(^|/)(compose|local|docker-compose)[^/]*\.sbx\.ya?ml$' | head -1)
+    if [ -n "$ov" ]; then ok "compose overlay for the sandbox: $ov"
+    else warn "no compose overlay (*.sbx.yml): containers inside will not reach external services; see agent-sandbox.md, Stack inside the sandbox"; fi
+  fi
   KIT=$kit WS=$ws cmd_check "$name"
 }
 

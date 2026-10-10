@@ -20,36 +20,60 @@ A sandbox limits what an autonomous agent can reach: files, network, credentials
 
 ## Where the dev stack runs
 
-**Default: the agent writes and checks code in the sandbox; the Docker stack runs on the host.**
+Two places, chosen by who needs the stack:
 
-| Where | What runs there |
-|-|-|
-| Sandbox (agent) | Editing, git, formatting and lint, type checks, unit tests with the toolchain installed in the sandbox (uv, pnpm, Task), MCP servers that only need the repo or the internet |
-| Host (human) | `docker compose` up/down, image builds, migrations against the local database, integration and end-to-end tests against the running stack, deploys, anything that needs real credentials |
+| Stack | Use it when | The agent can |
+|-|-|-|
+| **Inside the sandbox** (`sbx` only; its own Docker engine) | The agent should verify its own work: build, start, run integration tests, fix, repeat | Run everything itself, including tests that need the database or the full stack |
+| **On the host** | The human works in the browser against the stack, or the sandbox kind cannot run Docker | Edit, lint, type-check, run unit tests; call the host stack over HTTP for API and end-to-end checks; hand stack commands (migrations, integration tests) to the human |
 
-Why this stays the default:
+Anthropic's core advice for agents is a check they can run themselves, so the loop closes without a human in it. With the stack on the host, every integration test goes through the human. Prefer the stack inside the sandbox for agent work; keep a host stack for browser work. The Claude Code native sandbox cannot run Docker at all (its escape hatch `sandbox.excludedCommands` runs commands without any limit); there the host stack is the only choice.
 
-- **One stack, one database.** The stack you look at in the browser is the one the agent's edits hot-reload into. A stack inside a sandbox is a second set of images, volumes and data that disappears with `sbx rm`.
-- **Ownership on the host.** Containers started by the host's Docker write into a bind-mounted repo as their image user, often root (see File ownership). Inside `sbx` this does not happen: tested with sbx 0.47, a container running as root in the sandbox wrote into the shared workspace and the file appeared on the host owned by the host user. (The test host's UID was 1000, the same as the agent user's; on a host with another UID, rerun the check below.)
-- **Network.** Image builds pull from distribution mirrors and registries; allowing them widens what the agent can reach for the whole session.
-- **The native sandbox cannot run Docker at all.** Its escape hatch, `sandbox.excludedCommands`, runs the listed commands without any filesystem or network limit, and the agent can edit the compose file it then runs. If you use it, keep the pattern narrow (`docker compose *`) and the command on an ask rule.
+### Stack inside the sandbox
 
-How the two sides work together:
+Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.47, 16 CPUs): cold build of 7 images 162 s, `up --wait` 34–54 s, backend suite of 428 tests ~40 s. Images took ~13 GB of Docker disk, the running stack ~4 GB RAM.
+
+- **Size the sandbox at creation.** The Docker disk defaults to 10 GB, too small for such a stack. `DOCKER_SANDBOXES_DOCKER_SIZE=40g DOCKER_SANDBOXES_ROOT_SIZE=30g sbx create … -m 12g …` (sizes cannot change later; `/sandbox --stack` does this).
+- **Images are per sandbox.** Sandboxes do not share images or layers; each new sandbox builds once, then keeps its images until `sbx rm`.
+- **Containers do not inherit the sandbox's proxy or CA.** Image builds went through in the test, but running containers could not reach external services, not even DNS (`No address associated with hostname`). Add a compose overlay used only inside the sandbox:
+
+  ```yaml
+  # compose.sbx.yml: docker compose -f compose.local.yml -f compose.sbx.yml up -d --wait
+  x-sbx-proxy: &sbx-proxy
+    HTTP_PROXY: http://gateway.docker.internal:3128
+    HTTPS_PROXY: http://gateway.docker.internal:3128
+    http_proxy: http://gateway.docker.internal:3128
+    https_proxy: http://gateway.docker.internal:3128
+    # service names direct; host.docker.internal goes through the proxy to the real host
+    NO_PROXY: localhost,127.0.0.1,::1,django,realtime,postgres,redis,worker
+    no_proxy: localhost,127.0.0.1,::1,django,realtime,postgres,redis,worker
+    SSL_CERT_FILE: /sbx-ca/ca-certificates.crt
+    REQUESTS_CA_BUNDLE: /sbx-ca/ca-certificates.crt
+    NODE_EXTRA_CA_CERTS: /sbx-ca/ca-certificates.crt
+  x-sbx-ca: &sbx-ca
+    - /etc/ssl/certs/ca-certificates.crt:/sbx-ca/ca-certificates.crt:ro   # system CAs + proxy CA
+  services:
+    django:  { environment: *sbx-proxy, volumes: *sbx-ca }
+    realtime: { environment: *sbx-proxy, volumes: *sbx-ca }
+    worker:  { environment: *sbx-proxy, volumes: *sbx-ca }
+  ```
+
+  The proxy address and bundle path are what the sandbox itself uses (`env | grep -i proxy` inside it). Check them when sbx changes.
+- **External APIs the stack calls go into the kit's allow list** (speech-to-text, LLM providers); otherwise they fail with HTTP 403 `Approval required`.
+- **Gitignored files a new worktree lacks** (decrypted env files) must be copied in before `up`; they then sit inside the sandbox where the agent can read them.
+- **Ports stay inside the sandbox.** Parallel sandboxes each run their own stack on the same ports without colliding; publish one to the host only to look at it (`sbx ports <name> --publish <host>:<port>`; services listen on `0.0.0.0`).
+- **Ownership is fine.** A container running as root inside the sandbox writes files that appear on the host owned by the host user (tested on a host with UID 1000, the same as the agent user's; rerun `touch` from a container and `ls -ln` on the host when the UIDs differ).
+- **Startup order shows up here first.** A clean stack in a fresh sandbox exposes races a long-lived host stack hides, such as a scheduler starting before migrations; use `depends_on: … condition: service_healthy`.
+
+### Stack on the host
 
 - The workspace is shared, so the host stack's dev servers (Django runserver, uvicorn `--reload`, Vite) pick up the agent's edits immediately.
-- The agent reaches host services as in the table above. Make the URL configurable with a localhost default so the same config works on both sides: `${ATLAS_API_URL:-http://localhost:8000}`, set to the sandbox value in the sandbox environment.
+- The agent reaches host services as in the kinds table above. Make the URL configurable with a localhost default so the same config works on both sides: `${ATLAS_API_URL:-http://localhost:8000}`, set to the sandbox value in the sandbox environment.
 - When a check needs the stack (migrations, integration tests, a rebuild), the agent says which host command to run and why, then continues with the result.
-- The repo's CLAUDE.md says this in one place: which commands run in the sandbox, which the human runs on the host, and the URLs of host services.
+- Containers started by the host's Docker write into a bind-mounted repo as their image user, often root (File ownership).
+- If you allow `docker compose` through the native sandbox's `excludedCommands`, keep the pattern narrow and the command on an ask rule: the agent can edit the compose file it then runs.
 
-**Option: the stack inside `sbx`.** Docker documents building and running images and Compose inside a sandbox; services must listen on `0.0.0.0` and are published to the host with `sbx ports <name> --publish <port>` (loopback only). It fits a self-contained stack, parallel agents that each need their own stack, and clone mode (below). Files the sandbox's containers write into the shared workspace map to the host user (tested, see above). What still argues for the host by default: a second set of images and data, ports published twice, and the network entries image builds need. To confirm the ownership mapping on a new host:
-
-```bash
-# inside the sandbox, in the workspace
-touch agent-file
-docker run --rm -v "$PWD":/w alpine touch /w/container-file
-# on the host
-ls -ln agent-file container-file   # both should show your host UID
-```
+The repo's CLAUDE.md says which stack the agent uses, the commands for it, and the URLs of host services.
 
 ## File ownership
 
@@ -201,7 +225,8 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 7. **Ownership now:** `find . -xdev ! -user "$(id -u)" -not -path '*/node_modules/*'`, worktrees included; list the paths and the repair command.
 8. **MCP:** committed `.mcp.json` has placeholders only, no literal tokens or internal hosts that belong in env; `uvx`/`npx`/`git+` servers pinned; servers that write repo-local state run on one side or have it moved out; URLs to host services configurable (`${VAR:-http://localhost:<port>}`) and set in this repo's kit environment; app state and the venv pointed outside the workspace.
 9. **Secrets:** none in the kit, `.mcp.json` or committed settings; sandbox values through `sbx secret` or the MCP gateway.
-10. **CLAUDE.md:** says which sandbox kind the repo uses, which commands run in the sandbox, which the human runs on the host, and the URLs of host services.
+10. **Stack inside the sandbox** (if the agent should run integration tests itself): a compose overlay passes the sandbox proxy and CA to the containers; external APIs the stack calls are in the kit; services that need migrations wait for a healthy backend.
+11. **CLAUDE.md:** says which sandbox kind the repo uses, which commands run in the sandbox, which the human runs on the host, and the URLs of host services.
 
 ## Troubleshooting
 
@@ -224,5 +249,7 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | Host cannot delete files in the repo | A container or install step wrote as root | File ownership above |
 | Files show UID 1000 on a host whose user is not 1000 | `${UID:-1000}` fell back because `UID`/`GID` were not exported | Export from the Taskfile or `.env` |
 | Dependencies behave differently on host and in sandbox | Shared `.venv` or `node_modules` built on the other side | Separate environments per side |
+| A container inside the sandbox fails with `No address associated with hostname` or cannot reach an external API | Containers do not inherit the sandbox's proxy or CA | Compose overlay with the proxy, `NO_PROXY` and CA bundle (Stack inside the sandbox) |
+| `no space left on device` while building images in the sandbox | Docker disk default 10 GB | Recreate with `DOCKER_SANDBOXES_DOCKER_SIZE=40g` (`/sandbox --stack`) |
 | `sbx daemon start` stays in the foreground ("not daemonized") | Foreground is the default | `sbx daemon start -d` |
 | `sbx ls` or `run`: not authenticated | Docker login expired | `sbx login` |

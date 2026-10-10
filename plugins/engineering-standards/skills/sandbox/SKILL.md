@@ -15,6 +15,7 @@ Argument `$ARGUMENTS`, one of:
 - empty: a sandbox for the current checkout or worktree
 - `--clone`: a sandbox on a private clone of the repo, nothing on the host checkout changes
 - `--done <sandbox-name>`: tear down after the work is merged
+- `--stack` added to any of the above: the agent will run the Docker stack and its integration tests inside the sandbox (its own Docker engine). The sandbox gets a 40 GB Docker disk and 12 GB memory (`--docker-size`, `--memory` to change); sizes are fixed at creation
 - `--recreate` added to any of the above: rebuild an existing sandbox (needed after a kit change)
 
 ## Set up
@@ -26,6 +27,8 @@ Argument `$ARGUMENTS`, one of:
    - Current checkout: `bash <this skill>/scripts/sandbox.sh create` (from inside it), or `--path <dir>`.
    - Clone: `bash <this skill>/scripts/sandbox.sh create --clone`.
 
+   Add `--stack` when the user asked for it or wants the agent to run integration tests itself; suggest it when the repo's CLAUDE.md says the agent runs the stack inside the sandbox.
+
    The first creation runs the kit's install steps and can take minutes; say so before starting. For a linked worktree the script mounts the main repo's `.git` as a second, writable workspace automatically.
 4. **No kit** (exit code 3, `FAIL no sandbox kit`): the repo has no `.sbx/<name>/spec.yaml`. Offer to write one from the template in engineering-standards `references/agent-sandbox.md` (Kit section, then its audit), commit it on the repo's base branch with the owner's agreement, and run step 3 again. Do not invent network rules: derive them from the repo's MCP servers, package managers and the services its tests call.
 5. **Read the check** the script prints after creating (or run `sandbox.sh check <name>` for an existing sandbox):
@@ -34,11 +37,12 @@ Argument `$ARGUMENTS`, one of:
    - `WARN host service … nothing listening`: a service the kit points at is not running on the host. Name the host command that starts it (from the repo's CLAUDE.md), for the user to run; the sandbox itself is fine.
    - `WARN host service … blocked by policy`: the port is missing from the kit's allow list.
    - `WARN sandbox … already exists`: kit and mounts are fixed at creation; offer `--recreate` if the kit or mounts changed, otherwise just attach.
-   - A new worktree has no ignored files (`.env`, decrypted secrets, local settings). If the repo needs them, name which ones to copy or decrypt into the worktree.
+   - A new worktree has no ignored files (`.env`, decrypted secrets, local settings). If the repo needs them, name which ones, and copy them from the main checkout once the user agrees; they are then readable inside the sandbox.
+   - With `--stack`: `WARN no compose overlay` means containers inside will not reach external services. Offer to add the overlay from engineering-standards `references/agent-sandbox.md` (Stack inside the sandbox) and the external hosts to the kit, committed on the base branch with the owner's agreement.
 6. **Hand over** in a short block:
    - The attach line from `ATTACH:` alone in a code block, for a terminal (not with `!`, it is interactive). The first start inside may ask for `/login`.
    - Where it runs: branch and folder; commits made inside land on that branch on the host at once.
-   - The split, briefly: inside the sandbox the agent edits, lints, type-checks and runs unit tests; the Docker stack, migrations, end-to-end tests and `git push` run on the host. A stack started from a worktree uses the same compose project and database as the main checkout unless started with its own `-p` and ports; run one at a time.
+   - The split, briefly. Without `--stack`: inside the sandbox the agent edits, lints, type-checks and runs unit tests; the Docker stack, migrations and end-to-end tests run on the host, and a stack started from a worktree uses the same compose project and database as the main checkout unless started with its own `-p` and ports. With `--stack`: the agent builds, starts and tests the stack inside the sandbox with the overlay (the commands from the repo's CLAUDE.md); the first build takes minutes, later test rounds are fast, and the host stack is untouched. `git push` runs on the host in both cases.
    - Back later: the same `sbx run --name …` line. Done: `/sandbox --done <name>`.
 
 ## Tear down (`--done <name>`)
