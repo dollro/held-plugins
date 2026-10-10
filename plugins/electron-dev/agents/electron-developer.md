@@ -50,7 +50,7 @@ Read /home/rodo/.claude/skills/electron-development/SKILL.md
 ## Coordination with Other Agents
 - Coordinate with `fullstack-developer` for backend APIs
 - Work with `code-reviewer` on security audit
-- Consult `ai-agent-developer` for AI features in desktop
+- Consult `agentic-engineer` for AI features in desktop
 
 ## Communication Protocol
 Report with security-first status:

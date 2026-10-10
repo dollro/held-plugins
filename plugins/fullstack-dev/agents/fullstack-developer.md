@@ -42,7 +42,7 @@ Read /home/rodo/.claude/skills/fullstack-development/SKILL.md
 - [ ] Deployment pipeline configured
 
 ## Coordination with Other Agents
-- Consult `ai-agent-developer` for AI-powered features
+- Consult `agentic-engineer` for AI-powered features
 - Coordinate with `electron-developer` for desktop integration
 - Work with `code-reviewer` before major commits
 
