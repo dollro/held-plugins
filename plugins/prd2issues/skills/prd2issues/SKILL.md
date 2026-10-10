@@ -182,7 +182,7 @@ Give the user the issues, plus as `issues.md` if they want a file. If tracker to
 - create the issues in the project, each in its milestone and in the order of the table; placeholder issues with title only
 - set the "blocked by" relations, and the app label of the project; "sync before merge" pairs become "related" links where the tracker has them
 
-Close with the next step: when work on an issue starts, the coding agent reads that issue together with the spec, plans it, and builds it. If placeholders exist, run this skill again when the next milestone starts.
+Close with the next step: when work on an issue starts, the coding agent reads that issue together with the spec, plans it, and builds it (engineering-standards); several independent issues can run in parallel with agent-team. If placeholders exist, run this skill again when the next milestone starts.
 
 ## Step 8: Update mode
 

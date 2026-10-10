@@ -76,7 +76,7 @@
       "name": "prd2issues",
       "source": "./plugins/prd2issues",
       "description": "Cuts a Ready PRD into milestones and a small set of readable, codebase-grounded issues in the tracker (e.g. Linear), one vertical slice and one reviewable pull request each. Adds a /prd2issues skill.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "product-management",
       "tags": ["issues", "linear", "planning"],
       "keywords": ["prd", "issues", "milestones", "linear", "vertical slice", "breakdown"]

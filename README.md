@@ -106,7 +106,7 @@ parallel execution).
 |`prfaq-vision-builder`|1.0.1|Working Backwards PR/FAQ vision document|
 |`product-roadmap-3-layers`|1.0.1|3-layer Now/Next/Later product roadmap, from an interview or a Notion database|
 |`braindump2prd`|1.1.3|Interview a PM and write a plain-language PRD and spec for the issue tracker|
-|`prd2issues`|1.1.0|Cut a Ready PRD into a few readable, codebase-grounded tracker issues|
+|`prd2issues`|1.1.1|Cut a Ready PRD into a few readable, codebase-grounded tracker issues|
 
 ### Development
 
