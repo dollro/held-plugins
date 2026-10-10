@@ -63,6 +63,9 @@ Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.4
 - **Gitignored files a new worktree lacks** (decrypted env files) must be copied in before `up`; they then sit inside the sandbox where the agent can read them.
 - **Ports stay inside the sandbox.** Parallel sandboxes each run their own stack on the same ports without colliding; publish one to the host only to look at it (`sbx ports <name> --publish <host>:<port>`; services listen on `0.0.0.0`).
 - **Ownership is fine.** A container running as root inside the sandbox writes files that appear on the host owned by the host user (tested on a host with UID 1000, the same as the agent user's; rerun `touch` from a container and `ls -ln` on the host when the UIDs differ).
+- **Integration tests are usually deselected by default** (a marker such as `-m 'not integration'` in the pytest config) because they need live API keys and outside services. Inside the sandbox they run when the keys are in the copied env file and every host they call is in the kit; run them explicitly (`pytest -m integration`). A `403 Approval required for <host>` in the output names the next host for the kit's allow list.
+- **Report the whole count, not just "passed".** A green run with deselected or skipped tests did not exercise those paths; the agent states passed, failed, skipped and deselected (and why) before calling the work verified.
+- **Warnings from the app show up as well.** A teardown warning such as `database "test_…" is being accessed by other users` comes from the code (a test or client leaving a connection open), not from the sandbox; a fresh stack in a sandbox is a good place to fix it, because the agent can rerun the suite itself.
 - **Startup order shows up here first.** A clean stack in a fresh sandbox exposes races a long-lived host stack hides, such as a scheduler starting before migrations; use `depends_on: … condition: service_healthy`.
 
 ### Stack on the host

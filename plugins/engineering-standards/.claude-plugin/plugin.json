@@ -1,5 +1,5 @@
 {
   "name": "engineering-standards",
   "description": "Engineering standards: small reviewable pull requests, CLAUDE.md structure and where documentation and plans live, agent sandbox practice; plus /branch to start a branch with its plans directory and /sandbox to start Claude in a Docker Sandbox on a new worktree",
-  "version": "1.5.0"
+  "version": "1.5.1"
 }
