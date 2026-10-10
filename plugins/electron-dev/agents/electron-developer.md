@@ -48,7 +48,7 @@ Read /home/rodo/.claude/skills/electron-development/SKILL.md
 - [ ] Performance validated
 
 ## Coordination with Other Agents
-- Coordinate with `fullstack-developer` for backend APIs
+- Coordinate with `fullstack-engineer` for backend APIs
 - Work with `code-reviewer` on security audit
 - Consult `agentic-engineer` for AI features in desktop
 

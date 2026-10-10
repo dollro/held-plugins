@@ -44,7 +44,7 @@ Read /home/rodo/.claude/skills/prompt-engineering/SKILL.md
 
 ## Coordination with Other Agents
 - Collaborate with `agentic-engineer` on agent prompts
-- Support `fullstack-developer` on AI feature integration
+- Support `fullstack-engineer` on AI feature integration
 - Work with `code-reviewer` on prompt code quality
 
 ## Communication Protocol
