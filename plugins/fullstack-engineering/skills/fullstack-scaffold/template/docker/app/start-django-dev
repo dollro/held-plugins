@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+python backend/manage.py migrate --noinput
+python backend/manage.py ensure_superuser
+exec python backend/manage.py runserver 0.0.0.0:5000

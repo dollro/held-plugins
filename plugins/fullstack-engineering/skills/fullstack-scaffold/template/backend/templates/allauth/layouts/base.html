@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% comment %}
+  Puts allauth's pages (login, signup, email verification, password reset, MFA)
+  into the app's layout and styles; see the .auth rules in frontend/src/styles.css.
+  Override single pages under templates/account/, templates/mfa/ etc. when needed.
+{% endcomment %}
+{% block title %}{% block head_title %}{% endblock %} · __PROJECT_TITLE__{% endblock %}
+{% block body %}
+<main class="auth mx-auto max-w-md space-y-6 px-4 py-16">
+  <a href="/" class="text-sm font-semibold no-underline">__PROJECT_TITLE__</a>
+  {% if messages %}
+  <ul class="space-y-1 text-sm" role="status">
+    {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% block content %}{% endblock %}
+  {% if user.is_authenticated %}
+  <nav class="flex flex-wrap gap-4 border-t pt-4 text-sm">
+    <a href="/app/">Back to the app</a>
+    {# >>> accounts #}
+    <a href="{% url 'account_email' %}">Email</a>
+    <a href="{% url 'account_change_password' %}">Password</a>
+    <a href="{% url 'mfa_index' %}">Two-factor authentication</a>
+    {# <<< accounts #}
+    <a href="{% url 'account_logout' %}">Log out</a>
+  </nav>
+  {% endif %}
+</main>
+{% endblock %}

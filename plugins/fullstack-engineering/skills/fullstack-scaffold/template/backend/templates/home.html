@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="mx-auto max-w-md space-y-6 px-4 py-16">
+  <h1 class="text-2xl font-semibold">__PROJECT_TITLE__</h1>
+  {% if user.is_authenticated %}
+  <a href="/app/" class="block rounded bg-slate-900 px-4 py-2 text-center text-white">Open the app</a>
+  {% else %}
+  {# Every way in (password, SSO, MFA) runs through allauth's login page. #}
+  <a href="{% url 'account_login' %}?next=/app/" class="block rounded bg-slate-900 px-4 py-2 text-center text-white">Log in</a>
+  {# >>> accounts #}
+  {% if signup_open %}
+  <a href="{% url 'account_signup' %}?next=/app/" class="block rounded border px-4 py-2 text-center">Create an account</a>
+  {% endif %}
+  {# <<< accounts #}
+  {% endif %}
+</main>
+{% endblock %}

@@ -1,0 +1,20 @@
+# Local and CI stand-in for the production reverse proxy: one origin, the same
+# routes as compose.deploy.yml. Browsers open http://localhost:8000.
+{
+	auto_https off
+	admin off
+}
+
+:8080 {
+	# >>> realtime
+	handle /v1/* {
+		reverse_proxy realtime:8001 {
+			# Stream Server-Sent Events immediately.
+			flush_interval -1
+		}
+	}
+	# <<< realtime
+	handle {
+		reverse_proxy django:5000
+	}
+}

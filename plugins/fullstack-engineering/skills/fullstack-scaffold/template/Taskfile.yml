@@ -1,0 +1,206 @@
+# One command surface for people, agents and CI. CI files only call these tasks,
+# so GitHub Actions and GitLab CI stay thin and interchangeable.
+version: "3"
+
+env:
+  # Containers write into the bind-mounted repo as this user (see compose files).
+  USER_ID: { sh: id -u }
+  GROUP_ID: { sh: id -g }
+
+vars:
+  DC: docker compose -f compose.local.yml
+  DC_CI: docker compose -f compose.local.yml -f compose.ci.yml
+  RUN: docker compose -f compose.local.yml run --rm
+
+tasks:
+  default:
+    cmds: [task --list]
+
+  # ── Local development ────────────────────────────────────────────────────
+  setup:
+    desc: First run - env file, images, dependencies
+    cmds:
+      - task: env:local
+      - task: dev:build
+      - "{{.RUN}} frontend /app/docker/frontend/pnpm --version"
+
+  env:local:
+    desc: Create .envs/local/app.env (decrypt if possible, else copy the example)
+    status: [test -f .envs/local/app.env]
+    cmds:
+      - |
+        if [ -f .envs/local/app.env.enc ] && sops --decrypt --input-type dotenv --output-type dotenv \
+             .envs/local/app.env.enc > .envs/local/app.env 2>/dev/null; then
+          echo "decrypted .envs/local/app.env"
+        else
+          cp .envs/local/app.env.example .envs/local/app.env
+          echo "copied .envs/local/app.env from the example"
+        fi
+
+  dev:build:
+    desc: Build the local images
+    cmds: ["{{.DC}} build"]
+
+  # Detached on purpose: the command returns once services are healthy, so it
+  # works the same for people, agents and scripts. Logs: task dev:logs.
+  dev:up:
+    desc: Start the local stack in the background and wait until healthy (http://localhost:8000)
+    deps: [env:local]
+    cmds: ["{{.DC}} up -d --wait"]
+
+  dev:down:
+    desc: Stop the local stack (data volumes stay)
+    cmds: ["{{.DC}} down"]
+
+  dev:ps:
+    desc: Show the state of the local services
+    cmds: ["{{.DC}} ps"]
+
+  dev:logs:
+    desc: Follow logs, e.g. task dev:logs -- django
+    cmds: ["{{.DC}} logs -f --tail=200 {{.CLI_ARGS}}"]
+
+  dev:restart:
+    desc: Recreate services so env file changes apply, e.g. task dev:restart -- django
+    cmds: ["{{.DC}} up -d --wait --force-recreate {{.CLI_ARGS}}"]
+
+  dev:reset:
+    desc: Stop the stack and DELETE local data (database, node_modules volume)
+    prompt: This deletes the local database and volumes. Continue?
+    cmds: ["{{.DC}} down -v"]
+
+  dev:manage:
+    desc: Django management command, e.g. task dev:manage -- createsuperuser
+    cmds: ["{{.RUN}} django python backend/manage.py {{.CLI_ARGS}}"]
+
+  dev:makemigrations:
+    desc: Create Django migrations (commit them)
+    cmds: ["{{.RUN}} django python backend/manage.py makemigrations {{.CLI_ARGS}}"]
+
+  # >>> realtime
+  dev:alembic-revision:
+    desc: Create an Alembic migration for realtime tables, e.g. task dev:alembic-revision -- "add x"
+    cmds:
+      - "{{.RUN}} realtime alembic -c realtime/alembic.ini revision --autogenerate -m {{.CLI_ARGS | shellQuote}}"
+  # <<< realtime
+
+  dev:seed-e2e:
+    desc: Create the end-to-end test user
+    cmds: ["{{.RUN}} django python backend/manage.py seed_e2e_user"]
+
+  # ── Dependencies ─────────────────────────────────────────────────────────
+  deps:lock:
+    desc: Re-lock Python (uv.lock) and frontend (pnpm-lock.yaml) dependencies
+    cmds:
+      - uv lock
+      - "{{.RUN}} frontend /app/docker/frontend/pnpm install --no-frozen-lockfile"
+
+  deps:upgrade:
+    desc: Upgrade all dependencies within their constraints; review the lockfile diff
+    cmds:
+      - uv lock --upgrade
+      - "{{.RUN}} frontend /app/docker/frontend/pnpm update"
+
+  # ── Docs ─────────────────────────────────────────────────────────────────
+  docs:serve:
+    desc: Serve the docs site with live reload at http://localhost:8888
+    cmds: ["{{.DC}} --profile docs up docs"]
+
+  # ── Checks (CI calls exactly these) ──────────────────────────────────────
+  check:lint:
+    desc: pre-commit hooks on all files (ruff, hygiene, secrets guard)
+    cmds: ["uvx pre-commit run --all-files --show-diff-on-failure"]
+
+  check:frontend:
+    desc: Type-check, lint and unit-test the frontend
+    cmds:
+      - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run type-check"
+      - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run ci:lint"
+      - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run ci:test-unit"
+
+  test:backend:
+    desc: Backend tests (pytest) against real Postgres and Redis
+    deps: [env:local]
+    cmds:
+      - "{{.RUN}} django python backend/manage.py makemigrations --check --dry-run"
+      - "{{.RUN}} django pytest {{.CLI_ARGS}}"
+
+  test:e2e:
+    desc: Playwright against the production-like stack (built assets)
+    deps: [env:local]
+    cmds:
+      - "{{.DC_CI}} --profile build run --rm frontend-build"
+      - "{{.DC_CI}} up -d --wait django celeryworker proxy{{if .REALTIME}} realtime{{end}}"
+      - defer: "{{.DC_CI}} down"
+      - "{{.DC_CI}} --profile e2e run --rm playwright"
+    vars:
+      REALTIME: __REALTIME_ENABLED__
+
+  check:docs:
+    desc: Build the docs site strictly (broken links and nav entries fail)
+    cmds: ["{{.DC}} --profile docs run --rm --no-deps docs build"]
+
+  ci:
+    desc: Everything CI runs before merge
+    cmds:
+      - task: check:lint
+      - task: check:docs
+      - task: check:frontend
+      - task: test:backend
+      - task: test:e2e
+
+  # ── Secrets (SOPS + age) ─────────────────────────────────────────────────
+  secrets:edit:
+    desc: Edit an env in place, e.g. task secrets:edit ENV=production
+    interactive: true
+    requires: { vars: [ENV] }
+    cmds:
+      - sops --input-type dotenv --output-type dotenv .envs/{{.ENV}}/app.env.enc
+      - task: secrets:examples
+
+  secrets:encrypt:
+    desc: Encrypt .envs/ENV/app.env into app.env.enc (commit the .enc)
+    requires: { vars: [ENV] }
+    cmds:
+      # Via a temp file: a failed encrypt must not truncate the committed .enc.
+      - sops --encrypt --input-type dotenv --output-type dotenv .envs/{{.ENV}}/app.env > .envs/{{.ENV}}/app.env.enc.tmp
+      - mv .envs/{{.ENV}}/app.env.enc.tmp .envs/{{.ENV}}/app.env.enc
+
+  secrets:decrypt:
+    desc: Decrypt app.env.enc into the gitignored app.env
+    requires: { vars: [ENV] }
+    cmds:
+      - sops --decrypt --input-type dotenv --output-type dotenv .envs/{{.ENV}}/app.env.enc > .envs/{{.ENV}}/app.env
+
+  secrets:updatekeys:
+    desc: Re-encrypt for the recipients in .sops.yaml (after adding/removing a person)
+    cmds:
+      - for f in .envs/*/app.env.enc; do sops updatekeys --yes --input-type dotenv "$f"; done
+
+  secrets:examples:
+    desc: Regenerate app.env.example files from decrypted env files
+    cmds: ["python3 scripts/env_examples.py"]
+
+  # ── Release and deploy ───────────────────────────────────────────────────
+  release:build:
+    desc: Build and push production images, e.g. task release:build REGISTRY=ghcr.io/org VERSION=v1.2.3 [PLATFORMS=linux/amd64,linux/arm64]
+    requires: { vars: [REGISTRY, VERSION] }
+    vars: { PLATFORMS: '{{.PLATFORMS | default "linux/amd64"}}' }
+    cmds:
+      - REGISTRY={{.REGISTRY}} IMAGETAG={{.VERSION}} PLATFORMS={{.PLATFORMS}} docker buildx bake --push
+
+  deploy:
+    desc: Deploy the APP_VERSION pinned for ENV - pull, migrate, up. task deploy ENV=staging|production
+    requires: { vars: [ENV] }
+    # Inline on purpose: an exported DEPLOY_ENV in the shell must never win over ENV.
+    cmds:
+      - DEPLOY_ENV={{.ENV}} scripts/deploy.sh pull
+      - DEPLOY_ENV={{.ENV}} scripts/deploy.sh migrate
+      - DEPLOY_ENV={{.ENV}} scripts/deploy.sh up
+
+  deploy:*:
+    desc: Any deploy.sh verb, e.g. task deploy:ps ENV=staging, task deploy:logs ENV=production -- django
+    requires: { vars: [ENV] }
+    vars:
+      VERB: "{{index .MATCH 0}}"
+    cmds: ["DEPLOY_ENV={{.ENV}} scripts/deploy.sh {{.VERB}} {{.CLI_ARGS}}"]

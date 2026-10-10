@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Django
+backend/staticfiles/
+backend/media/
+backend/static/vue/
+celerybeat-schedule*
+celerybeat.pid
+
+# Frontend
+frontend/node_modules/
+.pnpm-store/
+frontend/dist/
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e-results.xml
+
+# Secrets: only *.enc and *.example are committed
+.envs/**/app.env
+!.envs/**/app.env.example
+!.envs/**/app.env.enc
+.envs/**/app.env.enc.tmp
+
+# Docs site build output
+site/
+
+# Temporary planning files (engineering-standards)
+plans/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

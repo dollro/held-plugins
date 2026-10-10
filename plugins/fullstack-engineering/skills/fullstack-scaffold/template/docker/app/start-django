@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Migrations are a separate deploy step (scripts/deploy.sh migrate), never on start.
+exec gunicorn backend.config.wsgi \
+  --bind 0.0.0.0:5000 \
+  --workers "${GUNICORN_WORKERS:-3}" \
+  --access-logfile - \
+  --forwarded-allow-ips '*'

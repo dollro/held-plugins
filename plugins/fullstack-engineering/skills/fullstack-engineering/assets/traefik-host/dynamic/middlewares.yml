@@ -1,0 +1,33 @@
+http:
+  middlewares:
+    # Applied to every route on websecure (traefik.yml).
+    default:
+      chain:
+        middlewares:
+          - compress
+
+    compress:
+      compress:
+        # Keep Server-Sent Events uncompressed. Traefik excludes no content type
+        # by default and does gzip text/event-stream (tested); compressed streams
+        # risk buffering in other intermediaries and gain nothing for small events.
+        excludedContentTypes:
+          - text/event-stream
+
+    # Opt-in for apps that do not set security headers themselves (Django does,
+    # so apps on the reference stack do not need it). No HSTS preload here:
+    # preloading is a domain-wide, effectively permanent decision.
+    secure-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: false
+        forceSTSHeader: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: strict-origin-when-cross-origin
+        permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+
+    dashboard-auth:
+      basicAuth:
+        realm: Traefik
+        usersFile: /etc/traefik/.htpasswd

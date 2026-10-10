@@ -1,0 +1,39 @@
+# Hook revisions are bumped by `uvx pre-commit autoupdate` (the scaffold runs it once).
+# Frontend type-check/lint run in `task check:frontend`, not on every commit.
+default_install_hook_types: [pre-commit]
+exclude: '(^|/)(migrations|node_modules|static/vue)/'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.enc$'
+      - id: end-of-file-fixer
+        exclude: '\.enc$'
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-added-large-files
+      - id: detect-private-key
+      - id: check-merge-conflict
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.0
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: no-plaintext-env
+        name: block plaintext env files (commit app.env.enc instead)
+        entry: plaintext env files must not be committed
+        language: fail
+        files: '^\.envs/[^/]+/app\.env$'
+      - id: env-examples-in-sync
+        name: app.env.example matches the decrypted env
+        entry: python3 scripts/env_examples.py --check
+        language: system
+        pass_filenames: false
+        files: '^(\.envs/|scripts/env_examples\.py$)'

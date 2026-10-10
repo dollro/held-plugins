@@ -1,0 +1,14 @@
+# Who can decrypt which env file. Any one listed key can decrypt.
+# Add a person: append their age public key (or PGP fingerprint), then run
+# `task secrets:updatekeys`. Remove a person: delete the key, updatekeys, and
+# rotate every secret they could read.
+creation_rules:
+  - path_regex: \.envs/production/app\.env(\.enc)?$
+    age: >-
+      __AGE_RECIPIENTS_PRODUCTION__
+  - path_regex: \.envs/staging/app\.env(\.enc)?$
+    age: >-
+      __AGE_RECIPIENTS_STAGING__
+  - path_regex: \.envs/local/app\.env(\.enc)?$
+    age: >-
+      __AGE_RECIPIENTS_LOCAL__

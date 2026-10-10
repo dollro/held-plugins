@@ -1,0 +1,68 @@
+# Static configuration. Traefik reads exactly one static source (this file, or
+# env vars, or CLI flags), so everything static lives here.
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      # Drop headers like X_Forwarded_Proto that WSGI/CGI backends (Django)
+      # would read as X-Forwarded-Proto: header spoofing (CVE-2026-88879).
+      aliasHeadersStrategy: delete
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+    http:
+      aliasHeadersStrategy: delete
+      # Applies to every route; see dynamic/middlewares.yml.
+      middlewares:
+        - default@file
+  ping:
+    address: ":8082"
+    http:
+      aliasHeadersStrategy: delete
+
+ping:
+  entryPoint: ping
+
+providers:
+  docker:
+    endpoint: "tcp://socket-proxy:2375"
+    # Only containers with traefik.enable=true are routed.
+    exposedByDefault: false
+    network: proxy
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  # App stacks refer to this name (TLS_CERTRESOLVER in their deploy.env).
+  letsencrypt:
+    acme:
+      email: "ops@example.com"  # replace: expiry warnings go here
+      storage: /letsencrypt/acme.json
+      tlsChallenge: {}
+
+# A TLS-options conflict for one host disables its routers instead of silently
+# falling back to the default options (recommended since v3.6.26).
+core:
+  strictTLSOptions: true
+
+api:
+  dashboard: true
+
+# JSON to stdout; Docker's log driver rotates (configure max-size on the host).
+log:
+  level: INFO
+  format: json
+accessLog:
+  format: json
+  fields:
+    headers:
+      defaultMode: drop  # never log cookies or authorization headers
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false

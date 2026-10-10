@@ -1,0 +1,51 @@
+# CI and end-to-end tests: production-like (built assets, no Vite dev server).
+# Used together with compose.local.yml:
+#   docker compose -f compose.local.yml -f compose.ci.yml ...
+services:
+  django:
+    command: >-
+      bash -c "python backend/manage.py migrate --noinput
+      && python backend/manage.py seed_e2e_user
+      && python backend/manage.py runserver 0.0.0.0:5000"
+    environment:
+      DJANGO_VITE_DEV_MODE: "False"
+      DJANGO_DEBUG: "False"
+      APP_ENVIRONMENT: ci
+      DJANGO_SETTINGS_MODULE: backend.config.settings.local
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,django,proxy
+
+  frontend:
+    profiles: ["dev-only"]
+
+  flower:
+    profiles: ["dev-only"]
+
+  frontend-build:
+    image: node:__NODE_VERSION__-__DEBIAN_SUITE__-slim
+    command: /app/docker/frontend/pnpm run build-only
+    init: true
+    environment:
+      HOST_UID: ${USER_ID:-1000}
+      HOST_GID: ${GROUP_ID:-1000}
+    volumes:
+      - .:/app
+      - frontend_node_modules:/app/frontend/node_modules
+    profiles: ["build"]
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v__PLAYWRIGHT_VERSION__-noble
+    command: /app/docker/frontend/pnpm run test:e2e
+    # Recommended by Playwright for Chromium in containers.
+    ipc: host
+    init: true
+    environment:
+      CI: "true"
+      # Through the proxy, exactly like production routing.
+      E2E_BASE_URL: http://proxy:8080
+    volumes:
+      - .:/app
+      - frontend_node_modules:/app/frontend/node_modules
+    depends_on:
+      proxy:
+        condition: service_started
+    profiles: ["e2e"]

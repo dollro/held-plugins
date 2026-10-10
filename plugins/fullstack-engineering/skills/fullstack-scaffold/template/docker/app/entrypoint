@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Wait for Postgres and Redis, then run the command (a start-* script).
+python /docker/wait_for_services.py
+exec "$@"

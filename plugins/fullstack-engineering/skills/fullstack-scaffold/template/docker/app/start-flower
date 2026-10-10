@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec celery -A backend.config.celery_app flower --port=5555 \
+  --basic-auth="${FLOWER_USER}:${FLOWER_PASSWORD}"

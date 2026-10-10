@@ -1,0 +1,103 @@
+{
+  "_comment": "Packages the scaffold installs. Names only, resolved to the current release at scaffold time. A floor appears only where the guideline relies on a feature or a known pitfall; the reason is in 'floors'.",
+  "python": {
+    "core": [
+      "django",
+      "djangorestframework",
+      "django-environ",
+      "django-redis",
+      "django-vite>=3",
+      "django-celery-beat",
+      "whitenoise",
+      "gunicorn",
+      "argon2-cffi",
+      "psycopg[binary]>=3",
+      "celery",
+      "redis"
+    ],
+    "allauth_extras": {
+      "_comment": "django-allauth is always installed; the login audience adds extras (sso: company SSO via socialaccount's OpenID Connect provider, accounts: MFA with TOTP, passkeys and recovery codes).",
+      "sso": "socialaccount",
+      "accounts": "mfa"
+    },
+    "realtime": [
+      "fastapi",
+      "uvicorn[standard]",
+      "sqlalchemy[asyncio]>=2",
+      "alembic",
+      "pydantic-settings>=2",
+      "httpx"
+    ],
+    "docs": [
+      "mkdocs>=1.6,<2",
+      "mkdocs-material"
+    ],
+    "dev": [
+      "ruff",
+      "pytest",
+      "pytest-django",
+      "pytest-asyncio",
+      "pytest-cov",
+      "flower",
+      "django-debug-toolbar",
+      "pre-commit"
+    ]
+  },
+  "node": {
+    "_comment": "The frontend tooling (Vue, Router, Pinia, TypeScript, ESLint+Oxlint, Vitest, Playwright) comes from create-vue at scaffold time; this section only adds or adjusts on top of it.",
+    "create_vue_flags": [
+      "--ts",
+      "--router",
+      "--pinia",
+      "--vitest",
+      "--playwright",
+      "--eslint",
+      "--bare",
+      "--force"
+    ],
+    "create_vue_remove": [
+      "index.html",
+      "public",
+      "README.md",
+      "src",
+      "e2e/vue.spec.ts",
+      "playwright.config.ts",
+      "vite.config.ts"
+    ],
+    "add_dev": [
+      "tailwindcss",
+      "@tailwindcss/vite"
+    ],
+    "exact": [
+      "@playwright/test"
+    ],
+    "remove": [
+      "vite-plugin-vue-devtools"
+    ]
+  },
+  "floors": {
+    "django-vite>=3": "The DJANGO_VITE settings dict and {% vite_asset %} tags used by the templates arrived in 3.x.",
+    "psycopg[binary]>=3": "psycopg2 is in maintenance; Django and the guideline use psycopg 3.",
+    "sqlalchemy[asyncio]>=2": "The realtime service uses the 2.0 typed ORM (Mapped, mapped_column) and async engine.",
+    "pydantic-settings>=2": "Settings moved out of pydantic core in v2.",
+    "mkdocs>=1.6,<2": "MkDocs 2.0 is reported to drop plugins and themes; Material itself requires mkdocs<2. Material reaches end of life on 2026-11-05: see the docs-site pitfall in fullstack-engineering/references/local-dev-and-tooling.md.",
+    "@playwright/test (exact)": "The Playwright Docker image tag must equal the installed @playwright/test version, so it is installed without a range."
+  },
+  "runtimes": {
+    "_comment": "Defaults for base images, set once at scaffold time and overridable. Rules, re-check at scaffold time: python = newest minor that every core package officially supports (Celery is usually last); node = current Active LTS; postgres = current major with at least one year of minor releases; redis = current stable major (Redis 8 offers AGPLv3 among its licenses; running the official image as a service is fine); debian = suite pinned on purpose, because the `-slim` tags switch suites on their own. caddy = current major (local/CI proxy that mirrors production routing); mailpit = current major tag (development mail catcher, accounts audiences only). docker = current Docker major (GitLab CI docker:<v>-cli / -dind images).",
+    "python": "3.13",
+    "node": "24",
+    "postgres": "18",
+    "redis": "8",
+    "debian": "trixie",
+    "caddy": "2",
+    "mailpit": "v1",
+    "docker": "29"
+  },
+  "pitfalls": {
+    "typescript": "`typescript@latest` can be ahead of Vue tooling (vue-tsc, typescript-eslint). Use the TypeScript line create-vue currently generates.",
+    "pnpm": "Recent pnpm blocks dependency build scripts by default: approve the ones you need (`pnpm approve-builds`). Corepack is removed from Node 25 on: install the exact pnpm from `packageManager` explicitly.",
+    "fastapi": "FastAPI is still 0.x and ships breaking changes in minor releases: always install from the lockfile and read the release notes before upgrading.",
+    "sqlalchemy": "Adopt a new SQLAlchemy minor only after a test window; the project itself advises pinning below a fresh minor until tested."
+  }
+}

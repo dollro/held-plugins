@@ -1,0 +1,13 @@
+.git
+.venv
+**/__pycache__
+**/node_modules
+frontend/dist
+frontend/playwright-report
+frontend/test-results
+backend/static/vue
+backend/staticfiles
+backend/media
+.envs/**/app.env
+plans
+site

@@ -1,0 +1,43 @@
+[project]
+name = "__PROJECT__"
+version = "0.1.0"
+description = "__PROJECT_TITLE__: Django + FastAPI + Vue web app (fullstack reference)"
+requires-python = ">=__PYTHON_VERSION__"
+# Dependencies are added by the scaffold with `uv add` (see stack.json) and
+# locked in uv.lock. Floors only where the guideline depends on a feature.
+dependencies = []
+
+[dependency-groups]
+dev = []
+
+[tool.uv]
+# The repo is an application, not a library: install dependencies only.
+package = false
+
+[tool.ruff]
+line-length = 88
+extend-exclude = ["**/migrations/**", "frontend/**"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "DJ", "S"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106"]
+"**/conftest.py" = ["S101", "S105", "S106"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "backend.config.settings.test"
+pythonpath = ["."]
+testpaths = ["backend", "realtime"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# --ds wins over a DJANGO_SETTINGS_MODULE from the container env file.
+addopts = "-ra --strict-markers --ds=backend.config.settings.test"
+filterwarnings = [
+    # WhiteNoise warns when collectstatic has not run; tests do not need it.
+    "ignore:No directory at:UserWarning",
+]
+markers = [
+    "integration: needs live external services (deselect with -m 'not integration')",
+]

@@ -22,7 +22,7 @@
       "name": "prompt-engineering",
       "source": "./plugins/prompt-engineering",
       "description": "Design, optimize, and manage LLM prompts with focus on reliability, efficiency, and measurable outcomes. Includes /prompt-engineering skill and prompt-engineer agent.",
-      "version": "2.0.1",
+      "version": "2.0.2",
       "category": "ai-agent-dev-tools",
       "tags": ["prompts", "llm", "optimization", "evaluation"],
       "keywords": ["prompt", "llm", "optimization", "engineering"]
@@ -85,19 +85,19 @@
       "name": "electron-dev",
       "source": "./plugins/electron-dev",
       "description": "Build secure, performant cross-platform desktop applications with Electron. Includes /electron-development skill and electron-developer agent.",
-      "version": "2.0.1",
+      "version": "2.0.2",
       "category": "development",
       "tags": ["electron", "desktop", "cross-platform", "native"],
       "keywords": ["electron", "desktop", "app", "cross-platform"]
     },
     {
-      "name": "fullstack-dev",
-      "source": "./plugins/fullstack-dev",
-      "description": "End-to-end feature delivery from database to UI with seamless integration. Includes /fullstack-development skill and fullstack-developer agent.",
-      "version": "2.0.1",
+      "name": "fullstack-engineering",
+      "source": "./plugins/fullstack-engineering",
+      "description": "Guideline and reference implementation for web apps: Django system of record, optional FastAPI realtime service, Vue 3 + Vite + TypeScript, PostgreSQL, Redis, Celery, company SSO over OpenID Connect and/or external accounts with MFA, Docker, Task, SOPS, platform-neutral CI, staging and production from the same images. Includes /fullstack-engineering, /fullstack-scaffold and the fullstack-engineer agent.",
+      "version": "1.1.0",
       "category": "development",
-      "tags": ["fullstack", "frontend", "backend", "database", "integration"],
-      "keywords": ["fullstack", "frontend", "backend", "full-stack"]
+      "tags": ["fullstack", "django", "fastapi", "vue", "scaffold", "sso", "docker", "ci-cd"],
+      "keywords": ["fullstack", "full-stack", "django", "fastapi", "vue", "oidc", "scaffold"]
     },
     {
       "name": "equity-research",

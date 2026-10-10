@@ -1,0 +1,43 @@
+# Project docs as a site: `task docs:serve` (http://localhost:8888), built with
+# --strict in CI (`task check:docs`), so broken links and nav entries fail.
+# Theme features and core Markdown extensions only, no extra plugins: that keeps
+# a later move to another MkDocs-compatible generator cheap.
+site_name: __PROJECT_TITLE__
+docs_dir: docs
+site_dir: site
+dev_addr: 0.0.0.0:8888
+strict: true
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    absolute_links: relative_to_docs
+    anchors: warn
+    unrecognized_links: warn
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+  palette:
+    scheme: default
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - Environments: environments.md
+  - Operations: operations.md
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - tables
+  - admonition
+  - attr_list
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences

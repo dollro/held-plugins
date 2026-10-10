@@ -1,0 +1,55 @@
+# Manual deploy of the APP_VERSION pinned in .envs/<environment>/deploy.env on the
+# selected ref (normally main after the bump PR is merged). Staging first, then
+# the same version on production. Each GitHub environment holds its own secrets
+# (SOPS_AGE_KEY, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS) and protection rules.
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: go-task/setup-task@v2
+      - name: Install sops
+        run: |
+          curl -fsSLo /usr/local/bin/sops \
+            "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64"
+          chmod +x /usr/local/bin/sops
+        env:
+          SOPS_VERSION: ${{ vars.SOPS_VERSION || 'v3.10.2' }}
+      - uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Trust the target host
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KNOWN_HOSTS" >> ~/.ssh/known_hosts
+        env:
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      - run: task deploy ENV=${{ inputs.environment }}
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+          # Pull access for the target host (ghcr.io: the workflow token)
+          REGISTRY_USER: ${{ vars.REGISTRY_USER || github.actor }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+      - run: task deploy:ps ENV=${{ inputs.environment }}
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}

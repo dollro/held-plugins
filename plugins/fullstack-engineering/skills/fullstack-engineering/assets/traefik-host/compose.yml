@@ -1,0 +1,72 @@
+# Shared reverse proxy, once per server (not per app). It terminates TLS, owns the
+# external network "proxy" that app stacks join, and routes by Docker labels.
+# Setup and operation: README.md next to this file.
+name: traefik
+
+services:
+  # Traefik never touches the Docker socket itself: this proxy exposes a
+  # read-only subset of the API (container list and events) on an internal network.
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:${SOCKET_PROXY_VERSION:?set in .env}
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      INFO: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [socket_proxy]
+    read_only: true
+    tmpfs: [/run]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:2375/_ping || exit 1"]
+      interval: 20s
+      timeout: 3s
+      retries: 3
+
+  traefik:
+    image: traefik:${TRAEFIK_VERSION:?set in .env}
+    restart: unless-stopped
+    depends_on:
+      socket-proxy:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic:/etc/traefik/dynamic:ro
+      - ./.htpasswd:/etc/traefik/.htpasswd:ro
+      - acme:/letsencrypt
+    networks: [proxy, socket_proxy]
+    # Hardening: immutable root fs, only the capability to bind 80/443.
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    labels:
+      # Dashboard on its own hostname, behind basic auth (dynamic/middlewares.yml).
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`${DASHBOARD_HOST:?set in .env}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth@file,secure-headers@file"
+
+networks:
+  # Created here; app stacks declare it `external: true`.
+  proxy:
+    name: proxy
+    attachable: true
+  socket_proxy:
+    name: socket_proxy
+    internal: true
+
+volumes:
+  acme: {}

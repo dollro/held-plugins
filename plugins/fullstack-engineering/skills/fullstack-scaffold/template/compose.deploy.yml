@@ -1,0 +1,127 @@
+# Staging and production stack: same file, same images; DEPLOY_ENV picks the
+# env files. Never run directly: scripts/deploy.sh resolves secrets and the
+# pinned APP_VERSION on the caller and drives the remote Docker daemon over SSH.
+#
+# A TLS-terminating Traefik runs once per server, shared by all stacks, and owns the
+# external network ${PROXY_NETWORK} (setup: docs/operations.md, "Server setup"). The Traefik labels below route
+#   https://${APP_HOST}/      -> django:5000
+# >>> realtime
+#   https://${APP_HOST}/v1/*  -> realtime:8001 (SSE/WebSockets, no buffering)
+# <<< realtime
+# Another proxy works the same way if it implements these two routes.
+x-app: &app
+  # The decrypted secrets live in a temp file on the caller (scripts/deploy.sh).
+  env_file:
+    - ${APP_ENV_FILE:?run through scripts/deploy.sh}
+    - .envs/${DEPLOY_ENV:?}/deploy.env
+  restart: unless-stopped
+  pull_policy: always
+  # Hardening: no extra capabilities, no privilege escalation, immutable root fs.
+  # Code that writes files needs an explicit volume (e.g. Django MEDIA_ROOT).
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  read_only: true
+  tmpfs: [/tmp]
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  django:
+    <<: *app
+    image: ${REGISTRY}/__PROJECT__-django:${APP_VERSION:?APP_VERSION must be pinned}
+    environment:
+      DJANGO_INTERNAL_HOSTS: __PROJECT__-${DEPLOY_ENV}-django
+    networks:
+      default:
+        # Unique name for service-to-service calls: the plain name "django" is
+        # ambiguous on the shared proxy network (other stacks, other environment).
+        aliases:
+          - __PROJECT__-${DEPLOY_ENV}-django
+      proxy: {}
+    healthcheck:
+      # Readiness (database and cache reachable), so `up --wait` gates on it. Sent
+      # with the public Host, so ALLOWED_HOSTS needs no "localhost" in production.
+      test: ["CMD", "python", "-c", "import urllib.request as r; r.urlopen(r.Request('http://localhost:5000/api/v1/health/ready/', headers={'Host': '${APP_HOST}'}))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # List form: router names include DEPLOY_ENV, so staging and production can
+    # share one host and one reverse proxy.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${PROXY_NETWORK:-proxy}"
+      - "traefik.http.routers.__PROJECT__-${DEPLOY_ENV}-web.rule=Host(`${APP_HOST}`)"
+      - "traefik.http.routers.__PROJECT__-${DEPLOY_ENV}-web.entrypoints=websecure"
+      - "traefik.http.routers.__PROJECT__-${DEPLOY_ENV}-web.tls=true"
+      - "traefik.http.routers.__PROJECT__-${DEPLOY_ENV}-web.tls.certresolver=${TLS_CERTRESOLVER:-letsencrypt}"
+      - "traefik.http.services.__PROJECT__-${DEPLOY_ENV}-web.loadbalancer.server.port=5000"
+
+  celeryworker:
+    <<: *app
+    image: ${REGISTRY}/__PROJECT__-django:${APP_VERSION:?APP_VERSION must be pinned}
+    command: /docker/start-celery-worker
+
+  celerybeat:
+    <<: *app
+    image: ${REGISTRY}/__PROJECT__-django:${APP_VERSION:?APP_VERSION must be pinned}
+    command: /docker/start-celery-beat
+
+  # >>> realtime
+  realtime:
+    <<: *app
+    image: ${REGISTRY}/__PROJECT__-realtime:${APP_VERSION:?APP_VERSION must be pinned}
+    networks: [default, proxy]
+    environment:
+      DJANGO_INTERNAL_URL: http://__PROJECT__-${DEPLOY_ENV}-django:5000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${PROXY_NETWORK:-proxy}"
+      - "traefik.http.routers.__PROJECT__-${DEPLOY_ENV}-realtime.rule=Host(`${APP_HOST}`) && PathPrefix(`/v1`)"
+      - "traefik.http.routers.__PROJECT__-${DEPLOY_ENV}-realtime.entrypoints=websecure"
+      - "traefik.http.routers.__PROJECT__-${DEPLOY_ENV}-realtime.tls=true"
+      - "traefik.http.routers.__PROJECT__-${DEPLOY_ENV}-realtime.tls.certresolver=${TLS_CERTRESOLVER:-letsencrypt}"
+      - "traefik.http.services.__PROJECT__-${DEPLOY_ENV}-realtime.loadbalancer.server.port=8001"
+      - "traefik.http.services.__PROJECT__-${DEPLOY_ENV}-realtime.loadbalancer.responseForwarding.flushInterval=-1s"
+  # <<< realtime
+
+  postgres:
+    image: postgres:__POSTGRES_VERSION__
+    restart: unless-stopped
+    env_file: ${APP_ENV_FILE:?run through scripts/deploy.sh}
+    volumes:
+      # Mount the parent: from the 18 image on, PGDATA is /var/lib/postgresql/<major>/docker.
+      - postgres_data:/var/lib/postgresql
+      - postgres_backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:__REDIS_VERSION__
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+networks:
+  proxy:
+    name: ${PROXY_NETWORK:-proxy}
+    external: true
+
+volumes:
+  postgres_data: {}
+  postgres_backups: {}

@@ -38,7 +38,7 @@ merged without your confirmation.
        check → docs → PR           or a team for one large issue
                   │                       │
                   │   domain skills while building: agentic-engineering,
-                  │   fullstack-dev, electron-dev, uiux-*, prompt-engineering
+                  │   fullstack-engineering, electron-dev, uiux-*, prompt-engineering
                   └───────────┬───────────┘
                      code-review (+ design-parity for UI)
                               │
@@ -76,10 +76,11 @@ merged without your confirmation.
 length limits and tracker conventions from `references/profile.md`, which ships
 with neutral defaults. Replace that file to adapt the standards to your team.
 
-**Migrating from earlier versions.** `ai-dev`, `branch`, `braindump2spec` and
-`spec2plan` were retired. Replace them with `agentic-engineering`,
-`engineering-standards`, `braindump2prd` and `prd2issues` (+ `agent-team` for
-parallel execution).
+**Migrating from earlier versions.** `ai-dev`, `branch`, `braindump2spec`,
+`spec2plan` and `fullstack-dev` were retired; installed copies get no more
+updates. Replace them with `agentic-engineering`, `engineering-standards`,
+`braindump2prd`, `prd2issues` (+ `agent-team` for parallel execution) and
+`fullstack-engineering`.
 
 ## What's inside
 
@@ -88,7 +89,7 @@ parallel execution).
 |plugin|version|what it does|
 |-|-|-|
 |`agentic-engineering`|2.0.0|Standards and guardrails for production agentic AI on LangGraph, Pydantic AI, CrewAI, and Langfuse|
-|`prompt-engineering`|2.0.1|Prompt design, evaluation frameworks, and production prompt systems|
+|`prompt-engineering`|2.0.2|Prompt design, evaluation frameworks, and production prompt systems|
 
 ### Workflows
 
@@ -112,8 +113,8 @@ parallel execution).
 
 |plugin|version|what it does|
 |-|-|-|
-|`electron-dev`|2.0.1|Secure cross-platform desktop apps with Electron|
-|`fullstack-dev`|2.0.1|End-to-end feature delivery from database to UI|
+|`electron-dev`|2.0.2|Secure cross-platform desktop apps with Electron|
+|`fullstack-engineering`|1.1.0|Web app guideline (Django, FastAPI, Vue, Docker, CI) plus a scaffold that generates a repo passing its own CI|
 |`design-parity`|2.0.0|Close the gap between a Claude Design spec and its implementation|
 |`uiux-design-system`|4.0.0|Design system architecture, token hierarchy, and naming conventions|
 |`uiux-design-figma`|1.1.0|UI/UX design in Figma via figma-console-mcp|

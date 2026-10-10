@@ -1,0 +1,17 @@
+{% load django_vite %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}__PROJECT_TITLE__{% endblock %}</title>
+  {{ runtime_config|json_script:"runtime-config" }}
+  {% vite_hmr_client %}
+  {% block assets %}{% vite_asset "main.ts" %}{% endblock %}
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+  {% block body %}{% block content %}{% endblock %}{% endblock %}
+  {# allauth pages put their scripts here (MFA, passkeys, email management). #}
+  {% block extra_body %}{% endblock %}
+</body>
+</html>

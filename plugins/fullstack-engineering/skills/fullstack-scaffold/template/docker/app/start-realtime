@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Migrations are a separate deploy step (scripts/deploy.sh migrate), never on start.
+exec uvicorn realtime.main:app \
+  --host 0.0.0.0 --port 8001 \
+  --workers "${REALTIME_WORKERS:-2}" \
+  --proxy-headers --forwarded-allow-ips '*'

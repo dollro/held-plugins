@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec celery -A backend.config.celery_app beat -l INFO --pidfile=/tmp/celerybeat.pid
