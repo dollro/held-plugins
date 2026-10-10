@@ -26,23 +26,33 @@ src/
 ```typescript
 // src/shared/ipc-contract.ts
 import { z } from 'zod';
+import { UI_LOCALES } from './locales'; // pure data, see accessibility-i18n.md
+
+const DocumentId = z.string().uuid(); // main owns the id → path mapping; the renderer never sends paths
+export const ThemePref = z.enum(['system', 'light', 'dark']);
+export const UiLocale = z.enum(UI_LOCALES);
+
+/** One schema per setting key: the value is typed and validated by its key, so handlers never re-parse. */
+const SettingChange = z.discriminatedUnion('key', [
+  z.object({ key: z.literal('theme'), value: ThemePref }),
+  z.object({ key: z.literal('language'), value: UiLocale }),
+]);
+const Settings = z.object({ theme: ThemePref, language: UiLocale });
+const LocaleInfo = z.object({ locale: UiLocale, dir: z.enum(['ltr', 'rtl']), formatLocale: z.string().max(35) });
+const TelemetryConsent = z.object({ crashReports: z.boolean(), usage: z.boolean() });
 
 /** renderer → main, request/response via invoke/handle */
-const DocumentId = z.string().uuid(); // main owns the id → path mapping; the renderer never sends paths
-
 export const invokeContract = {
   'document:read': {
     request: z.object({ id: DocumentId }),
     response: z.object({ name: z.string(), content: z.string(), mtimeMs: z.number() }),
   },
-  'settings:set': {
-    request: z.object({ key: z.enum(['theme', 'language']), value: z.string().max(64) }),
-    response: z.object({ ok: z.literal(true) }),
-  },
-  'app:version': {
-    request: z.void(),
-    response: z.string(),
-  },
+  'document:start-drag': { request: z.object({ id: DocumentId }), response: z.void() },
+  'settings:set': { request: SettingChange, response: z.object({ ok: z.literal(true) }) },
+  'settings:get-all': { request: z.void(), response: Settings },
+  'i18n:get': { request: z.void(), response: LocaleInfo },
+  'telemetry:set-consent': { request: TelemetryConsent, response: z.void() },
+  'app:version': { request: z.void(), response: z.string() },
   'context-menu:show': {
     request: z.discriminatedUnion('kind', [
       z.object({ kind: z.literal('text-selection') }),
@@ -50,10 +60,8 @@ export const invokeContract = {
     ]),
     response: z.void(),
   },
-  'update:restart': {
-    request: z.void(),
-    response: z.void(),
-  },
+  'indexer:connect': { request: z.void(), response: z.void() }, // port arrives on portChannels.indexer
+  'update:restart': { request: z.void(), response: z.void() },
 } as const;
 
 /** main → renderer, fire-and-forget events */
@@ -63,8 +71,16 @@ export const eventContract = {
   'menu:command': z.enum(['new', 'save', 'preferences']),
   'document:opened': z.object({ id: DocumentId, name: z.string() }),
   'document:action': z.object({ action: z.enum(['open', 'delete']), id: DocumentId }),
+  'settings:changed': SettingChange, // broadcast to every window
+  'theme:changed': z.object({ dark: z.boolean(), highContrast: z.boolean() }),
+  'i18n:changed': LocaleInfo,
 } as const;
 
+/** MessagePort handoff (process-architecture.md): the only messages sent outside emit(), because ports need postMessage. */
+export const portChannels = { indexer: 'indexer:port' } as const;
+export type PortChannel = (typeof portChannels)[keyof typeof portChannels]; // preload checks its literal against this
+
+export type SettingChange = z.output<typeof SettingChange>;
 export type InvokeContract = typeof invokeContract;
 export type InvokeChannel = keyof InvokeContract;
 export type Req<C extends InvokeChannel> = z.input<InvokeContract[C]['request']>;
@@ -79,15 +95,23 @@ type Subscribe<C extends EventChannel> = (cb: (payload: EventPayload<C>) => void
 /** The window.api surface. Lives here so preload, renderer and tests share one type. */
 export interface AtlasApi {
   readDocument: Invoke<'document:read'>;
+  startDocumentDrag: Invoke<'document:start-drag'>;
   setSetting: Invoke<'settings:set'>;
+  getSettings: Invoke<'settings:get-all'>;
+  getLocale: Invoke<'i18n:get'>;
+  setTelemetryConsent: Invoke<'telemetry:set-consent'>;
   appVersion: Invoke<'app:version'>;
   showContextMenu: Invoke<'context-menu:show'>;
+  connectIndexer: Invoke<'indexer:connect'>;
   restartToUpdate: Invoke<'update:restart'>;
   onUpdateReady: Subscribe<'update:ready'>;
   onSyncProgress: Subscribe<'sync:progress'>;
   onMenuCommand: Subscribe<'menu:command'>;
   onDocumentOpened: Subscribe<'document:opened'>;
   onDocumentAction: Subscribe<'document:action'>;
+  onSettingsChanged: Subscribe<'settings:changed'>;
+  onThemeChanged: Subscribe<'theme:changed'>;
+  onLocaleChanged: Subscribe<'i18n:changed'>;
 }
 ```
 
@@ -103,18 +127,27 @@ import {
   type InvokeChannel, type Req, type Res, type EventChannel, type EventPayload,
 } from '../shared/ipc-contract';
 import { assertTrustedSender } from './security';
-import { readDocument } from './documents';        // id → path registry owned by main
-import { showContextMenu } from './context-menu';  // see native-integration.md
-import { restartToUpdate } from './updater';       // see auto-update.md
+import { readDocument, startDocumentDrag } from './documents'; // id → path registry owned by main
+import { applySetting, settings } from './settings';           // see app-lifecycle.md
+import { currentLocaleInfo } from './locale';                  // see accessibility-i18n.md
+import { setTelemetryConsent } from './telemetry';             // see debugging.md
+import { showContextMenu } from './context-menu';              // see native-integration.md
+import { connectIndexer } from './indexer';                    // see process-architecture.md
+import { restartToUpdate } from './updater';                   // see auto-update.md
 
 type Handler<C extends InvokeChannel> = (req: Req<C>, event: IpcMainInvokeEvent) => Promise<Res<C>> | Res<C>;
 type Handlers = { [C in InvokeChannel]: Handler<C> };
 
 const handlers: Handlers = {
   'document:read': ({ id }) => readDocument(id), // unknown id → throws
-  'settings:set': async ({ key, value }) => { settings.set(key, value); return { ok: true }; },
+  'document:start-drag': ({ id }, event) => startDocumentDrag(id, event.sender), // native-integration.md
+  'settings:set': (change) => applySetting(change), // persists, applies, broadcasts settings:changed
+  'settings:get-all': () => settings.getAll(),
+  'i18n:get': () => currentLocaleInfo(),
+  'telemetry:set-consent': (consent) => setTelemetryConsent(consent),
   'app:version': () => app.getVersion(),
   'context-menu:show': (req, event) => showContextMenu(req, event.sender),
+  'indexer:connect': (_req, event) => connectIndexer(event.sender),
   'update:restart': () => restartToUpdate(),
 };
 
@@ -138,6 +171,7 @@ export function emit<C extends EventChannel>(target: WebContents, channel: C, pa
 ```
 
 - `Handlers` being a mapped type means the compiler fails if a channel in the contract has no handler.
+- Setting values are typed per key (`SettingChange` is a discriminated union): handlers narrow on `key` and get a validated `value`; never re-parse it.
 - Errors thrown in handlers reach the renderer as a rejected promise with only the message (Electron serializes it); don't put secrets or stack traces in messages. Return a discriminated `{ ok: false, code }` result if the UI needs structured errors.
 - `assertTrustedSender` is defined in security.md.
 
@@ -163,15 +197,23 @@ function subscribe<C extends EventChannel>(channel: C) {
 
 const api = {
   readDocument: invoke('document:read'),
+  startDocumentDrag: invoke('document:start-drag'),
   setSetting: invoke('settings:set'),
+  getSettings: invoke('settings:get-all'),
+  getLocale: invoke('i18n:get'),
+  setTelemetryConsent: invoke('telemetry:set-consent'),
   appVersion: invoke('app:version'), // Req is void, so callable with no argument
   showContextMenu: invoke('context-menu:show'),
+  connectIndexer: invoke('indexer:connect'),
   restartToUpdate: invoke('update:restart'),
   onUpdateReady: subscribe('update:ready'),
   onSyncProgress: subscribe('sync:progress'),
   onMenuCommand: subscribe('menu:command'),
   onDocumentOpened: subscribe('document:opened'),
   onDocumentAction: subscribe('document:action'),
+  onSettingsChanged: subscribe('settings:changed'),
+  onThemeChanged: subscribe('theme:changed'),
+  onLocaleChanged: subscribe('i18n:changed'),
 } satisfies AtlasApi; // compile error if the bridge and the shared type drift
 
 contextBridge.exposeInMainWorld('api', api);

@@ -27,9 +27,7 @@ Docs: https://www.electronjs.org/docs/latest/tutorial/esm
 import { app, BrowserWindow, nativeTheme } from 'electron';
 import path from 'node:path';
 import { registerIpc } from './ipc';
-import { loadWindowState, trackWindowState } from './window-state';
-
-if (!app.requestSingleInstanceLock()) app.quit();
+import { loadWindowState, trackWindowState } from './window-state'; // see app-lifecycle.md
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -61,25 +59,19 @@ function createWindow(): void {
   }
 }
 
-app.on('second-instance', () => {
-  if (!mainWindow) return;
-  if (mainWindow.isMinimized()) mainWindow.restore();
-  mainWindow.focus();
-});
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
-
-// No top-level await: Forge's Vite plugin bundles main as CommonJS
-void app.whenReady().then(() => {
-  registerIpc();
-  createWindow();
-});
+// Single instance, deep links, quit handling: app-lifecycle.md
+if (!app.requestSingleInstanceLock()) {
+  app.quit(); // async: register nothing else in this instance
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow?.isMinimized()) mainWindow.restore();
+    mainWindow?.focus();
+  });
+  app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  // No top-level await: Forge's Vite plugin bundles main as CommonJS
+  void app.whenReady().then(() => { registerIpc(); createWindow(); });
+}
 ```
 
 ## Renderer Process
@@ -127,7 +119,44 @@ win.on('closed', () => {
 });
 ```
 
-Give views that load remote content no preload (or a minimal one) and apply the navigation/permission handlers from security.md.
+## Embedding Web Content
+
+| Option | Use for | Notes |
+|-|-|-|
+| `WebContentsView` | Third-party or remote content (docs, OAuth pages, customer sites) | Own `webContents`, own session, controlled entirely from main. The default |
+| `<webview>` | Avoid | Disabled by default (`webviewTag: false`); security.md blocks `will-attach-webview`. The Electron docs advise against it (architecture in flux); it is configured from the less trusted page |
+| `<iframe>` | Same-trust content only (your own `app://` pages) | Shares the embedding page's session and permission handlers; the preload does not run in subframes, and `assertTrustedSender` rejects other origins |
+
+Isolate third-party content:
+
+```typescript
+// src/main/embedded-view.ts
+import { session, WebContentsView } from 'electron';
+
+const EMBED_HOST = 'docs.acme.example';
+const embedSession = session.fromPartition('persist:embed-docs'); // no cookies/storage shared with the app
+
+embedSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+embedSession.setPermissionCheckHandler(() => false);
+
+export function createEmbeddedView(): WebContentsView {
+  const view = new WebContentsView({
+    webPreferences: { session: embedSession, sandbox: true, contextIsolation: true }, // no preload
+  });
+  const isAllowed = (raw: string) => {
+    try { const u = new URL(raw); return u.protocol === 'https:' && u.hostname === EMBED_HOST; }
+    catch { return false; }
+  };
+  view.webContents.on('will-navigate', (e, url) => { if (!isAllowed(url)) e.preventDefault(); });
+  view.webContents.on('will-redirect', (e, url) => { if (!isAllowed(url)) e.preventDefault(); });
+  view.webContents.setWindowOpenHandler(() => ({ action: 'deny' })); // or openExternalSafe(url)
+  return view;
+}
+```
+
+- No preload means the embedded page has no `window.api`; if it needs to talk to the app, use a dedicated, minimal preload and a separate contract, never the app's `AtlasApi`.
+- Use a non-`persist:` partition when nothing should survive a restart (one-off OAuth flows).
+- The app-wide `web-contents-created` handlers (security.md) still apply; the per-view handlers narrow them to one host.
 
 ## Utility Process for Heavy Work
 
@@ -174,26 +203,88 @@ Docs: https://www.electronjs.org/docs/latest/api/utility-process
 
 For high-volume streams (renderer to utility process, renderer to renderer), main creates a channel and hands one end to each side, then steps out of the data path.
 
-```typescript
-// main
-import { MessageChannelMain } from 'electron';
+The request goes through the contract channel `indexer:connect` (typed-ipc.md), so the usual sender and payload checks run; only the port itself travels by `postMessage`, on a name declared in the contract's `portChannels`.
 
-ipcMain.on('indexer:connect', (event) => {
-  assertTrustedSender(event);
+```typescript
+// src/main/indexer.ts (handler for 'indexer:connect')
+import { MessageChannelMain, type WebContents } from 'electron';
+import { portChannels } from '../shared/ipc-contract';
+
+export function connectIndexer(sender: WebContents): void {
   const { port1, port2 } = new MessageChannelMain();
   indexer.postMessage({ type: 'port' }, [port1]);
-  event.sender.postMessage('indexer:port', null, [port2]);
-});
+  sender.postMessage(portChannels.indexer, null, [port2]);
+}
 ```
 
 ```typescript
-// preload: forward the port to the page's main world
-ipcRenderer.on('indexer:port', (event) => {
-  window.postMessage('indexer:port', '*', event.ports);
+// src/preload/preload.ts: forward the port to the page's main world (type-only import keeps zod out)
+import type { PortChannel } from '../shared/ipc-contract';
+const INDEXER_PORT = 'indexer:port' satisfies PortChannel;
+ipcRenderer.on(INDEXER_PORT, (event) => {
+  window.postMessage(INDEXER_PORT, '*', event.ports);
 });
 ```
 
-In the page, listen for `message` events where `event.source === window` and `event.data === 'indexer:port'`, then use `event.ports[0]`. Check `event.origin` before trusting it.
+The page calls `await window.api.connectIndexer()`, then listens for `message` events where `event.source === window` and `event.data === 'indexer:port'` and uses `event.ports[0]`. Check `event.origin` before trusting it.
+
+## Long-Running Streams (e.g. Local AI Models)
+
+Inference, transcription and similar token streams run in a `utilityProcess`, never in main (blocks the UI) or the renderer (no native modules, sandboxed). Main forks the worker, brokers one MessagePort per renderer session as above, and stays out of the data path.
+
+```typescript
+// src/workers/model-worker.ts
+import { z } from 'zod';
+
+const Msg = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('generate'), id: z.string().uuid(), prompt: z.string().max(32_000) }),
+  z.object({ type: z.literal('cancel'), id: z.string().uuid() }),
+  z.object({ type: z.literal('credit'), id: z.string().uuid(), n: z.number().int().min(1).max(256) }),
+]);
+
+type Run = { abort: AbortController; credit: number; wake?: () => void };
+const runs = new Map<string, Run>();
+
+process.parentPort.on('message', ({ data, ports }) => {
+  if (data?.type !== 'port' || !ports[0]) return;
+  const port = ports[0];
+  port.on('message', ({ data: raw }) => {
+    const msg = Msg.safeParse(raw);               // the renderer end is untrusted
+    if (!msg.success) return;
+    const m = msg.data;
+    if (m.type === 'generate') void generate(port, m.id, m.prompt);
+    const run = runs.get(m.id);
+    if (m.type === 'cancel') run?.abort.abort();
+    if (m.type === 'credit' && run) { run.credit += m.n; run.wake?.(); }
+  });
+  port.start();
+});
+
+async function generate(port: Electron.MessagePortMain, id: string, prompt: string): Promise<void> {
+  const run: Run = { abort: new AbortController(), credit: 64 };
+  runs.set(id, run);
+  try {
+    for await (const token of model.stream(prompt, { signal: run.abort.signal })) {
+      while (run.credit === 0 && !run.abort.signal.aborted) {
+        await new Promise<void>((r) => { run.wake = r; }); // renderer is behind: pause
+      }
+      run.credit--;
+      port.postMessage({ type: 'token', id, token });
+    }
+    port.postMessage({ type: 'done', id, reason: run.abort.signal.aborted ? 'cancelled' : 'complete' });
+  } catch (err) {
+    port.postMessage({ type: 'error', id, message: String(err) }); // no stack traces to the UI
+  } finally {
+    runs.delete(id);
+  }
+}
+```
+
+- **Cancellation**: every request carries an id; `cancel` aborts the run's `AbortController`, which the inference loop checks between tokens. Also cancel all runs when the port closes (window closed or reloaded).
+- **Backpressure**: MessagePorts have none built in. Use credits: the renderer grants N tokens and sends a new `credit` after rendering a batch. Batch DOM updates per animation frame instead of re-rendering per token.
+- **Memory limits**: model weights live outside the V8 heap, so `--max-old-space-size` does not cap them. Load one model at a time, prefer memory-mapped weights, check free memory (`os.freemem()`) before loading, and watch the worker in `app.getAppMetrics()`. If it dies (`child-process-gone`, reason `oom`), tell the user and restart with a smaller model or context, with backoff.
+- **Lifecycle**: start the worker lazily on first use, stop it after an idle timeout to return memory, and shut it down on quit (app-lifecycle.md "Graceful Shutdown").
+- Model files are large downloads: store them under `userData` (persistence.md), verify a checksum before loading, and never load models from paths the renderer supplies.
 
 ## Crash and Hang Handling
 
@@ -278,7 +369,7 @@ const scope = new ResourceScope();
 scope.bindTo(win);
 scope.interval(checkForUpdates, 60_000);
 
-const onFocus = () => win.webContents.send('app:focus');
+const onFocus = () => void syncNow(); // app-wide listener, removed with the window
 app.on('browser-window-focus', onFocus);
 scope.add(() => app.off('browser-window-focus', onFocus));
 ```

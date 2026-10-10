@@ -117,13 +117,13 @@ crashReporter.start({
 });
 ```
 
-- Without a server, set `uploadToServer: false`; dumps stay in `app.getPath('crashDumps')`.
+- Without a server or without consent, set `uploadToServer: false`; dumps stay in `app.getPath('crashDumps')`. See "Privacy and Telemetry Consent".
 - Symbolication needs the matching Electron symbols (published per release) and your own native module symbols.
 - If you use Sentry (below), don't also call `crashReporter.start` yourself; the SDK configures it.
 
 ## Error Monitoring: @sentry/electron
 
-The SDK sets a minimum supported Electron version per major; check it against your Electron before upgrading either (last snapshot in `sources.md` → Version notes). Initialize separately in each process type; renderer events are routed through main. Docs: https://docs.sentry.io/platforms/javascript/guides/electron/
+The SDK sets a minimum supported Electron version per major; check it against your Electron before upgrading either (last snapshot in `sources.md` → Version notes). Initialize separately in each process type. Renderer events reach Sentry through main's transport by default; whether main's `beforeSend` sees them is an open question (sources.md), so scrub in every process. Docs: https://docs.sentry.io/platforms/javascript/guides/electron/
 
 ```ts
 // src/main/main.ts (first import)
@@ -151,7 +151,7 @@ Sentry.init({});
 ```
 
 - Upload source maps in CI (Sentry Vite plugin or CLI) so stack traces map to TypeScript.
-- Scrub PII (`beforeSend`) and give users an opt-out for telemetry.
+- Gate sending on consent and scrub PII in `beforeSend`: see "Privacy and Telemetry Consent" below.
 
 ## File Logs: electron-log
 
@@ -193,6 +193,61 @@ import { app, shell } from 'electron';
 
 shell.openPath(app.getPath('logs'));
 ```
+
+## Privacy and Telemetry Consent
+
+Crash reports, error events and logs carry file paths, user names and fragments of what the user was doing. Treat them as personal data.
+
+**Consent policy.** Decide per jurisdiction with whoever owns privacy: opt-in (nothing sent until the user agrees) is the safe default and required in many places (e.g. under GDPR for analytics); opt-out only where policy explicitly allows it. Keep crash reporting and usage analytics as separate choices, ask on first run, make both changeable in settings, and honour an admin policy (MDM profile, registry key) that forces them off.
+
+Consent lives in main's settings and changes through the contract channel `telemetry:set-consent` (`window.api.setTelemetryConsent({ crashReports, usage })`, typed-ipc.md). Main applies it immediately:
+
+```ts
+// src/main/telemetry.ts (imported first in main.ts; replaces the plain Sentry.init above)
+import * as Sentry from '@sentry/electron/main';
+import { app } from 'electron';
+import { settings } from './settings';
+
+let consent = settings.get('telemetry') ?? { crashReports: false, usage: false }; // opt-in default
+
+const USER_DIR = /(\/Users\/|\/home\/|[A-Za-z]:\\Users\\)[^/\\]+/gi; // /Users/<name>, /home/<name>, C:\Users\<name>
+export const scrub = (v: unknown): unknown =>
+  typeof v === 'string' ? v.replace(USER_DIR, '$1<user>')
+  : Array.isArray(v) ? v.map(scrub)
+  : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, scrub(x)]))
+  : v;
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  release: `atlas@${app.getVersion()}`,
+  sendDefaultPii: false,
+  beforeSend: (event) => (consent.crashReports ? (scrub(event) as typeof event) : null), // gate + scrub
+  beforeBreadcrumb: (crumb) => (crumb.category === 'console' ? null : (scrub(crumb) as typeof crumb)),
+});
+
+export function setTelemetryConsent(next: typeof consent): void {
+  consent = next;
+  settings.set('telemetry', next);
+  // Without Sentry: crashReporter.start({ submitURL, uploadToServer: consent.crashReports }) at startup, then:
+  // crashReporter.setUploadToServer(next.crashReports);
+  if (next.usage) void import('./analytics').then((m) => m.startAnalytics()); // analytics code loads only after consent
+  else stopAnalyticsIfLoaded();
+}
+```
+
+- Give the renderer and utility `Sentry.init` calls a `beforeSend` that applies the same scrub, unless you have verified that their events pass through main's. Initialising the SDK early with a gate keeps early crashes capturable once consent exists; the alternative is to call `Sentry.init` only after consent. Either way nothing leaves the machine before the user agrees. Check that the SDK's native-crash (minidump) path honours the same gate; if not, disable that integration until consent.
+- Minidumps contain process memory, so they can contain document contents. Upload them only with crash-report consent, and delete `app.getPath('crashDumps')` when the user revokes it.
+- **Never log or report:** secrets and tokens, document contents, clipboard data, full IPC payloads (log channel name, outcome and duration only), full URLs with query strings. Log document ids, not paths.
+- Redact in the logger too, so a forgotten call site cannot leak:
+
+```ts
+// src/main/log.ts (addition)
+import { scrub } from './telemetry';
+log.hooks.push((message) => ({ ...message, data: message.data.map(scrub) }));
+```
+
+- **Retention:** rotate by size (`maxSize`) and delete log files older than a fixed window (e.g. 14 days) at startup. State the window in the privacy notice.
+- **User control:** a "Save Diagnostics…" command lets the user review and export logs (`dialog.showSaveDialog`, then zip the logs folder) and send them themselves; "Delete Diagnostics" clears the logs and crash dump folders. For data already sent, document how users request deletion from the error-monitoring vendor.
 
 ## Other Tools
 

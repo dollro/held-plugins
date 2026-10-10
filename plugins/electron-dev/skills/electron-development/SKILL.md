@@ -1,6 +1,6 @@
 ---
 name: electron-development
-description: "Standards and guardrails for building secure, fast cross-platform desktop apps with Electron on a reference stack: Electron Forge + Vite + TypeScript, sandboxed renderers, typed IPC contracts, utilityProcess for heavy work, fuses and ASAR integrity, code signing and notarization, auto-updates, Playwright/Vitest tests. Principles stay stable across releases; version-specific APIs are checked against the official docs at build time. Use when creating or reviewing Electron apps, BrowserWindow/WebContentsView, preload scripts, IPC, contextBridge, native menus/tray/notifications, packaging, signing, notarization, auto-update, Electron performance, crash reporting or Electron testing. Triggers: electron, desktop app, BrowserWindow, IPC, preload, contextBridge, electron-forge, electron-builder, electron-vite, utilityProcess, fuses, notarize."
+description: "Standards and guardrails for building secure, fast cross-platform desktop apps with Electron on a reference stack: Electron Forge + Vite + TypeScript, sandboxed renderers, typed IPC contracts, utilityProcess for heavy work, fuses and ASAR integrity, code signing and notarization, auto-updates, Playwright/Vitest tests. Principles stay stable across releases; version-specific APIs are checked against the official docs at build time. Use when creating or reviewing Electron apps, BrowserWindow/WebContentsView, preload scripts, IPC, contextBridge, native menus/tray/notifications, packaging, signing, notarization, auto-update, app lifecycle, deep links, single instance, window state, local data/SQLite, Mac App Store, MSIX, Flatpak, accessibility, localisation, Electron performance, crash reporting or Electron testing. Triggers: electron, desktop app, BrowserWindow, IPC, preload, contextBridge, electron-forge, electron-builder, electron-vite, utilityProcess, fuses, notarize, deep link, single instance, tray, menu, Mac App Store, MSIX, SQLite."
 ---
 
 # Electron Development
@@ -30,15 +30,19 @@ This file holds the **principles and guardrails**. They are written to outlast i
 | Read | When you build or review |
 |-|-|
 | `references/security.md` | webPreferences, CSP, navigation, permissions, IPC sender checks, custom protocols, fuses, ASAR integrity, secrets |
-| `references/process-architecture.md` | Main/preload/renderer roles, ESM rules, BaseWindow + WebContentsView, utilityProcess, MessagePorts, crash recovery, memory |
-| `references/typed-ipc.md` | Shared IPC contract, typed preload bridge, validated main handlers, main→renderer events |
-| `references/native-integration.md` | Menus, context menus, tray, notifications, file associations, protocol handlers |
-| `references/build-config.md` | Forge + Vite project layout, `forge.config.mts`, makers, native modules, package managers, CI; electron-builder alternative |
+| `references/process-architecture.md` | Main/preload/renderer roles, ESM rules, BaseWindow + WebContentsView, embedding web content, utilityProcess, MessagePorts, streaming (e.g. local AI), crash recovery, memory |
+| `references/typed-ipc.md` | The shared IPC contract (every channel the references use), per-key typed settings, typed preload bridge, validated main handlers, main→renderer events, MessagePort handoff names |
+| `references/app-lifecycle.md` | Single instance, deep links, open-file, window state restore, macOS vs Windows/Linux quit, multi-window sync, power and online state |
+| `references/persistence.md` | Where data lives, settings vs SQLite vs IndexedDB, migrations, backups, corruption, export and deletion |
+| `references/native-integration.md` | Menus, context menus, tray, notifications, file associations, theming, custom title bars, shortcuts, progress, badges, jump lists, recent documents |
+| `references/accessibility-i18n.md` | Keyboard and screen-reader access, OS accessibility settings, locale detection, localised native UI, RTL, spellchecker |
+| `references/build-config.md` | Forge + Vite project layout, `forge.config.mts`, makers, native modules, dev loop, supply chain, Electron upgrade playbook, CI; electron-builder alternative |
 | `references/code-signing.md` | macOS hardened runtime and notarization, Windows HSM / Azure Artifact Signing, Linux |
+| `references/distribution.md` | Direct download vs stores, universal/arm64 builds, Mac App Store, MSIX and Microsoft Store, Windows on ARM, AppImage/deb/rpm/Flatpak/Snap |
 | `references/auto-update.md` | Choosing an updater, update UX, staged rollouts, rollback safety |
 | `references/performance.md` | Startup, bundling, lazy loading, snapshots, profiling, memory, GPU |
 | `references/testing.md` | Vitest units, IPC handler tests, Playwright and WebdriverIO E2E, fuse gotcha, CI |
-| `references/debugging.md` | Inspecting main, DevTools, process-gone events, crashReporter, Sentry, logging |
+| `references/debugging.md` | Inspecting main, DevTools, process-gone events, crashReporter, Sentry, logging, telemetry consent and PII scrubbing |
 | `references/sources.md` | Official docs, release notes, dated version notes, open questions |
 
 ## Non-negotiable guardrails
@@ -82,5 +86,7 @@ Electron's strengths are the same Chromium on every OS, Node in the main process
 - [ ] Heavy work off the main process
 - [ ] Fuses and ASAR integrity configured; signing and notarization wired for release builds
 - [ ] Tests: Vitest for handlers and shared logic, Playwright smoke test against a build
-- [ ] Crash and error reporting initialised in main, renderer and utility processes
+- [ ] Crash and error reporting initialised after consent, in main, renderer and utility processes
+- [ ] Single instance, deep links and window state handled; user data under `userData` with migrations
+- [ ] Keyboard access, OS accessibility settings and locale respected; native UI localised
 - [ ] Anything that deviates from this skill is named, with the reason

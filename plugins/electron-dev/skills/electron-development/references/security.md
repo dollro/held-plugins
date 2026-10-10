@@ -88,7 +88,7 @@ export const CSP = MAIN_WINDOW_VITE_DEV_SERVER_URL
   : RELEASE_CSP;
 ```
 
-Release: attach the header in the `protocol.handle('app', ...)` handler (see "Custom Protocol" below), so every app response carries it. Dev: the page comes from the Vite server, so inject it with `onHeadersReceived`, scoped to the dev origin:
+Release: attach the header in the `protocol.handle('app', ...)` handler (see "Custom Protocol Instead of file://" below), so every app response carries it. Dev: the page comes from the Vite server, so inject it with `onHeadersReceived`, scoped to the dev origin:
 
 ```typescript
 import { session } from 'electron';

@@ -16,58 +16,63 @@ export function buildAppMenu(win: BrowserWindow): void {
   const isMac = process.platform === 'darwin';
   const command = (cmd: EventPayload<'menu:command'>) => () => emit(win.webContents, 'menu:command', cmd);
 
+  const sep = { type: 'separator' } as const;
+  const devItems: MenuItemConstructorOptions[] = app.isPackaged ? [] : [sep, { role: 'reload' }, { role: 'toggleDevTools' }];
+
   const template: MenuItemConstructorOptions[] = [
-    ...(isMac
-      ? [{
-          label: app.name,
-          submenu: [
-            { role: 'about' }, { type: 'separator' },
-            { label: 'Settings…', accelerator: 'Cmd+,', click: command('preferences') },
-            { type: 'separator' }, { role: 'services' }, { type: 'separator' },
-            { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' },
-            { role: 'quit' },
-          ],
-        } satisfies MenuItemConstructorOptions]
-      : []),
-    {
-      label: 'File',
-      submenu: [
-        { label: 'New', accelerator: 'CmdOrCtrl+N', click: command('new') },
-        { label: 'Open…', accelerator: 'CmdOrCtrl+O', click: () => void pickDocument() },
-        { type: 'separator' },
-        { label: 'Save', accelerator: 'CmdOrCtrl+S', click: command('save') },
-        { type: 'separator' },
-        isMac ? { role: 'close' } : { role: 'quit' },
-      ],
-    },
+    ...(isMac ? [{ label: app.name, submenu: [
+      { role: 'about' }, sep, { label: 'Settings…', accelerator: 'Cmd+,', click: command('preferences') },
+      sep, { role: 'services' }, sep, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, sep, { role: 'quit' },
+    ] } satisfies MenuItemConstructorOptions] : []),
+    { label: 'File', submenu: [
+      { label: 'New', accelerator: 'CmdOrCtrl+N', click: command('new') },
+      { label: 'Open…', accelerator: 'CmdOrCtrl+O', click: () => void pickDocument() },
+      sep, { label: 'Save', accelerator: 'CmdOrCtrl+S', click: command('save') },
+      sep, isMac ? { role: 'close' } : { role: 'quit' },
+    ] },
     { role: 'editMenu' },
-    {
-      label: 'View',
-      submenu: [
-        { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' },
-        { type: 'separator' }, { role: 'togglefullscreen' },
-        // Developer items only in unpackaged builds
-        ...(app.isPackaged
-          ? []
-          : ([{ type: 'separator' }, { role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }] satisfies MenuItemConstructorOptions[])),
-      ],
-    },
+    { label: 'View', submenu: [
+      { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, sep, { role: 'togglefullscreen' }, ...devItems,
+    ] },
     { role: 'windowMenu' },
-    {
-      role: 'help',
-      submenu: [
-        { label: 'Documentation', click: () => openExternalSafe('https://docs.acme.example/atlas') },
-        { label: 'Report an Issue', click: () => openExternalSafe('https://acme.example/atlas/support') },
-      ],
-    },
+    { role: 'help', submenu: [
+      { label: 'Documentation', click: () => openExternalSafe('https://docs.acme.example/atlas') },
+      { label: 'Report an Issue', click: () => openExternalSafe('https://acme.example/atlas/support') },
+    ] },
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 ```
 
-- `editMenu` / `windowMenu` roles give platform-correct standard submenus; spell out a submenu only when you add items.
+- `editMenu` / `windowMenu` roles give platform-correct standard submenus; spell out a submenu only when you add items. Labels shown in English here come from main's translator in a localized app (accessibility-i18n.md).
 - Add "Check for Updates…" to the app menu (macOS) or Help (Windows/Linux) when the updater supports it (auto-update.md).
+
+## Keyboard Shortcuts
+
+| Layer | Fires when | Use for |
+|-|-|-|
+| Menu `accelerator` | App focused | Every app command; discoverable and shown in the menu. The default |
+| `before-input-event` on `webContents` | Before the page and the menu see the key | Blocking or remapping keys |
+| `globalShortcut` | Any app focused, system-wide | One or two opt-in, user-rebindable actions (quick capture) |
+
+```typescript
+// src/main/shortcuts.ts
+export function registerShortcuts(win: BrowserWindow, quickCapture: string | null): boolean {
+  win.webContents.on('before-input-event', (event, input) => { // no reload in packaged builds
+    if (app.isPackaged && input.type === 'keyDown' && (input.control || input.meta) && input.key.toLowerCase() === 'r') event.preventDefault();
+  });
+  if (!quickCapture) return true; // global shortcut is opt-in, off by default
+  const ok = globalShortcut.register(quickCapture, () => { win.show(); win.focus(); emit(win.webContents, 'menu:command', 'new'); });
+  if (!ok) log.warn('Global shortcut unavailable', { quickCapture }); // taken elsewhere: tell the user, offer rebinding
+  return ok;
+}
+app.on('will-quit', () => globalShortcut.unregisterAll());
+```
+
+- `globalShortcut` works only after `ready`. `register` returns `false` when another app owns the combination; the OS does not say which.
+- On Wayland, global shortcuts go through the desktop portal: the desktop name must resolve to the app's `.desktop` file, or some GNOME versions silently deny the bind (sources.md). GNOME may also ask the user to consent on first bind; treat a `false` from `register` as normal.
+- Avoid combinations screen readers and the OS reserve (Ctrl+Option on macOS, Insert/CapsLock combos on Windows); see accessibility-i18n.md.
 
 ## Context Menus
 
@@ -106,6 +111,7 @@ export function showContextMenu(req: Req<'context-menu:show'>, sender: WebConten
 // src/renderer/context-menu.ts
 document.addEventListener('contextmenu', (event) => {
   const target = event.target instanceof Element ? event.target : null;
+  if (target?.closest('input, textarea, [contenteditable]')) return; // main's spellchecker menu
   const id = target?.closest<HTMLElement>('[data-document-id]')?.dataset.documentId;
   if (window.getSelection()?.toString()) {
     event.preventDefault();
@@ -121,7 +127,28 @@ const off = window.api.onDocumentAction(({ action, id }) =>
 );
 ```
 
-Electron shows no context menu by default. For editable fields with spell-check suggestions, build the menu in main from the `webContents` `context-menu` event (`params.dictionarySuggestions`, `params.isEditable`) instead of a renderer round trip.
+### Spellchecker menu for editable fields
+
+Electron shows no context menu by default. Editable fields get theirs from main via the `webContents` `context-menu` event, with no renderer round trip; the renderer listener above skips `input, textarea, [contenteditable]` so it does not `preventDefault` there.
+
+```typescript
+// src/main/context-menu.ts (continued)
+export function attachEditableMenu(win: BrowserWindow): void {
+  win.webContents.on('context-menu', (_event, params) => {
+    if (!params.isEditable) return;
+    const wc = win.webContents;
+    const fixes: MenuItemConstructorOptions[] = params.dictionarySuggestions
+      .map((s) => ({ label: s, click: () => wc.replaceMisspelling(s) }));
+    if (params.misspelledWord) {
+      fixes.push({ label: t('menu.addToDictionary'), click: () => wc.session.addWordToSpellCheckerDictionary(params.misspelledWord) });
+    }
+    Menu.buildFromTemplate([...fixes, ...(fixes.length ? [{ type: 'separator' } as const] : []),
+      { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }]).popup({ window: win });
+  });
+}
+```
+
+`t()` is main's translator; spellchecker languages and localized labels are in accessibility-i18n.md.
 
 ## Opening Documents and Deep Links
 
@@ -156,7 +183,7 @@ export async function readDocument(id: string) {
 
 ```typescript
 // src/main/open-document.ts
-import { dialog, type BrowserWindow } from 'electron';
+import { app, dialog, type BrowserWindow } from 'electron';
 import { registerDocument } from './documents';
 import { emit } from './ipc';
 
@@ -174,6 +201,7 @@ export function setDocumentTarget(win: BrowserWindow): void {
 export function openDocument(filePath: string): void {
   if (!target) { pending.push(filePath); return; }
   emit(target.webContents, 'document:opened', registerDocument(filePath));
+  app.addRecentDocument(filePath); // macOS Dock menu / File > Open Recent role, Windows Jump List
   if (target.isMinimized()) target.restore();
   target.focus();
 }
@@ -203,14 +231,13 @@ app.on('open-file', (event, filePath) => { event.preventDefault(); openDocument(
 app.on('open-url', (event, url) => { event.preventDefault(); handleDeepLink(url); });
 
 // Windows/Linux: paths and deep links arrive as argv, on first launch or in a second instance
-app.on('second-instance', (_event, argv) => {
-  const doc = docFromArgv(argv);
-  const link = linkFromArgv(argv);
-  if (doc) openDocument(doc);
+function routeArgv(argv: string[]): void {
+  const doc = docFromArgv(argv), link = linkFromArgv(argv);
+  if (doc) openDocument(doc); // queued until the window has loaded
   if (link) handleDeepLink(link);
-});
-const initialDoc = docFromArgv(process.argv);
-if (initialDoc) openDocument(initialDoc); // queued until the window has loaded
+}
+app.on('second-instance', (_event, argv) => routeArgv(argv));
+routeArgv(process.argv);
 
 app.setAsDefaultProtocolClient('atlas');
 
@@ -219,13 +246,8 @@ function handleDeepLink(raw: string): void {
   let url: URL;
   try { url = new URL(raw); } catch { return; }
   if (url.protocol !== 'atlas:') return;
-  switch (url.host) {
-    case 'settings':
-      // emit(win.webContents, 'menu:command', 'preferences')
-      break;
-    default:
-      return; // unknown action: ignore, never pass to shell or fs
-  }
+  if (url.host === 'settings') { /* emit(win.webContents, 'menu:command', 'preferences') */ }
+  // any other action: ignore, never pass to shell or fs
 }
 ```
 
@@ -246,6 +268,7 @@ import { emit } from './ipc';
 
 // Packaged: copied to resources/ via packagerConfig.extraResource; dev: repo assets/ (main runs from .vite/build)
 const ASSETS = app.isPackaged ? path.join(process.resourcesPath, 'assets') : path.join(__dirname, '../../assets');
+export const assetPath = (name: string) => path.join(ASSETS, name);
 type TrayState = 'idle' | 'syncing' | 'error';
 
 let tray: Tray | null = null; // module scope: a garbage-collected Tray vanishes from the menu bar
@@ -258,8 +281,7 @@ export function createTray(win: BrowserWindow): void {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Open Atlas', click: show },
     { label: 'Settings…', click: () => { show(); emit(win.webContents, 'menu:command', 'preferences'); } },
-    { type: 'separator' },
-    { role: 'quit' },
+    { type: 'separator' }, { role: 'quit' },
   ]));
 }
 
@@ -271,7 +293,7 @@ export function setTrayState(state: TrayState): void {
 function iconFor(state: TrayState) {
   // macOS: names ending in "Template" are tinted for light/dark menu bars
   const name = process.platform === 'darwin' ? `tray-${state}Template.png` : `tray-${state}.png`;
-  return nativeImage.createFromPath(path.join(ASSETS, name));
+  return nativeImage.createFromPath(assetPath(name));
 }
 ```
 
@@ -306,3 +328,97 @@ export function notify(win: BrowserWindow, title: string, body: string): void {
 - Renderers have no `clipboard` module any more (deprecated, then removed). Use the web Clipboard API there (`navigator.clipboard.readText()`, `writeText()`, `ClipboardItem`), gated by the permission handler in security.md.
 - In main, the `clipboard` module remains, but its read/write methods are asynchronous in current Electron: `await` them (e.g. `await clipboard.readText()`) and don't rely on older synchronous examples. Check the [clipboard API](https://www.electronjs.org/docs/latest/api/clipboard) for your version.
 - `File.path` no longer exists (removed in v32). Resolve a dropped/selected file's path in the preload with `webUtils.getPathForFile(file)` (see process-architecture.md).
+
+## Dark Mode and Theming
+
+The renderer styles itself with `@media (prefers-color-scheme: dark)`; no IPC needed. Main owns the user's choice and sets `nativeTheme.themeSource`, which drives that media query in every renderer and the native UI (menus, dialogs, title bar).
+
+```typescript
+// src/main/theme.ts
+// The choice arrives typed via settings:set (ThemePref in the contract); applySetting sets nativeTheme.themeSource.
+
+export function watchTheme(): void { // after 'ready'
+  nativeTheme.on('updated', () => {
+    const state = { dark: nativeTheme.shouldUseDarkColors, highContrast: nativeTheme.shouldUseHighContrastColors };
+    for (const win of BrowserWindow.getAllWindows()) emit(win.webContents, 'theme:changed', state); // contract event
+  });
+}
+```
+
+On `updated`, also repaint native pieces CSS cannot reach: `win.setTitleBarOverlay` colors, non-template tray icons. Set the window `backgroundColor` to the theme background to avoid a white flash before first paint.
+
+## Window Customization
+
+```typescript
+// src/main/window.ts (excerpt)
+const win = new BrowserWindow({
+  titleBarStyle: 'hidden', // keeps native window controls; frame: false removes them too
+  ...(process.platform === 'darwin'
+    ? { trafficLightPosition: { x: 14, y: 12 } }
+    : { titleBarOverlay: { color: '#00000000', symbolColor: '#1f2937', height: 36 } }), // Windows Controls Overlay
+  webPreferences: { /* hardened, see security.md */ },
+});
+```
+
+```css
+/* src/renderer/titlebar.css: env() keeps content clear of native controls, wherever they sit (RTL, user settings) */
+.titlebar { position: fixed; top: 0; left: env(titlebar-area-x, 0); width: env(titlebar-area-width, 100%);
+  height: env(titlebar-area-height, 36px); app-region: drag; -webkit-app-region: drag; }
+.titlebar :is(button, input, a, [role='button']) { app-region: no-drag; -webkit-app-region: no-drag; }
+```
+
+- Drag regions swallow mouse events: mark every interactive element in them `no-drag`. On Windows a right-click there opens the system menu.
+- Prefer `titleBarStyle: 'hidden'` to `frame: false`: native controls keep snap layouts, accessibility and the platform look. Frameless windows must rebuild minimize/maximize/close as keyboard-accessible buttons backed by contract channels.
+
+## Taskbar, Dock and Badges
+
+```typescript
+// src/main/attention.ts
+export function showSyncProgress(win: BrowserWindow, done: number, total: number, failed = false): void {
+  win.setProgressBar(total ? done / total : -1, { mode: failed ? 'error' : 'normal' }); // < 0 removes; mode: Windows
+}
+
+export function showUnread(win: BrowserWindow, count: number): void {
+  if (process.platform === 'win32') {
+    win.setOverlayIcon(count ? nativeImage.createFromPath(assetPath('badge-dot.png')) : null, count ? `${count} unread` : '');
+  } else {
+    app.setBadgeCount(count); // macOS (needs notification permission); Linux docks with LauncherEntry support
+  }
+}
+```
+
+- Call these from main, which already knows the state. If a count originates in the renderer, add an invoke channel such as `badge:set` with `z.object({ count: z.number().int().min(0).max(9999) })`.
+- The overlay description is what screen readers announce. On Linux the badge belongs to the `.desktop` file, so the desktop name must match it.
+
+## Jump Lists and Recent Documents
+
+`app.addRecentDocument(path)` (in `openDocument` above) feeds the macOS Dock menu and Open Recent, and the Windows Jump List (the app must be registered for the file type). Offer `app.clearRecentDocuments()` as "Clear Recent".
+
+```typescript
+// src/main/jump-list.ts (Windows; set on every launch, the exe path changes with updates)
+if (process.platform === 'win32') {
+  app.setUserTasks([{ program: process.execPath, arguments: '--new-document', iconPath: process.execPath, iconIndex: 0,
+    title: t('jumpList.newDocument'), description: t('jumpList.newDocumentHint') }]);
+}
+```
+
+Task arguments return via `process.argv` or `second-instance`; parse them with the deep-link allowlist. `app.setJumpList(categories)` adds custom categories; check its result string (`'ok'` or an error code).
+
+## Dragging Files Out
+
+The renderer starts a native drag by document id; main resolves the path. `startDrag` must run while the HTML drag starts, with a non-empty icon.
+
+```typescript
+// src/main/documents.ts (handler for the contract channel 'document:start-drag')
+export function startDocumentDrag(id: string, sender: WebContents): void {
+  sender.startDrag({ file: documentPath(id), icon: nativeImage.createFromPath(assetPath('drag-file.png')) });
+}
+
+// src/renderer/document-list.ts
+list.addEventListener('dragstart', (event) => {
+  const id = (event.target as HTMLElement).closest<HTMLElement>('[data-document-id]')?.dataset.documentId;
+  if (!id) return;
+  event.preventDefault();
+  void window.api.startDocumentDrag({ id });
+});
+```

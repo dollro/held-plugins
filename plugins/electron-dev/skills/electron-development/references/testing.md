@@ -107,15 +107,23 @@ const unsubscribe = () => {};
 
 const api: AtlasApi = {
   readDocument: vi.fn(async () => ({ name: 'notes.md', content: '# hello', mtimeMs: 0 })),
+  startDocumentDrag: vi.fn(async () => {}),
   setSetting: vi.fn(async () => ({ ok: true as const })),
+  getSettings: vi.fn(async () => ({ theme: 'system', language: 'en' }) as const),
+  getLocale: vi.fn(async () => ({ locale: 'en', dir: 'ltr', formatLocale: 'en-US' }) as const),
+  setTelemetryConsent: vi.fn(async () => {}),
   appVersion: vi.fn(async () => '0.0.0-test'),
   showContextMenu: vi.fn(async () => {}),
+  connectIndexer: vi.fn(async () => {}),
   restartToUpdate: vi.fn(async () => {}),
   onUpdateReady: vi.fn(() => unsubscribe),
   onSyncProgress: vi.fn(() => unsubscribe),
   onMenuCommand: vi.fn(() => unsubscribe),
   onDocumentOpened: vi.fn(() => unsubscribe),
   onDocumentAction: vi.fn(() => unsubscribe),
+  onSettingsChanged: vi.fn(() => unsubscribe),
+  onThemeChanged: vi.fn(() => unsubscribe),
+  onLocaleChanged: vi.fn(() => unsubscribe),
 };
 Object.defineProperty(window, 'api', { value: api, writable: true });
 ```

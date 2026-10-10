@@ -1,5 +1,5 @@
 {
   "name": "electron-dev",
-  "description": "Standards and guardrails for secure, fast cross-platform desktop apps with Electron: Forge + Vite + TypeScript, sandboxed renderers, typed IPC, utilityProcess, fuses and ASAR integrity, code signing and notarization, auto-updates, Playwright/Vitest tests. Includes /electron-development skill and electron-developer agent.",
-  "version": "3.0.1"
+  "description": "Standards and guardrails for secure, fast cross-platform desktop apps with Electron: Forge + Vite + TypeScript, sandboxed renderers, typed IPC, utilityProcess, fuses and ASAR integrity, code signing and notarization, auto-updates, app lifecycle, local data, store distribution, accessibility and localisation, Playwright/Vitest tests. Includes /electron-development skill and electron-developer agent.",
+  "version": "3.1.0"
 }

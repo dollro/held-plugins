@@ -118,6 +118,38 @@ Notes:
 - `EnableNodeCliInspectArguments: false` breaks Playwright's Electron launcher. The `ATLAS_TEST_BUILD=1` switch above turns it on for E2E builds only; never ship such a build.
 - With `RunAsNode` off, spawn Node work via `utilityProcess.fork`, not `child_process.fork` with `ELECTRON_RUN_AS_NODE`.
 - Use the VitePlugin `concurrent` option to cap parallel builds if CI runs out of memory.
+- Which makers to list depends on the distribution targets (MAS, MSIX, MSI, Flatpak, Snap); see `distribution.md`.
+
+## Dev Loop
+
+`npm start` (`electron-forge start`) runs a Vite dev server for each renderer and Vite watch builds for main and preload.
+
+| Change in | What happens |
+|-|-|
+| Renderer | Vite HMR; state survives unless the module cannot be hot-replaced |
+| Preload | Rebuilt; the template's Vite config reloads open windows (preloads only run on page load) |
+| Main / workers | Rebuilt; the template's Vite config restarts the app. If yours does not, type `rs` in the terminal running `start` |
+| `forge.config.mts`, Vite configs | Stop and rerun `start` |
+
+- Load the renderer from `MAIN_WINDOW_VITE_DEV_SERVER_URL` when it is defined, otherwise from the packaged files via your custom protocol. Never ship code paths that load the dev server URL in a packaged app (`app.isPackaged` guard).
+- Debug main with `electron-forge start --inspect-electron` and attach Chrome DevTools or the editor debugger (`debugging.md`). The fuse that blocks `--inspect` only applies to packaged builds.
+- **Source maps**: `build.sourcemap: true` in the main and preload Vite configs during development. For releases use `'hidden'` maps: upload them to the crash reporter (`debugging.md`) and keep them out of the ASAR. Main-process stack traces need source maps enabled in Node (`process.setSourceMapsEnabled(true)` early in main), since the `NODE_OPTIONS` fuse is off.
+- Renderer state lost on main restart is normal; persist what developers need (window bounds, current route) the same way production does.
+
+### Monorepos
+
+```
+acme/
+  package.json            # workspaces: ["apps/*", "packages/*"]
+  apps/atlas/             # the Electron app: forge.config.mts, src/main, src/preload, src/renderer
+  packages/ipc-contract/  # channel names, zod schemas, types (see typed-ipc.md)
+  packages/ui/            # renderer components shared with a web app
+```
+
+- The **IPC contract package** is the main reason for a monorepo: main, preload and renderer (and a web client) import the same channel map and schemas. Keep it free of Electron and Node imports so the renderer bundle can use it.
+- Let Vite bundle workspace packages from source (point their `exports` at `.ts` files or use a Vite `resolve.alias`); do not mark them `external`, or the packaged app will look for them in `node_modules`.
+- Electron, Forge and native modules must resolve from the app package. With pnpm use `node-linker=hoisted` (see Package Managers); with npm/Yarn workspaces, check that hoisting to the root does not hide native modules from `@electron/rebuild` and the packager. Verify with `asar list` (below) after every dependency change.
+- Keep `electron` in the app package's own `devDependencies`, so each app in the repo can sit on its own major.
 
 ## Native Modules
 
@@ -138,7 +170,37 @@ export default defineConfig({
 });
 ```
 
-- External modules must remain in `dependencies` (not `devDependencies`) so they are packaged.
+**Externals are not packaged automatically.** The Forge Vite plugin sets the packager's `ignore` so that only the `.vite/` build output reaches the app; `node_modules` is dropped, and `dependencies` alone does not change that (history and issue links in `sources.md` → Version notes). An external module therefore needs its own packaging step, or the packaged app fails with `Cannot find module`. Copy each external and its production dependencies into the build in `packageAfterCopy`:
+
+```ts
+// forge.config.mts (excerpt)
+import { cp, readFile } from 'node:fs/promises';
+import path from 'node:path';
+
+const NATIVE_EXTERNALS = ['better-sqlite3']; // same list as rollupOptions.external
+
+async function copyWithDeps(name: string, buildPath: string, seen: Set<string>): Promise<void> {
+  if (seen.has(name)) return;
+  seen.add(name);
+  const from = path.resolve('node_modules', name); // hoisted layout (pnpm: node-linker=hoisted)
+  await cp(from, path.join(buildPath, 'node_modules', name), { recursive: true });
+  const pkg = JSON.parse(await readFile(path.join(from, 'package.json'), 'utf8'));
+  for (const dep of Object.keys(pkg.dependencies ?? {})) await copyWithDeps(dep, buildPath, seen);
+}
+
+// in the ForgeConfig object
+hooks: {
+  packageAfterCopy: async (_config, buildPath) => {
+    const seen = new Set<string>();
+    for (const name of NATIVE_EXTERNALS) await copyWithDeps(name, buildPath, seen);
+  },
+},
+```
+
+- Keep externals in `dependencies` (not `devDependencies`) so they are installed for production and the hook finds them.
+- Alternatives seen in the Forge issue threads: a custom `packagerConfig.ignore` that also keeps `/node_modules` (simple, but ships the whole tree including dev tooling), or `npm install <externals>` in `packageAfterPrune`. Prefer the explicit copy.
+- The auto-unpack-natives plugin only unpacks `.node` files that are already in the build; it does not copy modules.
+- After every dependency change, check the packaged app: `npx @electron/asar list` (below) must show the module and its dependencies, its `.node` file must be unpacked, and the app must load it on each OS and arch (the binary must be built for Electron's ABI; confirm the copied module was rebuilt, see the open question in sources.md).
 - Prefer Node-API modules that ship prebuilt binaries; they avoid compiler toolchains in CI and survive Electron upgrades without a rebuild.
 - Build per arch: a native module compiled for x64 will not load in an arm64 app.
 
@@ -211,23 +273,47 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 ```
 
-- `@vN` is a placeholder: replace it with each action's current major (pin-by-major), or with a commit SHA if your supply-chain policy requires it. Bump with Dependabot/Renovate.
-- Build each OS on its own runner; cross-compiling signed installers is not practical.
-- For both macOS archs, either run `macos-latest` (arm64) plus an Intel runner, or pass `--arch=universal`.
-- Add a macOS step that imports the `.p12` into a temporary keychain and writes the `.p8` key to disk before `release` (see `code-signing.md`).
-- `electron-forge release` is the publishing command; `electron-forge publish` is a deprecated alias in current Forge. Use whichever your installed Forge documents.
-- Publish as a **draft** release, smoke-test the artifacts, then publish the release. Update clients only see published releases.
-- Run unsigned `npx electron-forge make` on pull requests; sign only on tags.
+- `@vN` is a placeholder: replace it with each action's current major, or with a commit SHA if your supply-chain policy requires it.
+- Build each OS on its own runner; cross-compiling signed installers is not practical. Arch choices (universal, Windows arm64) and store jobs: `distribution.md`.
+- Add a macOS step that imports the `.p12` into a temporary keychain and writes the `.p8` key to disk before `release` (`code-signing.md`).
+- `electron-forge release` is the publishing command (`publish` is a deprecated alias in current Forge); use whichever your installed Forge documents.
+- Publish as a **draft**, smoke-test the artifacts, then publish. Update clients only see published releases. Run unsigned `make` on pull requests; sign only on tags.
+
+## Supply Chain and Dependency Hygiene
+
+An Electron app ships its whole `dependencies` tree with full OS privileges in main. Treat dependencies as code you ship.
+
+- **Commit the lockfile** and install with `npm ci` (`pnpm install --frozen-lockfile`, `yarn install --immutable`) in CI, so builds use exactly the reviewed tree.
+- **Automate updates and audits**: Dependabot or Renovate for npm packages and GitHub Actions; `npm audit --omit=dev` (or the tool's equivalent) as a CI step that fails on high severity in runtime deps. Group Electron, Forge and Vite updates so they move together.
+- **Keep main's dependencies few.** Every package in main and preload runs with Node access. Prefer Node and Electron built-ins; a small utility is often better copied than installed. Renderer-only packages belong in `devDependencies`, because Vite bundles them.
+- **Avoid install scripts.** Prefer packages without `postinstall`; consider `ignore-scripts=true` in `.npmrc` with an explicit allowlist of packages whose scripts you run (pnpm's `onlyBuiltDependencies`, or a targeted `npm rebuild <pkg>`). Electron itself no longer needs one.
+- **Verify what you ship.** List the ASAR after `package` and check for stray files (`.env`, source maps, test fixtures, dev tools):
+
+```bash
+npx @electron/asar list out/Atlas-darwin-arm64/Atlas.app/Contents/Resources/app.asar | less
+```
+
+- **Licence notices**: the packaged app already contains Electron's `LICENSE` and `LICENSES.chromium.html` next to the executable; keep them. For your own dependencies, generate a third-party licences file at build time (a licence-collector Rollup/Vite plugin or a licence-checker CLI over production deps) and show it from an About or Licences window. Fail the build on licences your policy forbids.
+- **Pin the toolchain**: `engines` plus a `.nvmrc`/`.node-version`, and `packageManager` in `package.json` so CI and developers use the same package manager version.
+
+## Upgrading Electron
+
+Only the newest few majors receive security fixes, and a new major ships every couple of months (current numbers: `sources.md` → Version notes). Upgrade on a fixed cadence, not when forced.
+
+1. **Read the breaking changes** for every major between the current and target version ([breaking-changes](https://www.electronjs.org/docs/latest/breaking-changes)), plus the release notes for the Chromium and Node bumps.
+2. **One major at a time.** Bump, fix, test, commit; then the next. Skipping majors hides which change broke what.
+3. **Upgrade the toolchain with it**: Forge (or electron-builder), `@electron/fuses`, `@electron/rebuild`, Playwright. Check whether the Node version Electron embeds raises the syntax or API level your main bundle may target (Vite `build.target`).
+4. **Rebuild native modules** (`start`/`package` do it) and confirm each module loads in a packaged build on every OS and arch.
+5. **Run deprecation checks**: launch with `--trace-deprecation` (or set `process.traceDeprecation = true` in dev) and log `process.on('warning', ...)` in main. Clear every warning before the next major removes the API.
+6. **Check fuses**: new majors add fuses or change defaults. Compare the `FuseV1Options` list against your config and set new ones explicitly (`security.md`).
+7. **Run the full E2E suite** against a packaged, signed build, including update-from-previous-version (`testing.md`, `auto-update.md`).
+8. **Roll out in stages**: internal/beta channel first, then a percentage rollout where your updater supports it; watch crash rates per version before going to 100 %.
 
 ## Alternative: electron-builder + electron-vite
 
 electron-builder and electron-vite are a mature community stack ([electron.build](https://www.electron.build), [electron-vite.org](https://electron-vite.org)).
 
-Choose it when you need:
-
-- **NSIS installers** (custom install dir, per-machine installs) instead of Squirrel.Windows.
-- **AppImage** or Snap on Linux.
-- **electron-updater** features: staged rollouts (`stagingPercentage`), generic/S3 providers, channels.
+Choose it when you need NSIS installers, AppImage or Snap (`distribution.md`), or **electron-updater** features: staged rollouts (`stagingPercentage`), generic/S3 providers, channels.
 
 Not a reason: electron-vite's V8 bytecode option (`build.bytecode`). It requires `sandbox: false` for the preload, which this skill's guardrails forbid; don't enable it.
 
@@ -288,3 +374,4 @@ publish:
 - Native modules: electron-builder rebuilds via `@electron/rebuild` (`npmRebuild: true` default); keep them external in `electron.vite.config.ts`.
 - Fuses: prefer the `electronFuses` config above (flipped before signing, so signatures stay valid). For an E2E build, override `enableNodeCliInspectArguments` from a JS config (`electron-builder.config.js`) reading `ATLAS_TEST_BUILD`, matching the Forge setup. An `afterPack` hook with `@electron/fuses` is the fallback for fuses the config does not expose.
 - CI: same matrix; run `npx electron-builder --publish always`. Mac certificate via `CSC_LINK` / `CSC_KEY_PASSWORD`.
+- Newer electron-builder majors restructure the config (signing options move into `mac.sign` / `win.sign` objects). Before crossing a major, run `electron-builder migrate-schema` and diff the result.

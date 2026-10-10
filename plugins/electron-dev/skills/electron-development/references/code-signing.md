@@ -9,6 +9,8 @@ Overview: [electronjs.org code-signing](https://www.electronjs.org/docs/latest/t
 | Platform | Required | Tooling | Credential |
 |-|-|-|-|
 | macOS | Yes (Gatekeeper, updates, notifications) | `@electron/osx-sign` + `@electron/notarize` (notarytool) | Developer ID Application cert + App Store Connect API key |
+| Mac App Store | Yes | `@electron/osx-sign` (`mas` build), no notarization | Apple Distribution + Mac Installer Distribution certs, provisioning profile |
+| Microsoft Store (MSIX) | Store re-signs | `@electron/windows-sign` for test builds | Partner Center identity; trusted cert for sideloaded MSIX |
 | Windows | Strongly recommended (SmartScreen) | `@electron/windows-sign` (Forge) / `win.azureSignOptions` (electron-builder) | Key in HSM or cloud HSM, e.g. Azure Artifact Signing |
 | Linux | No | Optional repo/package signing (GPG) | GPG key |
 
@@ -97,6 +99,24 @@ spctl --assess --type execute --verbose out/Atlas-darwin-arm64/Atlas.app
 xcrun stapler validate out/make/Atlas.dmg
 ```
 
+### Mac App Store signing
+
+MAS builds use different identities, entitlements and no notarization. Full target setup, Forge/electron-builder config and sandbox limits: `distribution.md`.
+
+| | Developer ID (direct) | Mac App Store |
+|-|-|-|
+| App certificate | Developer ID Application | Apple Distribution (Apple Development for local tests) |
+| Installer certificate | Developer ID Installer (only for `.pkg`) | Mac Installer Distribution (signs the uploaded `.pkg`) |
+| Electron build | `darwin` | `mas` (`--platform=mas`) |
+| Entitlements | Hardened runtime + `allow-jit` etc. (above) | `app-sandbox` + `application-groups` (`TEAMID.com.acme.atlas`) on the app; `app-sandbox` + `inherit` on every helper, framework and `.node` file |
+| Provisioning profile | Not needed | Required: embedded as `Contents/embedded.provisionprofile` (`osxSign.provisioningProfile` / `mas.provisioningProfile`) |
+| Notarization | Required | Not used; App Review replaces it |
+
+- Use separate plist files for MAS and Developer ID; never add `app-sandbox` to the Developer ID build by accident or helpers that lack `inherit` will crash on launch.
+- The provisioning profile's App ID must match `appBundleId`, and the profile must match the signing certificate type (distribution profile with Apple Distribution, development profile with Apple Development).
+- Keep MAS certificates in their own CI secrets and job; the Developer ID job must not see them.
+- Verify: `codesign -d --entitlements :- Atlas.app` (app and one helper) and `pkgutil --check-signature Atlas.pkg`.
+
 ## Windows
 
 Rules that changed the landscape:
@@ -146,6 +166,12 @@ Same `AZURE_*` env vars. `win.azureSignOptions` is the stable key in the current
 
 Other HSM vendors (DigiCert KeyLocker, SSL.com eSigner, etc.) work via a custom `signWithParams` (Forge) or a custom `win.sign` script (electron-builder).
 
+### MSIX and Microsoft Store
+
+- **Store submissions**: the Microsoft Store re-signs the MSIX with its own certificate. Sign for local testing only; the manifest `Publisher` must still equal the string Partner Center assigns.
+- **Sideloaded MSIX** (direct download, Intune, App Installer): Windows refuses to install it unless the signing certificate chains to a root the machine trusts and its subject matches the manifest `Publisher` exactly. Use the same HSM-backed public certificate as for EXE/NSIS builds; a self-signed cert only works on machines where IT installs it.
+- Forge's `MakerMSIX` takes `windowsSignOptions` (same `@electron/windows-sign` options as above). Details and identity rules: `distribution.md`.
+
 Verify:
 
 ```powershell
@@ -165,6 +191,7 @@ Get-AuthenticodeSignature .\out\make\squirrel.windows\x64\AtlasSetup.exe
 | `APPLE_SIGNING_CERT_P12`, `APPLE_SIGNING_CERT_PASSWORD` | macOS Developer ID cert (or `CSC_LINK`/`CSC_KEY_PASSWORD` for electron-builder) |
 | `APPLE_API_KEY_P8`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | Notarization via notarytool |
 | `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | Azure Artifact Signing |
+| MAS certs (`.p12`) + provisioning profile | Mac App Store job only (separate environment) |
 
 - Scope secrets to a protected `release` environment that only runs on tags.
 - Rotate the API key and service principal secret on a schedule; never commit `.p8`, `.p12` or `.env` signing files.
