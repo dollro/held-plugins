@@ -1,266 +1,172 @@
 ---
 name: agent-team
-description: Orchestrate Claude Code Agent Teams with contract-first design and dynamic teammate specialization. Use when the user wants multiple agents collaborating on a build, mentions "agent team", "parallel build", "swarm", or asks to split work across agents. Also trigger when a plan file mentions 3+ independent components, or when the user says "team build", "parallel agents", or "coordinate agents". This skill adds structure that Claude Code doesn't provide natively — interface contracts, dynamic skill injection, and quality gates.
+description: Orchestrate parallel coding agents in Claude Code — Agent Teams, worktree-isolated agents or parallel sessions — with the right mechanism per job, contract-first interfaces, file ownership and quality gates. Picks up a cut of tracker issues (prd2issues) or a feature plan and runs the parallel part. Use when the user wants multiple agents collaborating on a build, mentions "agent team", "parallel build", "swarm", "run these issues in parallel", or asks to split work across agents; also when a set of issues or a plan has 3+ independent parts. Adds structure Claude Code doesn't provide natively — mechanism choice, parallel-safety classification, interface contracts, teammate specialisation and quality gates.
 ---
 
 # Agent Team Orchestration
 
-You are the **lead agent** coordinating a parallel build. Your role is strictly coordination — you do NOT write code yourself. You design contracts, compose specialized prompts for each teammate, spawn them, and orchestrate their work.
+You are the **lead** coordinating parallel work. Your role is coordination — you do NOT implement tasks yourself. You choose the mechanism, classify what can run in parallel, fix the shared interfaces, compose a specialised prompt per worker, and gate the results.
 
-> **What this skill adds over vanilla agent teams:** Claude Code's built-in agent teams handle spawning, messaging, task lists, and display. This skill adds three things the built-in system doesn't enforce: (1) contract-first interface design, (2) dynamic teammate specialization via skill/context injection, and (3) structured quality gates before integration.
+> **What this skill adds over the built-ins:** Claude Code spawns teammates, keeps a shared task list, delivers messages and runs worktrees. It does not decide *what* is safe to run in parallel, which mechanism fits, or how workers integrate. This skill does: (1) mechanism choice, (2) parallel-safety classification, (3) contract-first interfaces, (4) per-worker specialisation, (5) quality gates before integration.
 
-## Quick Start
+Facts about Claude Code below were checked against the docs in October 2026. Agent Teams is experimental and changes quickly — when behaviour differs, the current docs (`code.claude.com/docs/en/agent-teams`, `/agents`, `/worktrees`) win; say so.
 
-Ensure agent teams are enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in settings.json or environment). Then enter **Delegate Mode** (Shift+Tab) before spawning — this auto-approves tool use and restricts the lead to coordination only.
+## Phase 1: Understand the work
 
----
+1. Read `CLAUDE.md` (conventions, stack, build and test commands).
+2. Find the input, in this order:
+   - **A cut of tracker issues** (from prd2issues): read the issues through the tracker connection (e.g. Linear or GitHub MCP), or `issues.md` if there is no connection. Each issue is meant to become one pull request; its footer names files, the pattern to follow, a `Check` command, `Blocked by` and `Parallel`.
+   - **A plan or feature description** in the conversation or a file.
+   - Neither → ask for one. Do not invent the work.
+3. Scan the files each piece of work touches. Every claim about the code is one you read.
 
-## Phase 1: Understand the Project
+## Phase 2: Classify what can run in parallel
 
-1. Read `CLAUDE.md` (conventions, stack, build/test commands)
-2. Scan directory structure and key files
-3. Read the plan file (ask for one if not provided)
-4. Identify: what are we building, what are the major components, what are the dependencies between them
+For every pair of work items that could run at once, decide one of three states. If the issues already carry a `Parallel` line (prd2issues), check it against the code and correct it where wrong.
 
-## Phase 2: Team or Solo?
+| State | Test | Consequence |
+|-|-|-|
+| **Independent** | Different files, and neither uses a type, API, table or config that the other creates or changes | Can run at the same time and merge separately |
+| **Sync before merge** | Related logic, or a shared interface both must keep consistent | Can run at the same time, but the shared part is fixed first (Phase 4) and both are reviewed together before either merges |
+| **Sequential** | One uses what the other creates, same file changed, ordered migrations | Dependency; never at the same time |
 
-Use a **single agent** (or subagents) if work is linear or touches few files. Use **agent teams** only when there are 2+ independent components with clear boundaries AND teammates need to coordinate. Say so if solo is sufficient — teams burn ~3-5x tokens.
+When unsure between independent and sync before merge, choose sync before merge: a wrong "independent" costs a merge conflict or a silent inconsistency, a wrong "sync" costs one joint review.
 
-| Use subagents when | Use agent teams when |
-|---|---|
-| Quick focused tasks that report back | Workers need to share findings and coordinate |
-| Independent research/analysis | Cross-layer changes (frontend + backend + tests) |
-| One-off searches | Competing hypotheses / parallel exploration |
+If almost everything is sequential, or all items hit the same files, say so: parallelism buys nothing here. One agent, or one item after another, is the answer.
 
-## Phase 3: Design Contracts BEFORE Anything Else
+## Phase 3: Choose the mechanism
 
-**This is the most important phase.** Do not spawn agents until contracts are fully defined.
+Ask two questions: does each item end in its own pull request, and do the workers need to talk to each other while working?
 
-At every integration boundary between teammates, define:
+| Situation | Mechanism | Why |
+|-|-|-|
+| Several **independent issues**, each its own PR (the usual prd2issues case) | **One agent per issue in its own worktree:** worktree-isolated subagents, `claude --worktree <name>` sessions, or background sessions | Agent Team teammates share one checkout and one branch; separate PRs need separate worktrees |
+| **One issue or feature** split by layer (backend / frontend / tests), workers must coordinate on interfaces | **Agent Team** | Shared task list and messaging; file ownership keeps them apart in one checkout |
+| Research, review or competing hypotheses (no edits, or edits to disjoint files) | **Agent Team** or plain subagents | Cheapest form of parallelism; a good first use of teams |
+| One mechanical change across many files (rename, migration) | Built-in batch splitting or a workflow, one worktree per chunk | Not a team problem |
 
-### Interface Contract Template
+Rules that apply to every mechanism:
+- **Size:** start with 3, at most 5 parallel workers. Three focused workers beat five scattered ones. The real ceiling is how many pull requests people can review: more agents add queue, not capacity.
+- **Tokens:** cost grows roughly linearly with the number of workers. Say so when proposing a team.
+- **Agent Teams prerequisites:** `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` and an interactive session (not `-p` / SDK). If either is missing, fall back to worktree-isolated subagents and say so.
+
+Present the choice in a few lines — items, states, mechanism, number of workers — and get the user's go before spawning.
+
+## Phase 4: Fix contracts BEFORE spawning
+
+**This is the most important phase.** For every "sync before merge" pair and every boundary between workers, define the shared part. Where several items need the same new interface, make it a small first task (or issue) that the others depend on; then they become independent.
+
+### Interface contract template
 ```
 ## Contract: [boundary-name] (e.g., "API ↔ Frontend")
 
-### Data Shapes (concrete, not prose)
+### Data shapes (concrete, not prose)
 // Request
 { userId: string, filters: { status: "active" | "inactive", limit: number } }
-
-// Response  
+// Response
 { users: Array<{ id: string, name: string, email: string }>, total: number }
 
-### Endpoints / Function Signatures
+### Endpoints / function signatures
 GET /api/users?status=active&limit=20 → UsersResponse
-POST /api/users → { id: string }
 
-### Error Cases
+### Error cases
 - 400: { error: "INVALID_FILTER", message: string }
-- 404: { error: "NOT_FOUND" }
 
 ### Assumptions
-- Auth token in Authorization header (Bearer)
-- Dates as ISO 8601 strings
+- Auth token in Authorization header (Bearer); dates as ISO 8601
 ```
 
-**Quality check:** Could two developers build to this contract independently and integrate on the first try? If not, the contract isn't specific enough.
+**Quality check:** could two developers build to this contract independently and integrate on the first try? If not, it isn't specific enough.
 
-Rules:
-- **Exact JSON shapes**, not prose descriptions
-- **Concrete examples** for every data structure
-- **Error/edge cases** enumerated
-- **Cross-cutting concerns** (auth, logging, error handling) assigned to exactly one teammate
-- Identify **shared types/interfaces** — create a contract file that both sides import
+- Exact shapes, concrete examples, enumerated error cases.
+- Cross-cutting concerns (auth, logging, error handling) assigned to exactly one worker.
+- Shared types live in one file both sides import.
+- With tracker issues: write the contract into both issues, so it survives the session.
 
-## Phase 4: Design Team & Specialize Teammates
+## Phase 5: Specialise each worker
 
-### Sizing
-- 2 agents for two independent layers
-- 3 for three distinct areas
-- 4+ for large systems (rare — prefer fewer, focused agents)
+Workers load CLAUDE.md, MCP servers and skills like any session, but they **do not see your conversation**. Everything they need goes into the spawn prompt:
 
-### Dynamic Specialization
+1. **Objective** — the issue or task, with its "Done when" checks.
+2. **Ownership** — the files and directories they own, and what they must NOT touch. In an Agent Team this is what prevents overwrites.
+3. **Contracts** — what they produce and what they consume, pasted verbatim. Deviations go to the lead first.
+4. **Pattern and imports** — the existing file to follow (`file:line`), where types and utilities come from.
+5. **Domain context** — the relevant project skills or conventions (e.g. `engineering-standards` for implementing an issue). Don't give every worker the same generic prompt.
+6. **Checks** — the exact commands, cheapest first (lint and types, unit, integration). Not done until they pass.
+7. **Output** — what to report back: what changed, check commands and results, contract deviations, open questions.
 
-Each teammate should receive a **task-specific prompt** composed from:
+For risky or unclear items, require the worker to plan first (plan mode) and review the plan before it edits.
 
-1. **Project context** — from CLAUDE.md and docs
-2. **Ownership scope** — exact files/dirs they own and must NOT touch
-3. **Relevant contracts** — what they produce and consume
-4. **Domain expertise** — pull from project skills, CLAUDE.md conventions, or inject inline expertise relevant to their specific task
+## Phase 6: Spawn and orchestrate
 
-**Key insight:** Don't give every teammate the same generic prompt. A backend agent building a REST API needs different expertise than a frontend agent wiring up React components. Compose each prompt to match the task:
+- **Agent Team:** create the tasks in the shared task list with their dependencies (sequential items as blocked-by), then spawn named teammates with the prompts from Phase 5. Teammates claim tasks; message them by name. One team per session.
+- **Worktree agents / sessions:** one per issue, each on its own branch (`/branch <type>/<name>` naming), each ending in a pull request that links its issue. Never push to the default branch.
 
-```
-## Teammate: backend
-## Domain expertise to inject:
-- REST API conventions from CLAUDE.md
-- Database migration patterns from docs/
-- Error handling standards
+While they run:
+- **Wait for workers** — do not implement their tasks yourself.
+- **Watch contract deviations** — evaluate a proposed change and relay it to every affected worker before anyone builds on it.
+- **Unblock with targeted messages**, not broadcasts.
+- **Task status can lag** — if a dependent task stays blocked although its dependency is done, check and update it.
+- **Tracker status** — nothing syncs it automatically. Move issues to in progress / in review yourself, or tell the user.
+- Don't leave a team running unattended for long; `/resume` does not restore in-process teammates.
 
-## Teammate: frontend  
-## Domain expertise to inject:
-- Component structure conventions
-- State management patterns
-- Accessibility requirements
-```
+## Phase 7: Verify and integrate
 
-If the project has relevant skills installed (e.g., testing frameworks, deployment patterns), reference them in the teammate's prompt so they load the right context.
+1. **Contract diff** — ask each worker what interfaces it actually implemented; compare both sides; flag mismatches.
+2. **Checks** — each item's check commands pass; the system builds and starts.
+3. **Fresh-eyes review** — before merge, a reviewer subagent that sees only the diff (not the worker's reasoning) checks each pull request; "sync before merge" pairs are reviewed together.
+4. **Merge one at a time** — rebase on the default branch, let CI run, then the next. This catches what parallel branches could not see.
+5. **Happy path and edge cases** from the issues' "Done when" lists.
 
-### Agent Types
+If something fails, message the worker that owns it.
 
-Pick the right type for each role:
+## Phase 8: Shut down
 
-| Type | Tools | Best For |
-|------|-------|----------|
-| `general-purpose` | All | Implementation work |
-| `Explore` | Read-only (haiku) | Research, codebase search |
-| `Plan` | Read-only | Architecture, design review |
-| `Bash` | Bash only | Git operations, build commands |
-
-## Phase 5: Spawn
-
-### 5a. Create Team + Tasks
-```
-Teammate({ operation: "spawnTeam", team_name: "project-build", description: "Building [what]" })
-
-TaskCreate({ subject: "Implement backend API", description: "...", activeForm: "Building backend..." })
-TaskCreate({ subject: "Implement frontend", description: "...", activeForm: "Building frontend..." })
-TaskCreate({ subject: "Integration test", description: "...", activeForm: "Testing integration..." })
-TaskUpdate({ taskId: "3", addBlockedBy: ["1", "2"] })
-```
-
-### 5b. Enter Delegate Mode
-Press **Shift+Tab** before spawning teammates.
-
-### 5c. Spawn Each Teammate with Full Context
-
-Each spawn prompt must include:
-
-```
-Task({
-  team_name: "project-build",
-  name: "backend",
-  subagent_type: "general-purpose",
-  run_in_background: true,
-  prompt: `You are the backend agent.
-
-## Project Context
-[Key conventions from CLAUDE.md — tech stack, build/test commands]
-
-## Your Ownership
-- You own: src/api/, src/db/, src/middleware/
-- Do NOT touch: src/components/, src/pages/, tests/e2e/
-
-## Contracts You PRODUCE
-[Paste exact contract — the interfaces other agents consume from you]
-
-If you need to deviate from a contract, message the lead FIRST:
-Teammate({ operation: "write", target_agent_id: "team-lead", value: "Proposing change to GET /api/users: ..." })
-
-## Contracts You CONSUME  
-[Paste exact contract — what you build against]
-
-## Cross-Cutting Concerns You Own
-[e.g., error handling middleware, auth token validation]
-
-## Domain Context
-[Injected expertise relevant to THIS agent's task]
-
-## Task
-Claim: TaskUpdate({ taskId: "1", owner: "backend", status: "in_progress" })
-Done: TaskUpdate({ taskId: "1", status: "completed" })
-
-## Before Marking Done
-1. Run: [build command]
-2. Run: [test command]  
-3. Verify contract compliance — do your exports match the agreed shapes?
-Do NOT mark complete until all pass.`
-})
-```
-
-## Phase 6: Orchestrate
-
-Use built-in controls to monitor:
-- **Shift+Down/Up** → cycle through teammates
-- **Enter** → view selected teammate's live session
-- **Ctrl+T** → toggle task list overlay
-- **Escape** → back to lead
-
-Your orchestration responsibilities:
-- **Watch for contract deviations** — if a teammate messages about changing an interface, evaluate the change and relay to affected teammates
-- **Mediate conflicts** — if two agents touch shared ground, resolve immediately
-- **Unblock** — if a teammate is stuck, send targeted context via `Teammate({ operation: "write", ... })`
-- **Prefer targeted messages over broadcasts** — broadcasts cost N messages for N teammates
-
-## Phase 7: Contract Verification & Integration
-
-Before declaring victory:
-
-1. **Contract diff** — Ask each agent what interfaces they actually implemented. Compare both sides. Flag mismatches.
-2. **Build check** — Does the system start?
-3. **Happy path** — Does the primary use case work end-to-end?
-4. **Edge cases** — Are error cases from contracts handled?
-
-If something fails, message the relevant teammate — idle agents wake when messaged.
-
-## Phase 8: Shutdown
-
-```
-Teammate({ operation: "requestShutdown", target_agent_id: "backend", reason: "Build complete" })
-Teammate({ operation: "requestShutdown", target_agent_id: "frontend", reason: "Build complete" })
-// Wait for approvals
-Teammate({ operation: "cleanup" })
-```
+Ask each teammate to shut down, wait for confirmation, then clean up the team. Remove worktrees that are merged or abandoned. Report per item: pull request, check results, deviations, what is left.
 
 ---
 
-## Optional: Quality Gate Hooks
+## Optional: quality gate hooks
 
-For recurring projects, set up hooks in `.claude/settings.json` to enforce quality automatically:
+For recurring projects, enforce gates in `.claude/settings.json`:
 
 ```json
 {
   "hooks": {
-    "TaskCompleted": [{
-      "matcher": "",
-      "hooks": [{
-        "type": "command",
-        "command": "scripts/verify-contracts.sh $TASK_ID"
-      }]
-    }],
-    "TeammateIdle": [{
-      "matcher": "",
-      "hooks": [{
-        "type": "command",
-        "command": "scripts/check-idle-reason.sh $AGENT_NAME"
-      }]
-    }]
+    "TaskCompleted": [{ "hooks": [{ "type": "command", "command": "scripts/verify-task.sh" }] }],
+    "TeammateIdle":  [{ "hooks": [{ "type": "command", "command": "scripts/check-idle.sh" }] }]
   }
 }
 ```
 
-- **TaskCompleted** — exit code 2 prevents completion and sends feedback (e.g., "tests not passing")
-- **TeammateIdle** — exit code 2 sends feedback to keep teammate working (e.g., "review your contract compliance before going idle")
+- **TaskCompleted** — exit code 2 blocks completion and sends feedback (e.g. "tests not passing").
+- **TeammateIdle** — exit code 2 sends feedback and keeps the teammate working.
+- **TaskCreated** — exit code 2 blocks creating a task (e.g. a task without a check command).
+
+The hook input arrives as JSON on stdin; check the hooks docs for its fields.
 
 ---
 
-## Common Pitfalls
+## Common pitfalls
 
-1. **Spawning without contracts** — the #1 cause of integration failures. Define ALL contracts first.
-2. **Vague contracts** — if it's prose instead of JSON shapes, it's not specific enough.
-3. **Generic teammate prompts** — specialize each prompt to the agent's actual task and domain.
-4. **Lead coding instead of coordinating** — use Delegate Mode (Shift+Tab) to prevent this.
-5. **Orphaned cross-cutting concerns** — auth, logging, error handling must each be assigned to exactly one agent.
-6. **Broadcasting everything** — use targeted `write` messages; broadcasts cost N messages.
-7. **Too many agents** — start with 2-3. More agents = more coordination overhead + token cost.
+1. **Agent Team for separate PRs** — teammates share one checkout; use worktrees.
+2. **Spawning without contracts** — the #1 cause of integration failures.
+3. **"Independent" that isn't** — two items that both touch a shared type or config.
+4. **Vague contracts** — prose instead of shapes.
+5. **Generic worker prompts** — the worker doesn't know your conversation; give it everything.
+6. **Lead implementing** — the lead coordinates and waits.
+7. **Orphaned cross-cutting concerns** — each one has exactly one owner.
+8. **Too many workers** — start with 3; review capacity is the limit.
+9. **Weak checks** — a worker verifies against its checks; if they are wrong, it solves the wrong problem.
 
----
+## Orchestration patterns
 
-## Orchestration Patterns
+**Issues in parallel** (prd2issues output) — classify → contract issue first where needed → one worktree agent per independent issue → fresh-eyes review → merge one at a time.
 
-**Parallel Specialists** (most common) — Contracts first → spawn all → parallel build → integration test.
+**Parallel specialists** (one feature) — contracts → Agent Team with file ownership per layer → integration check.
 
-**Pipeline** — Sequential tasks via `addBlockedBy`. Each stage needs the previous output.
+**Pipeline** — sequential tasks via dependencies; each stage needs the previous output.
 
-**Research → Implement** — Use synchronous `Explore` subagent for research first, then feed findings into teammate spawn prompts.
+**Research → implement** — read-only subagents or a team explore first; findings feed the worker prompts.
 
-**Review Swarm** — Multiple reviewers (security, performance, architecture) examine the same code in parallel and report findings to lead for synthesis.
+**Review swarm** — several reviewers (security, performance, architecture) examine the same diff in parallel and report to the lead.

@@ -1,5 +1,5 @@
 {
   "name": "agent-team",
-  "description": "Orchestrate Claude Code Agent Teams with contract-first design, dynamic teammate specialization, and structured quality gates. Adds a /agent-team skill.",
-  "version": "1.0.0"
+  "description": "Orchestrate parallel coding agents — Agent Teams, worktree-isolated agents or parallel sessions — with mechanism choice, parallel-safety classification, contract-first interfaces and quality gates. Picks up prd2issues issue cuts. Adds a /agent-team skill.",
+  "version": "2.0.0"
 }
