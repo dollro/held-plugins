@@ -1,0 +1,5 @@
+{
+  "name": "engineering-standards",
+  "description": "Engineering standards: small reviewable pull requests, CLAUDE.md structure and where documentation and plans live; plus /branch to start a branch with its plans directory",
+  "version": "1.1.0"
+}

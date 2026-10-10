@@ -1,5 +1,0 @@
-{
-  "name": "branch",
-  "description": "Create new git branches with corresponding planning directories. Adds a /branch skill.",
-  "version": "1.0.0"
-}
