@@ -108,6 +108,8 @@ Repair is the fallback. Fix the compose file or the kit that produced the files,
 
 ### A git worktree in a sandbox
 
+The `/sandbox` skill does all of this (worktree, mounts, kit, checks) and prints the line to attach; what follows is what it does and why.
+
 A linked worktree has no repository of its own: its `.git` is a one-line file (`gitdir: <main repo>/.git/worktrees/<name>`). Mount the main repo's `.git` as a second, writable workspace; sbx mounts every workspace at its host path, so the pointer resolves. Run it from the main checkout so the kit is the current one, not an older copy on the worktree's branch:
 
 ```bash
@@ -207,6 +209,8 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 |-|-|-|
 | `sbx run`/`create`: `500 ... failed to run sandbox container`; daemon log `unknown volume driver: block` | Before sbx 0.47 on Linux: sandboxd started without `/usr/sbin` on PATH, did not find `mkfs.ext4` and disabled its block volume driver; `sbx diagnose` stays green | Upgrade (0.47 bundles `mkfs.ext4`), or add `/usr/sbin:/sbin` to PATH and restart the daemon. Log: `~/.local/state/sandboxes/sandboxes/sandboxd/daemon.log` |
 | Tests or MCP calls fail with connection errors only in the sandbox | Domain or host port not allowed (`sbx policy log` shows `deny`) | Allow it; host ports as `localhost:<port>` |
+| `curl` to a host service from inside answers HTTP 500 with `dial tcp … connection refused` | The sandbox proxy answers itself: nothing listens on the host port | Start the service on the host |
+| `curl` answers HTTP 403 `Approval required for <host>` | No allow rule; the request waits as a pending approval | `sbx policy approval ls`, then `sbx policy approval respond <id> --option allow`, or add the host to the kit |
 | `sbx policy log` shows `forward … dial failed` for a host port | The rule allows it, but nothing listens on the host (service not started, wrong port) | Start the service on the host; check with `ss -ltn` |
 | MCP server fails with `ECONNREFUSED at ${VAR}` | `VAR` is not set in the sandbox, so the `localhost` default is the sandbox itself | Set the host URL in this repo's kit environment and recreate the sandbox |
 | Kit change has no effect | The sandbox was created before the change | `sbx rm -f <name>`, then `sbx run … --kit …` |
