@@ -91,6 +91,8 @@ find . -xdev ! -user "$(id -u)" -not -path '*/node_modules/*' -printf '%u %p\n' 
 docker run --rm -v "$PWD":/w alpine chown -R "$(id -u):$(id -g)" /w/<path>   # no sudo needed
 ```
 
+**Changing the store path or the container user breaks existing dependency volumes.** A `node_modules` volume created by root, or linked to the old pnpm store, makes pnpm refuse to start. Remove only that volume (`docker volume ls`, `docker volume rm <project>_<volume>`, or `docker compose rm -v <service>` for an anonymous one) and rebuild; `docker compose down -v` also deletes the database volumes.
+
 Repair is the fallback. Fix the compose file or the kit that produced the files, or they come back.
 
 ## Shared workspace or clone (`sbx`)
@@ -166,7 +168,7 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 
 1. **No host Docker socket** mounted into any sandbox, dev container or compose service that runs agent code (`grep -rn docker.sock`).
 2. **sbx version** at or above the one this reference was checked against (`sbx version`).
-3. **Kit:** schema v2 for a mixin on a built-in agent; no v1 fields (`commands:`, `network.allowedDomains`); `sbx kit validate ./<kit>` passes; install steps that write outside system paths run as `user: "1000"`; large downloads pre-warmed.
+3. **Kit:** schema v2 for a mixin on a built-in agent; no v1 fields (`commands:`, `network.allowedDomains`); `sbx kit validate ./<kit>` passes; the kit is actually tracked (`git ls-files .sbx`; the common Vim swap rule `[._]s[a-v][a-z]` in `.gitignore` matches `.sbx` and needs `!/.sbx/`); install steps that write outside system paths run as `user: "1000"`; large downloads pre-warmed.
 4. **Network:** host services allowed as `localhost:<port>` (not `host.docker.internal:<port>`); wildcards paired with their bare domain; broad entries justified; rules added on the command line (`sbx policy ls`) copied into the kit.
 5. **Compose:** every service that writes into the bind mount has `user: "${UID}:${GID}"` and a writable `HOME`; `node_modules`, the venv and package stores are out of the mount; ports bind to `127.0.0.1`.
 6. **IDs exported:** the Taskfile (or an untracked `.env`) sets `UID` and `GID`; no reliance on `${UID:-1000}`.
@@ -183,6 +185,7 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | Tests or MCP calls fail with connection errors only in the sandbox | Domain or host port not allowed | `sbx policy log`; host ports as `localhost:<port>` |
 | Kit warns `allowedDomains` deprecated, or v2 rejects `commands:` | v1 kit fields | Migrate to v2 (`setup.install`, `permissions.network.allow`) |
 | `sbx run claude --kit ./x` fails on a v3 kit | v3 cannot mix with the v2 built-in agents | Use a v2 mixin |
+| Kit works locally but is missing for colleagues or in git | `.gitignore` swap-file rule `[._]s[a-v][a-z]` matches `.sbx` | Add `!/.sbx/` after it; check with `git check-ignore -v .sbx/<name>/spec.yaml` |
 | Host cannot delete files in the repo | A container or install step wrote as root | File ownership above |
 | Files show UID 1000 on a host whose user is not 1000 | `${UID:-1000}` fell back because `UID`/`GID` were not exported | Export from the Taskfile or `.env` |
 | Dependencies behave differently on host and in sandbox | Shared `.venv` or `node_modules` built on the other side | Separate environments per side |
