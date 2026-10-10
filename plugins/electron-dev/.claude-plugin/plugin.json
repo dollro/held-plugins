@@ -1,5 +1,5 @@
 {
   "name": "electron-dev",
-  "description": "Build secure, performant cross-platform desktop applications with Electron. Includes /electron-development skill and electron-developer agent.",
-  "version": "2.0.3"
+  "description": "Standards and guardrails for secure, fast cross-platform desktop apps with Electron: Forge + Vite + TypeScript, sandboxed renderers, typed IPC, utilityProcess, fuses and ASAR integrity, code signing and notarization, auto-updates, Playwright/Vitest tests. Includes /electron-development skill and electron-developer agent.",
+  "version": "3.0.0"
 }

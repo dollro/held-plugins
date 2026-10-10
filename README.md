@@ -61,7 +61,7 @@ built-in `/security-review`; this marketplace does not duplicate them.
 | `fullstack-engineering` | Guideline and tested reference stack for web apps (Django + optional FastAPI realtime, Vue 3, PostgreSQL, Redis, Celery, Docker, Task, SOPS), login for internal staff (company SSO over OpenID Connect), external users (accounts with MFA) or both, staging and production from the same image; `/fullstack-scaffold` generates a new repo that passes its own CI, the `fullstack-engineer` agent builds features |
 | `agentic-engineering` | Standards for production agent systems: LangGraph, Pydantic AI, CrewAI, Langfuse; state, model tiers, validation, human-in-the-loop, evals; the `agentic-engineer` agent builds them |
 | `prompt-engineering` | Prompt design, evaluation frameworks and production prompt systems; the `prompt-engineer` agent |
-| `electron-dev` | Secure, performant cross-platform desktop apps with Electron; the `electron-developer` agent |
+| `electron-dev` | Secure, fast desktop apps with Electron on Forge + Vite + TypeScript: typed IPC, fuses, signing, auto-update, tests; the `electron-developer` agent |
 
 ### UI/UX design and frontend
 

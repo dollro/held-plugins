@@ -347,6 +347,8 @@ class TrayManager {
 
 ## Native Notifications
 
+On macOS, current Electron only shows notifications from a code-signed app; unsigned dev builds will not show them (see `code-signing.md`). Renderers can also use the web `Notification` API.
+
 ```javascript
 const { Notification, nativeImage } = require('electron');
 
@@ -415,3 +417,9 @@ class NotificationManager {
   }
 }
 ```
+
+## Clipboard and Dropped Files
+
+- Renderers have no `clipboard` module any more (deprecated, then removed). Use the web Clipboard API there (`navigator.clipboard.readText()`, `writeText()`, `ClipboardItem`), gated by the permission handler in security.md.
+- In main, the `clipboard` module remains, but its read/write methods are asynchronous in current Electron: `await` them (e.g. `await clipboard.readText()`) and don't rely on older synchronous examples. Check the [clipboard API](https://www.electronjs.org/docs/latest/api/clipboard) for your version.
+- `File.path` no longer exists (removed in v32). Resolve a dropped/selected file's path in the preload with `webUtils.getPathForFile(file)` (see process-architecture.md).

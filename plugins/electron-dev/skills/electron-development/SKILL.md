@@ -1,47 +1,86 @@
 ---
 name: electron-development
-description: >
-  Build secure, performant cross-platform desktop applications with Electron.
-  Use when creating Electron apps, implementing IPC patterns, configuring
-  auto-updates, building native OS integrations, or packaging for distribution.
-  Triggers: electron, desktop app, BrowserWindow, IPC, preload, electron-builder.
+description: "Standards and guardrails for building secure, fast cross-platform desktop apps with Electron on a reference stack: Electron Forge + Vite + TypeScript, sandboxed renderers, typed IPC contracts, utilityProcess for heavy work, fuses and ASAR integrity, code signing and notarization, auto-updates, Playwright/Vitest tests. Principles stay stable across releases; version-specific APIs are checked against the official docs at build time. Use when creating or reviewing Electron apps, BrowserWindow/WebContentsView, preload scripts, IPC, contextBridge, native menus/tray/notifications, packaging, signing, notarization, auto-update, Electron performance, crash reporting or Electron testing. Triggers: electron, desktop app, BrowserWindow, IPC, preload, contextBridge, electron-forge, electron-builder, electron-vite, utilityProcess, fuses, notarize."
 ---
 
 # Electron Development
 
-Comprehensive technical knowledge for building secure, performant cross-platform desktop applications with Electron.
+Standards for Electron apps that are secure by default, start fast and ship signed updates on all three platforms.
 
-## Security Implementation
+This file holds the **principles and guardrails**. They are written to outlast individual releases. The `references/` hold short, idiomatic patterns; they name APIs, not package versions. Electron ships a new major every few weeks, so **the official docs win over every snippet here**. Time-sensitive facts (current majors, tool status) live in one dated place: the "Version notes" in `references/sources.md`.
 
-Context isolation, preload script API exposure, IPC channel validation, CSP, secure data storage, and certificate pinning.
-Read `references/security.md` for patterns and code examples.
+## Before writing Electron code
 
-## Process Architecture
+1. **Know the reference stack.** Each piece has a clear role:
 
-Main process setup, renderer process isolation, worker thread utilization, and memory leak prevention patterns.
-Read `references/process-architecture.md` for patterns and code examples.
+   | Component | Role |
+   |-|-|
+   | Electron (a supported major) | Runtime. Only the newest few majors get security fixes |
+   | Electron Forge | Official tooling: scaffold, package, make, sign, publish |
+   | Vite (via Forge's Vite plugin) | Bundles main, preload and renderer |
+   | TypeScript, strict, `moduleResolution: bundler` | All processes plus `src/shared` |
+   | Vitest / Playwright | Unit tests / E2E against the built app |
+   | update-electron-app or electron-updater | Auto-update |
 
-## Native OS Integration
+   **Alternative stack:** electron-vite + electron-builder (+ electron-updater). Community-maintained, not official. Choose it when the project already uses it or needs electron-builder targets Forge lacks (see `references/build-config.md`).
+2. **Check what is current.** Look up the latest stable Electron major and the project's lockfile. If the project is behind a supported major, or a new major shipped since the "Version notes" date, read the breaking-changes page for every major in between and flag the gap to the person you are working with.
+3. **Verify the API you are about to use** against the docs listed in `references/sources.md`. Use a docs MCP server such as context7 when available, or read the installed `electron.d.ts`. Snippets here show the pattern, not a guaranteed signature.
+4. **Read the reference for the part you build** (table below). Do not read all of them upfront.
 
-System menu bar, context menus, file associations, protocol handlers, system tray, and native notifications.
-Read `references/native-integration.md` for patterns and code examples.
+| Read | When you build or review |
+|-|-|
+| `references/security.md` | webPreferences, CSP, navigation, permissions, IPC sender checks, custom protocols, fuses, ASAR integrity, secrets |
+| `references/process-architecture.md` | Main/preload/renderer roles, ESM rules, BaseWindow + WebContentsView, utilityProcess, MessagePorts, crash recovery, memory |
+| `references/typed-ipc.md` | Shared IPC contract, typed preload bridge, validated main handlers, main→renderer events |
+| `references/native-integration.md` | Menus, context menus, tray, notifications, file associations, protocol handlers |
+| `references/build-config.md` | Forge + Vite project layout, `forge.config.mts`, makers, native modules, package managers, CI; electron-builder alternative |
+| `references/code-signing.md` | macOS hardened runtime and notarization, Windows HSM / Azure Artifact Signing, Linux |
+| `references/auto-update.md` | Choosing an updater, update UX, staged rollouts, rollback safety |
+| `references/performance.md` | Startup, bundling, lazy loading, snapshots, profiling, memory, GPU |
+| `references/testing.md` | Vitest units, IPC handler tests, Playwright and WebdriverIO E2E, fuse gotcha, CI |
+| `references/debugging.md` | Inspecting main, DevTools, process-gone events, crashReporter, Sentry, logging |
+| `references/sources.md` | Official docs, release notes, dated version notes, open questions |
 
-## Auto-Update System
+## Non-negotiable guardrails
 
-Update server setup with electron-updater, differential updates, and rollback mechanisms.
-Read `references/auto-update.md` for patterns and code examples.
+1. **Renderers are untrusted.** `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, `webSecurity: true`. Never turn these off to make something work; move the work to main or a utilityProcess instead.
+2. **The preload exposes functions, not capabilities.** One narrow function per operation via `contextBridge`. Never expose `ipcRenderer`, `require`, `shell` or raw Node APIs.
+3. **Every IPC handler validates its sender and its payload.** Check `event.senderFrame` origin against an allowlist, then validate arguments at runtime (zod or equivalent). Types alone are not validation.
+4. **Async IPC only.** `invoke`/`handle` for request/response, `send` for events. No `sendSync`.
+5. **No `file://` for app content.** Serve the bundled renderer via a custom protocol (`protocol.handle`) in production.
+6. **Lock navigation.** Handle `will-navigate` and `setWindowOpenHandler`; open external links only through an allowlisted `shell.openExternal`.
+7. **Ship with fuses set.** RunAsNode, NODE_OPTIONS, `--inspect` arguments and extra `file://` privileges off. ASAR integrity validation and only-load-from-ASAR on. Cookie encryption on.
+8. **Main stays responsive.** No blocking I/O or CPU work on the main process. Heavy or crash-prone work runs in a `utilityProcess`.
+9. **Releases are signed.** macOS notarized, Windows signed with an HSM-backed certificate. Unsigned macOS builds cannot auto-update or show notifications.
+10. **Stay on a supported major.** Plan Electron upgrades as routine maintenance, not a project; falling out of the support window means shipping known Chromium vulnerabilities.
 
-## Performance Optimization
+## Default project shape
 
-Startup time optimization, memory management, and GPU acceleration configuration.
-Read `references/performance.md` for patterns and code examples.
+```
+src/
+  main/main.ts        # app lifecycle, windows, IPC handlers, menus, updater
+  preload/preload.ts  # contextBridge bridge, bundled to CJS (sandboxed preloads cannot load ESM)
+  renderer/           # UI framework of choice, talks only to window.api
+  shared/             # IPC contract types, pure logic shared by all processes
+  workers/            # utilityProcess entry points
+forge.config.mts
+```
 
-## Build Configuration
+Name entry files after their role, not `index.ts`: the bundler names outputs after the entry file, so two `index.ts` entries collide.
 
-Multi-platform builds with electron-builder, native dependency handling, and CI/CD integration.
-Read `references/build-config.md` for patterns and code examples.
+Scaffold with Forge's `create-electron-app` using its Vite + TypeScript template (check `references/sources.md` for the current flags), then apply the guardrails above. Review the generated fuse settings against guardrail 7, and add CSP, navigation locks and the IPC contract yourself; no template covers them.
 
-## Debugging and Diagnostics
+## Choosing Electron honestly
 
-DevTools integration, crash reporting, and error handling.
-Read `references/debugging.md` for patterns and code examples.
+Electron's strengths are the same Chromium on every OS, Node in the main process and mature packaging and update tooling. The costs are larger installers and memory use. If the person you are working with puts binary size or idle memory above rendering consistency and is fine with Rust, Tauri is the usual alternative; say so rather than force Electron.
+
+## Checklist before handing back
+
+- [ ] webPreferences hardened; CSP set; navigation and window-open locked
+- [ ] Every IPC channel in the shared contract, with sender and payload validation in main
+- [ ] No deprecated APIs (`BrowserView`, `File.path`, renderer `clipboard`, `crashed` events, `webContents.goBack` etc.)
+- [ ] Heavy work off the main process
+- [ ] Fuses and ASAR integrity configured; signing and notarization wired for release builds
+- [ ] Tests: Vitest for handlers and shared logic, Playwright smoke test against a build
+- [ ] Crash and error reporting initialised in main, renderer and utility processes
+- [ ] Anything that deviates from this skill is named, with the reason
