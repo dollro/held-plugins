@@ -42,14 +42,17 @@ the fullstack-engineer build …").
 | `braindump2prd` | Interviews a product manager and turns a feature idea into a plain-language PRD and spec, handed over to the issue tracker |
 | `prd2issues` | Cuts a Ready PRD into milestones and a few readable tracker issues, grounded in the actual codebase, each one reviewable pull request with its parallel-safety status |
 
-### Delivery: how work gets built and reviewed
+### Delivery: how work gets built
 
 | Plugin | What it does |
 |---|---|
 | `engineering-standards` | Small reviewable pull requests, CLAUDE.md structure, where docs and plans live, how to implement an issue; `/branch` starts a branch with its `plans/` folder. Swappable organisation profile |
 | `agent-team` | Runs several issues (or one large one) with parallel coding agents: mechanism choice (worktrees or Agent Teams), parallel-safety check, contracts first, quality gates, one PR at a time |
-| `code-review` | Review for completeness, security, performance and best practices; includes the `code-reviewer` agent |
 | `brainstorming` | Structured exploration of intent, requirements and design before any implementation |
+
+For review, use Anthropic's `code-review` plugin from `claude-plugins-official`
+(parallel reviewers, CLAUDE.md compliance, confidence-filtered findings) and the
+built-in `/security-review`; this marketplace does not duplicate them.
 
 ### Engineering: reference stacks and agents
 
@@ -109,7 +112,8 @@ merged without your confirmation.
                   │   domain skills while building: fullstack-engineering,
                   │   agentic-engineering, electron-dev, uiux-*, prompt-engineering
                   └───────────┬───────────┘
-                     code-review (+ design-parity for UI)
+                     review: official code-review plugin,
+                     /security-review (+ design-parity for UI)
                               │
                      merge, one PR at a time
 ```
@@ -122,7 +126,7 @@ merged without your confirmation.
 |4|Cut into issues — run in the product repo|`prd2issues`|1–3 issues per result, each one reviewable PR, with files, pattern to follow, check command, `Blocked by` and `Parallel`|
 |5a|Build one issue|`engineering-standards`|`/branch` → short plan on the issue → code → checks, cheapest first → `docs/` update → PR|
 |5b|Build several issues at once|`agent-team`|Independent issues: one agent each in its own worktree. "Sync before merge" pairs: shared contract first|
-|6|Review|`code-review`, `design-parity`|Findings on the PR; design-vs-implementation diff for UI|
+|6|Review|`code-review` from `claude-plugins-official`, `/security-review`, `design-parity`|Confidence-filtered findings on the PR (incl. CLAUDE.md compliance); security review; design-vs-implementation diff for UI|
 
 **Principles**
 
@@ -189,9 +193,9 @@ also works with files.
 
 ## Migrating from earlier versions
 
-`ai-dev`, `branch`, `braindump2spec`, `spec2plan` and `fullstack-dev` were
-retired; installed copies get no more updates. Uninstall them and install the
-replacements by hand:
+`ai-dev`, `branch`, `braindump2spec`, `spec2plan`, `fullstack-dev` and
+`code-review` were retired; installed copies get no more updates. Uninstall
+them and install the replacements by hand:
 
 | Retired | Replacement |
 |---|---|
@@ -200,6 +204,7 @@ replacements by hand:
 | `braindump2spec` | `braindump2prd` |
 | `spec2plan` | `prd2issues` (+ `agent-team` for parallel execution) |
 | `fullstack-dev` | `fullstack-engineering` |
+| `code-review` | Anthropic's `code-review` (PR review with confidence scoring) or `pr-review-toolkit`, both from `claude-plugins-official`; built-in `/security-review` |
 
 ## Local development
 

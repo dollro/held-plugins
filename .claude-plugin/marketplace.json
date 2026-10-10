@@ -22,7 +22,7 @@
       "name": "prompt-engineering",
       "source": "./plugins/prompt-engineering",
       "description": "Design, optimize, and manage LLM prompts with focus on reliability, efficiency, and measurable outcomes. Includes /prompt-engineering skill and prompt-engineer agent.",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "category": "ai-agent-dev-tools",
       "tags": ["prompts", "llm", "optimization", "evaluation"],
       "keywords": ["prompt", "llm", "optimization", "engineering"]
@@ -55,15 +55,6 @@
       "keywords": ["pull request", "pr size", "code review", "claude.md", "documentation", "docs", "plans", "coding standards", "branch"]
     },
     {
-      "name": "code-review",
-      "source": "./plugins/code-review",
-      "description": "Comprehensive technical code review covering completeness, security, performance, and best practices. Includes /code-review skill and code-reviewer agent.",
-      "version": "2.0.0",
-      "category": "workflows",
-      "tags": ["review", "security", "performance", "quality"],
-      "keywords": ["code-review", "review", "security", "quality"]
-    },
-    {
       "name": "braindump2prd",
       "source": "./plugins/braindump2prd",
       "description": "Interviews a PM thoroughly and turns a vague feature idea into a plain-language PRD and spec via a reviewed interview record (braindump_final); hands them over to the issue tracker (e.g. Linear). Adds a /braindump2prd skill.",
@@ -85,7 +76,7 @@
       "name": "electron-dev",
       "source": "./plugins/electron-dev",
       "description": "Build secure, performant cross-platform desktop applications with Electron. Includes /electron-development skill and electron-developer agent.",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "category": "development",
       "tags": ["electron", "desktop", "cross-platform", "native"],
       "keywords": ["electron", "desktop", "app", "cross-platform"]
