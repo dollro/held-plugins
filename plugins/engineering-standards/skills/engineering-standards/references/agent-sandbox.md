@@ -30,7 +30,7 @@ A sandbox limits what an autonomous agent can reach: files, network, credentials
 Why this stays the default:
 
 - **One stack, one database.** The stack you look at in the browser is the one the agent's edits hot-reload into. A stack inside a sandbox is a second set of images, volumes and data that disappears with `sbx rm`.
-- **Ownership.** Containers write into a bind-mounted repo as their image user, often root. On the host that is fixable (see File ownership); for containers run by a sandbox's engine writing into the shared workspace, how ownership maps back to the host is not documented. Test it before relying on it (recipe below).
+- **Ownership on the host.** Containers started by the host's Docker write into a bind-mounted repo as their image user, often root (see File ownership). Inside `sbx` this does not happen: tested with sbx 0.47, a container running as root in the sandbox wrote into the shared workspace and the file appeared on the host owned by the host user. (The test host's UID was 1000, the same as the agent user's; on a host with another UID, rerun the check below.)
 - **Network.** Image builds pull from distribution mirrors and registries; allowing them widens what the agent can reach for the whole session.
 - **The native sandbox cannot run Docker at all.** Its escape hatch, `sandbox.excludedCommands`, runs the listed commands without any filesystem or network limit, and the agent can edit the compose file it then runs. If you use it, keep the pattern narrow (`docker compose *`) and the command on an ask rule.
 
@@ -41,7 +41,7 @@ How the two sides work together:
 - When a check needs the stack (migrations, integration tests, a rebuild), the agent says which host command to run and why, then continues with the result.
 - The repo's CLAUDE.md says this in one place: which commands run in the sandbox, which the human runs on the host, and the URLs of host services.
 
-**Option: the stack inside `sbx`.** Docker documents building and running images and Compose inside a sandbox; services must listen on `0.0.0.0` and are published to the host with `sbx ports <name> --publish <port>` (loopback only). It fits a self-contained stack, parallel agents that each need their own stack, and clone mode (below), where nothing the containers write reaches your checkout. On the shared workspace, run the ownership test first:
+**Option: the stack inside `sbx`.** Docker documents building and running images and Compose inside a sandbox; services must listen on `0.0.0.0` and are published to the host with `sbx ports <name> --publish <port>` (loopback only). It fits a self-contained stack, parallel agents that each need their own stack, and clone mode (below). Files the sandbox's containers write into the shared workspace map to the host user (tested, see above). What still argues for the host by default: a second set of images and data, ports published twice, and the network entries image builds need. To confirm the ownership mapping on a new host:
 
 ```bash
 # inside the sandbox, in the workspace
@@ -105,6 +105,20 @@ Repair is the fallback. Fix the compose file or the kit that produced the files,
 - **Shared workspace** (default): the sandbox works on the host checkout. Use it for the inner loop: agent edits, host stack hot-reloads, human looks at the result.
 - **Clone mode** (`sbx run --clone`, chosen at creation): the host repo is mounted read-only and the agent works on a private clone. Fetch its work with `git fetch sandbox-<name>` while the sandbox runs; `sbx rm` removes that remote. No ownership collisions, and the stack can run inside the sandbox without touching your checkout. Use it for parallel agents and for tasks that should not touch the working copy.
 - `sbx run --rm` removes the sandbox when the session ends.
+
+### A git worktree in a sandbox
+
+A linked worktree has no repository of its own: its `.git` is a one-line file (`gitdir: <main repo>/.git/worktrees/<name>`). Mount the main repo's `.git` as a second, writable workspace; sbx mounts every workspace at its host path, so the pointer resolves. Run it from the main checkout so the kit is the current one, not an older copy on the worktree's branch:
+
+```bash
+cd ~/src/atlas
+sbx run claude --kit ./.sbx/atlas ../atlas-feature ./.git
+```
+
+- Without the `.git` mount every git command fails with `fatal: not a git repository: …/.git/worktrees/<name>`. The mount cannot be `:ro`, because commits write objects and refs into the main `.git`. It also gives the agent every branch and the other worktrees' metadata.
+- The sandbox is named after the first workspace (`claude-atlas-feature`); re-attach with `sbx run --name <name>`.
+- **Host stack from a worktree is not a second stack.** Compose names the project after the directory of the compose file, which is the same in every checkout, so `up` in the worktree takes over the main checkout's containers and database volume. For a separate stack use `docker compose -p <repo>-<branch> …` and other host ports; otherwise run one stack at a time.
+- **Alternative: clone mode** for independent tasks: `sbx run claude --clone --kit ./.sbx/atlas` from the main checkout. Other branches are available in the clone as `origin/<branch>`; the host fetches the agent's commits with `git fetch sandbox-<name>`. No writable `.git` mount and no checkout to collide with, but the host stack only sees the work after the fetch.
 
 ## Network policy
 
