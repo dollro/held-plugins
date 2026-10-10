@@ -1,7 +1,7 @@
 # held-plugins
 
 A curated marketplace of [Claude Code](https://claude.ai/code) plugins — skills and
-agents for AI agent development, spec-driven workflows, full-stack and desktop
+agents for AI agent development, spec-driven workflows, product management, full-stack and desktop
 development, UI/UX design systems, and financial analysis.
 
 Maintained by Held.
@@ -21,26 +21,33 @@ referenced as `<plugin-name>@held-plugins`.
 
 |plugin|version|what it does|
 |-|-|-|
-|`ai-dev`|1.0.0|Agentic AI patterns with LangGraph, Pydantic AI, and CrewAI|
-|`prompt-engineering`|2.0.0|Prompt design, evaluation frameworks, and production prompt systems|
+|`agentic-engineering`|2.0.0|Standards and guardrails for production agentic AI on LangGraph, Pydantic AI, CrewAI, and Langfuse|
+|`prompt-engineering`|2.0.1|Prompt design, evaluation frameworks, and production prompt systems|
 
 ### Workflows
 
 |plugin|version|what it does|
 |-|-|-|
-|`agent-team`|1.0.0|Orchestrate agent teams with contract-first design and quality gates|
-|`braindump2spec`|2.0.0|Turn a rough brain dump into an agent-implementable specification|
+|`agent-team`|2.0.0|Run parallel agents (teams, worktrees) with contracts, parallel-safety and quality gates|
 |`brainstorming`|1.0.0|Structured exploration of intent and design before implementation|
-|`branch`|1.0.0|Create git branches with matching planning directories|
 |`code-review`|2.0.0|Review for completeness, security, performance, and best practices|
-|`spec2plan`|2.0.0|Turn a spec into a context-rich plan and executable task registry|
+|`engineering-standards`|1.1.0|Small reviewable PRs, CLAUDE.md and docs structure, `/branch`; swappable org profile|
+
+### Product management
+
+|plugin|version|what it does|
+|-|-|-|
+|`prfaq-vision-builder`|1.0.1|Working Backwards PR/FAQ vision document|
+|`product-roadmap-3-layers`|1.0.1|3-layer Now/Next/Later product roadmap, from an interview or a Notion database|
+|`braindump2prd`|1.1.3|Interview a PM and write a plain-language PRD and spec for the issue tracker|
+|`prd2issues`|1.1.0|Cut a Ready PRD into a few readable, codebase-grounded tracker issues|
 
 ### Development
 
 |plugin|version|what it does|
 |-|-|-|
-|`electron-dev`|2.0.0|Secure cross-platform desktop apps with Electron|
-|`fullstack-dev`|2.0.0|End-to-end feature delivery from database to UI|
+|`electron-dev`|2.0.1|Secure cross-platform desktop apps with Electron|
+|`fullstack-dev`|2.0.1|End-to-end feature delivery from database to UI|
 |`design-parity`|2.0.0|Close the gap between a Claude Design spec and its implementation|
 |`uiux-design-system`|4.0.0|Design system architecture, token hierarchy, and naming conventions|
 |`uiux-design-figma`|1.1.0|UI/UX design in Figma via figma-console-mcp|

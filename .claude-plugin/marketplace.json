@@ -4,25 +4,25 @@
     "name": "Held"
   },
   "metadata": {
-    "description": "Curated Claude Code plugins for AI agent development, workflows, full-stack development, and analysis",
+    "description": "Curated Claude Code plugins for AI agent development, workflows, product management, full-stack development, and analysis",
     "version": "0.1.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
     {
-      "name": "ai-dev",
-      "source": "./plugins/ai-dev",
-      "description": "Production-grade agentic AI patterns using LangGraph + Pydantic AI + CrewAI. Includes /ai-dev skill and ai-agent-developer agent.",
-      "version": "1.0.0",
+      "name": "agentic-engineering",
+      "source": "./plugins/agentic-engineering",
+      "description": "Architecture standards and guardrails for production agentic AI on LangGraph, Pydantic AI, CrewAI and Langfuse: framework roles, state, model tiers, validation, human-in-the-loop, persistence, security, dependencies, testing and evals. Includes /agentic-engineering skill and agentic-engineer agent.",
+      "version": "2.0.0",
       "category": "ai-agent-dev-tools",
-      "tags": ["langgraph", "pydantic-ai", "crewai", "multi-agent", "orchestration", "observability"],
-      "keywords": ["ai", "agents", "langgraph", "pydantic-ai", "crewai", "multi-agent"]
+      "tags": ["agentic-ai", "langgraph", "pydantic-ai", "crewai", "langfuse", "standards"],
+      "keywords": ["agents", "agentic engineering", "langgraph", "pydantic-ai", "crewai", "langfuse", "opentelemetry", "multi-agent", "human-in-the-loop", "evals", "mcp", "a2a"]
     },
     {
       "name": "prompt-engineering",
       "source": "./plugins/prompt-engineering",
       "description": "Design, optimize, and manage LLM prompts with focus on reliability, efficiency, and measurable outcomes. Includes /prompt-engineering skill and prompt-engineer agent.",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "category": "ai-agent-dev-tools",
       "tags": ["prompts", "llm", "optimization", "evaluation"],
       "keywords": ["prompt", "llm", "optimization", "engineering"]
@@ -30,20 +30,11 @@
     {
       "name": "agent-team",
       "source": "./plugins/agent-team",
-      "description": "Orchestrate Claude Code Agent Teams with contract-first design, dynamic teammate specialization, and structured quality gates. Adds a /agent-team skill.",
-      "version": "1.0.0",
-      "category": "workflows",
-      "tags": ["agent-teams", "orchestration", "parallel-build", "contracts", "coordination"],
-      "keywords": ["agent-team", "parallel", "swarm", "coordination", "delegate"]
-    },
-    {
-      "name": "braindump2spec",
-      "source": "./plugins/braindump2spec",
-      "description": "Transform rough brain dumps \u2014 or an existing design conversation \u2014 into agent-implementable specifications through structured Q&A. Outputs braindump_final.md, spec.md (prioritized user stories, EARS requirements, Given/When/Then acceptance scenarios) and constraints.md. Adds a /braindump2spec skill.",
+      "description": "Orchestrate parallel coding agents — Agent Teams, worktree-isolated agents or parallel sessions — with mechanism choice, parallel-safety classification, contract-first interfaces and quality gates. Picks up prd2issues issue cuts. Adds a /agent-team skill.",
       "version": "2.0.0",
       "category": "workflows",
-      "tags": ["specification", "requirements", "braindump", "prd", "interviews", "spec-driven-development"],
-      "keywords": ["braindump", "spec", "specification", "prd", "requirements", "sdd", "ears", "acceptance criteria"]
+      "tags": ["agent-teams", "orchestration", "parallel-build", "contracts", "coordination"],
+      "keywords": ["agent-team", "parallel", "swarm", "coordination", "delegate", "worktree", "issues"]
     },
     {
       "name": "brainstorming",
@@ -55,13 +46,13 @@
       "keywords": ["brainstorm", "design", "ideation", "planning"]
     },
     {
-      "name": "branch",
-      "source": "./plugins/branch",
-      "description": "Create new git branches with corresponding planning directories. Adds a /branch skill.",
-      "version": "1.0.0",
+      "name": "engineering-standards",
+      "source": "./plugins/engineering-standards",
+      "description": "Small reviewable pull requests, CLAUDE.md structure and where documentation and plans live, with a swappable organisation profile. Includes /engineering-standards and /branch skills.",
+      "version": "1.1.0",
       "category": "workflows",
-      "tags": ["git", "branching", "planning"],
-      "keywords": ["git", "branch", "planning"]
+      "tags": ["engineering", "pull-requests", "documentation"],
+      "keywords": ["pull request", "pr size", "code review", "claude.md", "documentation", "docs", "plans", "coding standards", "branch"]
     },
     {
       "name": "code-review",
@@ -73,19 +64,28 @@
       "keywords": ["code-review", "review", "security", "quality"]
     },
     {
-      "name": "spec2plan",
-      "source": "./plugins/spec2plan",
-      "description": "Transform feature specifications into context-rich implementation plans and executable task registries. Outputs implementation-plan.md and tasks.md with self-sufficient tasks, runnable validation commands, story-first phasing and explicit parallel-safety. Includes spec2plan orchestrator and spec2plan_sub domain expert agents.",
-      "version": "2.0.0",
-      "category": "workflows",
-      "tags": ["planning", "architecture", "implementation", "specification", "spec-driven-development", "tasks"],
-      "keywords": ["spec", "plan", "architecture", "implementation", "tasks", "sdd", "validation gates", "parallel execution"]
+      "name": "braindump2prd",
+      "source": "./plugins/braindump2prd",
+      "description": "Interviews a PM thoroughly and turns a vague feature idea into a plain-language PRD and spec via a reviewed interview record (braindump_final); hands them over to the issue tracker (e.g. Linear). Adds a /braindump2prd skill.",
+      "version": "1.1.3",
+      "category": "product-management",
+      "tags": ["prd", "spec", "requirements"],
+      "keywords": ["braindump", "prd", "spec", "requirements", "interview", "linear"]
+    },
+    {
+      "name": "prd2issues",
+      "source": "./plugins/prd2issues",
+      "description": "Cuts a Ready PRD into milestones and a small set of readable, codebase-grounded issues in the tracker (e.g. Linear), one vertical slice and one reviewable pull request each. Adds a /prd2issues skill.",
+      "version": "1.1.0",
+      "category": "product-management",
+      "tags": ["issues", "linear", "planning"],
+      "keywords": ["prd", "issues", "milestones", "linear", "vertical slice", "breakdown"]
     },
     {
       "name": "electron-dev",
       "source": "./plugins/electron-dev",
       "description": "Build secure, performant cross-platform desktop applications with Electron. Includes /electron-development skill and electron-developer agent.",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "category": "development",
       "tags": ["electron", "desktop", "cross-platform", "native"],
       "keywords": ["electron", "desktop", "app", "cross-platform"]
@@ -94,7 +94,7 @@
       "name": "fullstack-dev",
       "source": "./plugins/fullstack-dev",
       "description": "End-to-end feature delivery from database to UI with seamless integration. Includes /fullstack-development skill and fullstack-developer agent.",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "category": "development",
       "tags": ["fullstack", "frontend", "backend", "database", "integration"],
       "keywords": ["fullstack", "frontend", "backend", "full-stack"]
@@ -188,6 +188,24 @@
       "category": "analysis",
       "tags": ["venture-capital", "investment-memo", "due-diligence", "startup", "seed", "series-a", "BCSA", "DTM"],
       "keywords": ["investment", "memo", "pitch-deck", "due-diligence", "vc", "startup", "valuation", "deal-flow"]
+    },
+    {
+      "name": "prfaq-vision-builder",
+      "source": "./plugins/prfaq-vision-builder",
+      "description": "Guided Amazon Working Backwards PR/FAQ: one future-state vision document (press release plus lean FAQ) for internal tools or external products. Adds a /prfaq-vision-builder skill.",
+      "version": "1.0.1",
+      "category": "product-management",
+      "tags": ["vision", "prfaq", "working-backwards"],
+      "keywords": ["prfaq", "press release", "vision", "working backwards", "produktvision"]
+    },
+    {
+      "name": "product-roadmap-3-layers",
+      "source": "./plugins/product-roadmap-3-layers",
+      "description": "3-layer product roadmap (Business Outcomes, Product & Features, Tech Enabler) in Now/Next/Later as one markdown document, from an interview or from a Notion roadmap database. Adds a /product-roadmap-3-layers skill.",
+      "version": "1.0.1",
+      "category": "product-management",
+      "tags": ["roadmap", "planning", "notion"],
+      "keywords": ["roadmap", "now next later", "outcomes", "tech enabler", "notion", "roadmap slide"]
     }
   ]
 }
