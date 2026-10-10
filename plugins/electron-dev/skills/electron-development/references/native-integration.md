@@ -2,421 +2,304 @@
 
 ## System Menu Bar
 
-```javascript
-const { Menu, app, shell } = require('electron');
+Menu clicks run in main. Commands the UI must handle go to the renderer as the contract event `menu:command`; anything touching the file system (Open…) stays in main.
 
-function createApplicationMenu(mainWindow) {
+```typescript
+// src/main/menu.ts
+import { app, Menu, type BrowserWindow, type MenuItemConstructorOptions } from 'electron';
+import type { EventPayload } from '../shared/ipc-contract';
+import { emit } from './ipc';
+import { pickDocument } from './open-document';
+import { openExternalSafe } from './security'; // allowlisted shell.openExternal, see security.md
+
+export function buildAppMenu(win: BrowserWindow): void {
   const isMac = process.platform === 'darwin';
+  const command = (cmd: EventPayload<'menu:command'>) => () => emit(win.webContents, 'menu:command', cmd);
 
-  const template = [
-    // App menu (macOS only)
-    ...(isMac ? [{
-      label: app.name,
-      submenu: [
-        { role: 'about' },
-        { type: 'separator' },
-        {
-          label: 'Preferences...',
-          accelerator: 'Cmd+,',
-          click: () => mainWindow.webContents.send('menu:preferences')
-        },
-        { type: 'separator' },
-        { role: 'services' },
-        { type: 'separator' },
-        { role: 'hide' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
-        { type: 'separator' },
-        { role: 'quit' }
-      ]
-    }] : []),
-
-    // File menu
+  const template: MenuItemConstructorOptions[] = [
+    ...(isMac
+      ? [{
+          label: app.name,
+          submenu: [
+            { role: 'about' }, { type: 'separator' },
+            { label: 'Settings…', accelerator: 'Cmd+,', click: command('preferences') },
+            { type: 'separator' }, { role: 'services' }, { type: 'separator' },
+            { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' },
+            { role: 'quit' },
+          ],
+        } satisfies MenuItemConstructorOptions]
+      : []),
     {
       label: 'File',
       submenu: [
-        {
-          label: 'New',
-          accelerator: 'CmdOrCtrl+N',
-          click: () => mainWindow.webContents.send('menu:new')
-        },
-        {
-          label: 'Open...',
-          accelerator: 'CmdOrCtrl+O',
-          click: async () => {
-            const { filePaths } = await dialog.showOpenDialog(mainWindow, {
-              properties: ['openFile'],
-              filters: [{ name: 'Documents', extensions: ['txt', 'md'] }]
-            });
-            if (filePaths.length > 0) {
-              mainWindow.webContents.send('menu:open', filePaths[0]);
-            }
-          }
-        },
+        { label: 'New', accelerator: 'CmdOrCtrl+N', click: command('new') },
+        { label: 'Open…', accelerator: 'CmdOrCtrl+O', click: () => void pickDocument() },
         { type: 'separator' },
-        {
-          label: 'Save',
-          accelerator: 'CmdOrCtrl+S',
-          click: () => mainWindow.webContents.send('menu:save')
-        },
+        { label: 'Save', accelerator: 'CmdOrCtrl+S', click: command('save') },
         { type: 'separator' },
-        isMac ? { role: 'close' } : { role: 'quit' }
-      ]
+        isMac ? { role: 'close' } : { role: 'quit' },
+      ],
     },
-
-    // Edit menu
-    {
-      label: 'Edit',
-      submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        ...(isMac ? [
-          { role: 'pasteAndMatchStyle' },
-          { role: 'delete' },
-          { role: 'selectAll' },
-        ] : [
-          { role: 'delete' },
-          { type: 'separator' },
-          { role: 'selectAll' }
-        ])
-      ]
-    },
-
-    // View menu
+    { role: 'editMenu' },
     {
       label: 'View',
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' }
-      ]
+        { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' },
+        { type: 'separator' }, { role: 'togglefullscreen' },
+        // Developer items only in unpackaged builds
+        ...(app.isPackaged
+          ? []
+          : ([{ type: 'separator' }, { role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }] satisfies MenuItemConstructorOptions[])),
+      ],
     },
-
-    // Help menu
+    { role: 'windowMenu' },
     {
-      label: 'Help',
+      role: 'help',
       submenu: [
-        {
-          label: 'Documentation',
-          click: () => shell.openExternal('https://yourapp.com/docs')
-        },
-        {
-          label: 'Report Issue',
-          click: () => shell.openExternal('https://github.com/yourapp/issues')
-        }
-      ]
-    }
+        { label: 'Documentation', click: () => openExternalSafe('https://docs.acme.example/atlas') },
+        { label: 'Report an Issue', click: () => openExternalSafe('https://acme.example/atlas/support') },
+      ],
+    },
   ];
 
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 ```
+
+- `editMenu` / `windowMenu` roles give platform-correct standard submenus; spell out a submenu only when you add items.
+- Add "Check for Updates…" to the app menu (macOS) or Help (Windows/Linux) when the updater supports it (auto-update.md).
 
 ## Context Menus
 
-```javascript
-// preload.js - Expose context menu API
-contextBridge.exposeInMainWorld('electronAPI', {
-  showContextMenu: (menuId, data) => {
-    ipcRenderer.send('context-menu:show', menuId, data);
-  }
-});
+The renderer asks for a menu through the contract channel `context-menu:show` (typed-ipc.md); `registerIpc()` has already run `assertTrustedSender` and the zod schema (a discriminated union: `text-selection`, or `document` with an id). Main builds the menu and resolves any file path itself from the id; a path never comes from the renderer.
 
-// main.js - Handle context menu
-ipcMain.on('context-menu:show', (event, menuId, data) => {
-  const window = BrowserWindow.fromWebContents(event.sender);
+```typescript
+// src/main/context-menu.ts
+import { BrowserWindow, Menu, shell, type MenuItemConstructorOptions, type WebContents } from 'electron';
+import type { Req } from '../shared/ipc-contract';
+import { documentPath } from './documents';
+import { emit } from './ipc';
 
-  const menus = {
-    'text-selection': [
-      { label: 'Copy', role: 'copy' },
-      { label: 'Cut', role: 'cut' },
-      { label: 'Paste', role: 'paste' },
-      { type: 'separator' },
-      {
-        label: 'Search Google',
-        click: () => {
-          shell.openExternal(`https://google.com/search?q=${encodeURIComponent(data.text)}`);
-        }
-      }
-    ],
-    'file-item': [
-      {
-        label: 'Open',
-        click: () => event.sender.send('context-menu:action', 'open', data)
-      },
-      {
-        label: 'Delete',
-        click: () => event.sender.send('context-menu:action', 'delete', data)
-      },
-      { type: 'separator' },
-      {
-        label: 'Show in Finder',
-        click: () => shell.showItemInFolder(data.path)
-      }
-    ]
-  };
+function templateFor(req: Req<'context-menu:show'>, sender: WebContents): MenuItemConstructorOptions[] {
+  if (req.kind === 'text-selection') return [{ role: 'copy' }, { role: 'cut' }, { role: 'paste' }];
 
-  const template = menus[menuId] || [];
-  const menu = Menu.buildFromTemplate(template);
-  menu.popup({ window });
-});
-
-// renderer.js - Trigger context menu
-document.addEventListener('contextmenu', (event) => {
-  event.preventDefault();
-
-  const selection = window.getSelection().toString();
-  if (selection) {
-    window.electronAPI.showContextMenu('text-selection', { text: selection });
-  } else if (event.target.dataset.filePath) {
-    window.electronAPI.showContextMenu('file-item', {
-      path: event.target.dataset.filePath
-    });
-  }
-});
-```
-
-## File Associations
-
-```javascript
-// package.json - electron-builder configuration
-{
-  "build": {
-    "fileAssociations": [
-      {
-        "ext": "myapp",
-        "name": "MyApp Document",
-        "description": "MyApp Document File",
-        "mimeType": "application/x-myapp",
-        "role": "Editor",
-        "icon": "icons/document.icns"
-      }
-    ],
-    "protocols": [
-      {
-        "name": "MyApp Protocol",
-        "schemes": ["myapp"]
-      }
-    ]
-  }
+  const filePath = documentPath(req.id); // throws for ids main never issued → invoke rejects
+  const act = (action: 'open' | 'delete') => () => emit(sender, 'document:action', { action, id: req.id });
+  return [
+    { label: 'Open', click: act('open') },
+    { label: 'Delete…', click: act('delete') }, // renderer confirms, then calls a delete channel
+    { type: 'separator' },
+    {
+      label: process.platform === 'darwin' ? 'Show in Finder' : 'Show in Folder',
+      click: () => shell.showItemInFolder(filePath),
+    },
+  ];
 }
 
-// main.js - Handle file open events
-app.on('open-file', (event, filePath) => {
-  event.preventDefault();
-
-  if (mainWindow) {
-    mainWindow.webContents.send('file:open-external', filePath);
-  } else {
-    // Store for when window is ready
-    global.fileToOpen = filePath;
-  }
-});
-
-// Handle protocol URLs
-app.on('open-url', (event, url) => {
-  event.preventDefault();
-
-  const parsed = new URL(url);
-  if (parsed.protocol === 'myapp:') {
-    handleProtocolAction(parsed);
-  }
-});
-
-// Windows: Handle via command line arguments
-app.on('second-instance', (event, argv) => {
-  const filePath = argv.find(arg => arg.endsWith('.myapp'));
-  if (filePath && mainWindow) {
-    mainWindow.webContents.send('file:open-external', filePath);
-    mainWindow.focus();
-  }
-});
+export function showContextMenu(req: Req<'context-menu:show'>, sender: WebContents): void {
+  const window = BrowserWindow.fromWebContents(sender) ?? undefined;
+  Menu.buildFromTemplate(templateFor(req, sender)).popup({ window });
+}
 ```
+
+```typescript
+// src/renderer/context-menu.ts
+document.addEventListener('contextmenu', (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const id = target?.closest<HTMLElement>('[data-document-id]')?.dataset.documentId;
+  if (window.getSelection()?.toString()) {
+    event.preventDefault();
+    void window.api.showContextMenu({ kind: 'text-selection' });
+  } else if (id) {
+    event.preventDefault();
+    void window.api.showContextMenu({ kind: 'document', id });
+  }
+});
+
+const off = window.api.onDocumentAction(({ action, id }) =>
+  action === 'open' ? openDocumentView(id) : confirmDelete(id),
+);
+```
+
+Electron shows no context menu by default. For editable fields with spell-check suggestions, build the menu in main from the `webContents` `context-menu` event (`params.dictionarySuggestions`, `params.isEditable`) instead of a renderer round trip.
+
+## Opening Documents and Deep Links
+
+Every path that main opens (Open… dialog, Finder/Explorer double-click, second instance) goes through one function. It registers the path in main's document registry and sends the renderer only an id and a display name; `document:read` and the context menu resolve the id back in main.
+
+```typescript
+// src/main/documents.ts — id → path registry, owned by main
+import { randomUUID } from 'node:crypto';
+import { readFile, stat } from 'node:fs/promises';
+import path from 'node:path';
+
+const byId = new Map<string, string>(); // only paths main chose: dialog results, OS open events
+
+export function registerDocument(filePath: string): { id: string; name: string } {
+  const id = randomUUID();
+  byId.set(id, path.resolve(filePath));
+  return { id, name: path.basename(filePath) };
+}
+
+export function documentPath(id: string): string {
+  const p = byId.get(id);
+  if (!p) throw new Error('Unknown document');
+  return p;
+}
+
+export async function readDocument(id: string) {
+  const p = documentPath(id);
+  const [content, { mtimeMs }] = await Promise.all([readFile(p, 'utf8'), stat(p)]);
+  return { name: path.basename(p), content, mtimeMs };
+}
+```
+
+```typescript
+// src/main/open-document.ts
+import { dialog, type BrowserWindow } from 'electron';
+import { registerDocument } from './documents';
+import { emit } from './ipc';
+
+let target: BrowserWindow | null = null;
+const pending: string[] = []; // paths that arrive before the window has loaded (macOS open-file fires early)
+
+export function setDocumentTarget(win: BrowserWindow): void {
+  win.webContents.once('did-finish-load', () => {
+    target = win;
+    for (const p of pending.splice(0)) openDocument(p);
+  });
+  win.once('closed', () => { target = null; });
+}
+
+export function openDocument(filePath: string): void {
+  if (!target) { pending.push(filePath); return; }
+  emit(target.webContents, 'document:opened', registerDocument(filePath));
+  if (target.isMinimized()) target.restore();
+  target.focus();
+}
+
+export async function pickDocument(): Promise<void> {
+  if (!target) return;
+  const { canceled, filePaths } = await dialog.showOpenDialog(target, {
+    properties: ['openFile'],
+    filters: [{ name: 'Atlas Documents', extensions: ['atlas', 'md'] }],
+  });
+  if (!canceled && filePaths[0]) openDocument(filePaths[0]);
+}
+```
+
+```typescript
+// src/main/main.ts (excerpt)
+import path from 'node:path';
+import { openDocument } from './open-document';
+
+const docFromArgv = (argv: string[]) =>
+  argv.find((a) => path.isAbsolute(a) && a.toLowerCase().endsWith('.atlas'));
+const linkFromArgv = (argv: string[]) => argv.find((a) => a.startsWith('atlas://'));
+
+// macOS: Finder double-click, drop on Dock icon (can fire before 'ready')
+app.on('open-file', (event, filePath) => { event.preventDefault(); openDocument(filePath); });
+// macOS: deep link
+app.on('open-url', (event, url) => { event.preventDefault(); handleDeepLink(url); });
+
+// Windows/Linux: paths and deep links arrive as argv, on first launch or in a second instance
+app.on('second-instance', (_event, argv) => {
+  const doc = docFromArgv(argv);
+  const link = linkFromArgv(argv);
+  if (doc) openDocument(doc);
+  if (link) handleDeepLink(link);
+});
+const initialDoc = docFromArgv(process.argv);
+if (initialDoc) openDocument(initialDoc); // queued until the window has loaded
+
+app.setAsDefaultProtocolClient('atlas');
+
+// Deep links are untrusted input, like renderer messages: allowlist actions, validate params
+function handleDeepLink(raw: string): void {
+  let url: URL;
+  try { url = new URL(raw); } catch { return; }
+  if (url.protocol !== 'atlas:') return;
+  switch (url.host) {
+    case 'settings':
+      // emit(win.webContents, 'menu:command', 'preferences')
+      break;
+    default:
+      return; // unknown action: ignore, never pass to shell or fs
+  }
+}
+```
+
+Call `setDocumentTarget(mainWindow)` where the window is created (process-architecture.md), next to `buildAppMenu(mainWindow)`. The deep-link scheme (`atlas://`) is separate from the internal `app://` scheme that serves the renderer.
+
+Registration is packaging config; check the current docs for exact keys:
+
+- Forge: `packagerConfig.protocols` (macOS URL schemes); file types on macOS via `packagerConfig.extendInfo` (`CFBundleDocumentTypes`); Linux via the deb/rpm makers' `mimeType`. On Windows, `app.setAsDefaultProtocolClient` registers the URL scheme at runtime; Squirrel.Windows registers no file types, so write those registry keys on `--squirrel-install` or use another Windows maker.
+- electron-builder: top-level `fileAssociations` (`ext: atlas`, `name: Atlas Document`, `role: Editor`) and `protocols` (`name: Atlas`, `schemes: [atlas]`); NSIS registers both on Windows.
 
 ## System Tray
 
-```javascript
-const { Tray, Menu, nativeImage } = require('electron');
+```typescript
+// src/main/tray.ts
+import { app, Menu, nativeImage, Tray, type BrowserWindow } from 'electron';
+import path from 'node:path';
+import { emit } from './ipc';
 
-class TrayManager {
-  constructor(mainWindow) {
-    this.mainWindow = mainWindow;
-    this.tray = null;
-  }
+// Packaged: copied to resources/ via packagerConfig.extraResource; dev: repo assets/ (main runs from .vite/build)
+const ASSETS = app.isPackaged ? path.join(process.resourcesPath, 'assets') : path.join(__dirname, '../../assets');
+type TrayState = 'idle' | 'syncing' | 'error';
 
-  create() {
-    // Create tray icon
-    const iconPath = process.platform === 'darwin'
-      ? 'icons/trayTemplate.png'  // Template image for macOS
-      : 'icons/tray.png';
+let tray: Tray | null = null; // module scope: a garbage-collected Tray vanishes from the menu bar
 
-    const icon = nativeImage.createFromPath(iconPath);
-    this.tray = new Tray(icon);
+export function createTray(win: BrowserWindow): void {
+  const show = () => { win.show(); win.focus(); };
+  tray = new Tray(iconFor('idle'));
+  tray.setToolTip('Atlas');
+  tray.on('click', show); // Windows; macOS opens the menu, Linux (AppIndicator) may not emit clicks
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Open Atlas', click: show },
+    { label: 'Settings…', click: () => { show(); emit(win.webContents, 'menu:command', 'preferences'); } },
+    { type: 'separator' },
+    { role: 'quit' },
+  ]));
+}
 
-    // Set tooltip
-    this.tray.setToolTip('MyApp');
+export function setTrayState(state: TrayState): void {
+  tray?.setImage(iconFor(state));
+  tray?.setToolTip(`Atlas: ${state}`);
+}
 
-    // Create context menu
-    this.updateContextMenu();
-
-    // Handle click
-    this.tray.on('click', () => {
-      if (this.mainWindow.isVisible()) {
-        this.mainWindow.hide();
-      } else {
-        this.mainWindow.show();
-        this.mainWindow.focus();
-      }
-    });
-
-    // Handle double-click (Windows)
-    this.tray.on('double-click', () => {
-      this.mainWindow.show();
-      this.mainWindow.focus();
-    });
-  }
-
-  updateContextMenu(status = 'idle') {
-    const statusIcons = {
-      idle: '',
-      syncing: '',
-      error: ''
-    };
-
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: `Status: ${statusIcons[status]} ${status}`,
-        enabled: false
-      },
-      { type: 'separator' },
-      {
-        label: 'Open MyApp',
-        click: () => {
-          this.mainWindow.show();
-          this.mainWindow.focus();
-        }
-      },
-      {
-        label: 'Preferences...',
-        click: () => {
-          this.mainWindow.show();
-          this.mainWindow.webContents.send('menu:preferences');
-        }
-      },
-      { type: 'separator' },
-      {
-        label: 'Quit',
-        click: () => app.quit()
-      }
-    ]);
-
-    this.tray.setContextMenu(contextMenu);
-  }
-
-  // Update icon for different states
-  setIcon(state) {
-    const icons = {
-      normal: 'icons/tray.png',
-      notification: 'icons/tray-notification.png',
-      syncing: 'icons/tray-syncing.png'
-    };
-
-    const icon = nativeImage.createFromPath(icons[state] || icons.normal);
-    this.tray.setImage(icon);
-  }
-
-  destroy() {
-    if (this.tray) {
-      this.tray.destroy();
-      this.tray = null;
-    }
-  }
+function iconFor(state: TrayState) {
+  // macOS: names ending in "Template" are tinted for light/dark menu bars
+  const name = process.platform === 'darwin' ? `tray-${state}Template.png` : `tray-${state}.png`;
+  return nativeImage.createFromPath(path.join(ASSETS, name));
 }
 ```
+
+- Put every tray action in the context menu; click events are not reliable on all Linux desktops.
+- To change menu items (e.g. a status line), build a new menu and call `setContextMenu` again.
 
 ## Native Notifications
 
 On macOS, current Electron only shows notifications from a code-signed app; unsigned dev builds will not show them (see `code-signing.md`). Renderers can also use the web `Notification` API.
 
-```javascript
-const { Notification, nativeImage } = require('electron');
+```typescript
+// src/main/notify.ts
+import { Notification, type BrowserWindow } from 'electron';
 
-class NotificationManager {
-  constructor() {
-    // Check if notifications are supported
-    this.isSupported = Notification.isSupported();
-  }
+const live = new Set<Notification>(); // keep a reference, or click handlers can be lost to GC
 
-  show({ title, body, icon, actions, urgency = 'normal' }) {
-    if (!this.isSupported) {
-      console.warn('Notifications not supported on this platform');
-      return null;
-    }
-
-    const notification = new Notification({
-      title,
-      body,
-      icon: icon ? nativeImage.createFromPath(icon) : undefined,
-      urgency, // 'low', 'normal', 'critical'
-      silent: urgency === 'low',
-      actions: actions || [],
-      hasReply: false,
-    });
-
-    notification.on('click', () => {
-      // Focus the app window
-      if (mainWindow) {
-        mainWindow.show();
-        mainWindow.focus();
-      }
-    });
-
-    notification.on('action', (event, index) => {
-      // Handle action button clicks
-      if (actions && actions[index]) {
-        actions[index].callback?.();
-      }
-    });
-
-    notification.show();
-    return notification;
-  }
-
-  // Convenience methods
-  info(title, body) {
-    return this.show({ title, body, urgency: 'normal' });
-  }
-
-  success(title, body) {
-    return this.show({
-      title,
-      body,
-      icon: 'icons/success.png',
-      urgency: 'low'
-    });
-  }
-
-  error(title, body) {
-    return this.show({
-      title,
-      body,
-      icon: 'icons/error.png',
-      urgency: 'critical'
-    });
-  }
+export function notify(win: BrowserWindow, title: string, body: string): void {
+  if (!Notification.isSupported()) return;
+  const n = new Notification({ title, body });
+  live.add(n);
+  n.on('click', () => { win.show(); win.focus(); });
+  n.on('close', () => live.delete(n));
+  n.show();
 }
 ```
+
+- Platform-specific options (`actions`, `urgency`, `hasReply`, `toastXml`, …) differ per OS; check the [Notification API](https://www.electronjs.org/docs/latest/api/notification) before using them.
+- Keep notification text free of secrets; it can appear on the lock screen.
 
 ## Clipboard and Dropped Files
 

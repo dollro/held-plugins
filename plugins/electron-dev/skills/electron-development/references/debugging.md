@@ -144,7 +144,7 @@ Sentry.init({}); // DSN and release come from main
 ```
 
 ```ts
-// src/main/indexer-worker.ts (utilityProcess)
+// src/workers/indexer-worker.ts (utilityProcess)
 import * as Sentry from '@sentry/electron/utility';
 
 Sentry.init({});

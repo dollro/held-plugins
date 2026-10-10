@@ -25,7 +25,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
-    target: 'node22',          // match the Node major bundled with your Electron (process.versions.node)
+    target: 'node<major>',     // placeholder: the Node major your Electron bundles (process.versions.node; sources.md → Version notes)
     sourcemap: true,
     rollupOptions: {
       external: ['better-sqlite3'], // native modules stay external
@@ -105,7 +105,7 @@ export function startIndexer() {
 ```
 
 ```ts
-// src/main/indexer-worker.ts (bundled as its own entry)
+// src/workers/indexer-worker.ts (bundled as its own entry)
 process.parentPort.once('message', ({ ports }) => {
   const [port] = ports;
   port.on('message', ({ data }) => port.postMessage(buildIndex(data)));
@@ -123,14 +123,9 @@ process.parentPort.once('message', ({ ports }) => {
 - Electron is adding build-time V8 code caching for sandboxed renderers; check the release notes for its status before relying on it (see `sources.md` → Version notes).
 - Large real-world wins come from bundling and moving to ESM (VS Code's ESM migration cut startup notably).
 
-### electron-vite bytecode option
+### electron-vite bytecode: not allowed
 
-If you use electron-vite (https://electron-vite.org) instead of Forge's Vite plugin, `build.bytecode` compiles main and preload to V8 bytecode (`.jsc`). Trade-offs:
-
-- Main and preload only, not renderer.
-- Preload bytecode requires `sandbox: false`: a real security cost. Don't disable the sandbox just for this.
-- Builds are per-architecture.
-- It's mostly source obfuscation; startup gain is modest. Measure.
+electron-vite's `build.bytecode` (V8 bytecode for main and preload) requires `sandbox: false` for the preload. That breaks guardrail 1 (renderers sandboxed), so it is **not an option under this skill**. Its gain is mostly obfuscation with a modest startup effect; bundling and lazy imports (above) are the sanctioned startup levers.
 
 ## Measuring
 
@@ -154,10 +149,14 @@ npx electron --trace-startup='*' --trace-startup-file=./startup-trace.json .vite
 ```ts
 import { contentTracing } from 'electron';
 
-await contentTracing.startRecording({ included_categories: ['*'] });
-// ... reproduce the slow path ...
-const tracePath = await contentTracing.stopRecording();
-console.log('Trace written to', tracePath); // open in https://ui.perfetto.dev or chrome://tracing
+// main is CommonJS: wrap in a function, no top-level await
+export async function traceSlowPath(run: () => Promise<void>): Promise<string> {
+  await contentTracing.startRecording({ included_categories: ['*'] });
+  await run(); // reproduce the slow path
+  const tracePath = await contentTracing.stopRecording();
+  console.log('Trace written to', tracePath); // open in https://ui.perfetto.dev or chrome://tracing
+  return tracePath;
+}
 ```
 
 `startRecording` takes a `TraceConfig` (`included_categories`, `excluded_categories`, `recording_mode`, `trace_buffer_size_in_kb`) or `TraceCategoriesAndOptions`; snake_case is correct. `--trace-startup` / `--trace-startup-file` are Chromium switches (exercised in Electron's own test suite, not listed on its command-line-switches page). Docs: https://www.electronjs.org/docs/latest/api/content-tracing.

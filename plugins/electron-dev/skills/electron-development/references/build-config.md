@@ -38,6 +38,8 @@ atlas/
       main.ts
     shared/                  # types + IPC contract shared by all three
       ipc-contract.ts
+    workers/                 # utilityProcess entry points, each its own build entry
+      indexer-worker.ts
 ```
 
 The template generates flat `src/main.ts`, `src/preload.ts`, `src/renderer.ts`; move them into folders and update the `entry` paths below. Keep the entry file names distinct: Vite names each bundle after its entry file, so two `index.ts` entries would collide in `.vite/build/`. Sandboxed preloads cannot use ESM, so the preload Vite config must emit CJS.
@@ -87,6 +89,8 @@ const config: ForgeConfig = {
       build: [
         { entry: 'src/main/main.ts', config: 'vite.main.config.mts', target: 'main' },
         { entry: 'src/preload/preload.ts', config: 'vite.preload.config.mts', target: 'preload' },
+        // utilityProcess entry: emitted next to main.cjs as indexer-worker.cjs
+        { entry: 'src/workers/indexer-worker.ts', config: 'vite.main.config.mts', target: 'main' },
       ],
       renderer: [{ name: 'main_window', config: 'vite.renderer.config.mts' }],
     }),
@@ -175,12 +179,13 @@ jobs:
     permissions:
       contents: write # PublisherGitHub creates/updates the draft release
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Pin every action to its current major (vN) or, stricter, a full commit SHA; look the major up on the action's releases page
+      - uses: actions/checkout@vN
+      - uses: actions/setup-node@vN
         with:
           node-version: lts/*   # must satisfy Forge's engines.node
           cache: npm
-      - uses: actions/cache@v4
+      - uses: actions/cache@vN
         with:
           path: |
             ~/.cache/electron
@@ -206,6 +211,7 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 ```
 
+- `@vN` is a placeholder: replace it with each action's current major (pin-by-major), or with a commit SHA if your supply-chain policy requires it. Bump with Dependabot/Renovate.
 - Build each OS on its own runner; cross-compiling signed installers is not practical.
 - For both macOS archs, either run `macos-latest` (arm64) plus an Intel runner, or pass `--arch=universal`.
 - Add a macOS step that imports the `.p12` into a temporary keychain and writes the `.p8` key to disk before `release` (see `code-signing.md`).
@@ -222,7 +228,8 @@ Choose it when you need:
 - **NSIS installers** (custom install dir, per-machine installs) instead of Squirrel.Windows.
 - **AppImage** or Snap on Linux.
 - **electron-updater** features: staged rollouts (`stagingPercentage`), generic/S3 providers, channels.
-- **V8 bytecode** protection of main/preload via electron-vite `build.bytecode` (requires `sandbox: false` for that preload and per-arch builds).
+
+Not a reason: electron-vite's V8 bytecode option (`build.bytecode`). It requires `sandbox: false` for the preload, which this skill's guardrails forbid; don't enable it.
 
 Stay on Forge when you want the officially maintained toolchain and first-party fuses/signing packages. Both tools embed the ASAR integrity hash on macOS and Windows.
 

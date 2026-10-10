@@ -24,59 +24,56 @@ src/
 
 ## Unit Tests: IPC Handlers
 
-Write handlers as plain functions that take the `IpcMainInvokeEvent` and validated args. Register them in one place. Then test the function directly with a fake event; no Electron needed.
+Write handlers as plain functions that take the `IpcMainInvokeEvent` and validated args. Register them in one place. Then test the function directly with a fake event; no Electron needed. The sender check is `assertTrustedSender` from security.md (it reads `event.senderFrame?.origin`); the schema comes from the shared contract.
 
 ```ts
-// src/main/handlers/files.ts
+// src/main/handlers/documents.ts
 import type { IpcMainInvokeEvent } from 'electron';
-import { z } from 'zod';
+import { invokeContract, type Res } from '../../shared/ipc-contract';
+import { assertTrustedSender } from '../security';
 
-const ALLOWED_ORIGINS = new Set(['app://atlas']);
-const ReadArgs = z.object({ id: z.string().uuid() });
+type Repo = { get(id: string): Promise<Res<'document:read'>> }; // throws on unknown id
 
-export function assertTrustedSender(event: IpcMainInvokeEvent): void {
-  const url = event.senderFrame?.url;
-  if (!url || !ALLOWED_ORIGINS.has(new URL(url).origin)) {
-    throw new Error('Untrusted IPC sender');
-  }
-}
-
-export function makeReadDocument(repo: { get(id: string): Promise<string> }) {
+export function makeReadDocument(repo: Repo) {
   return async (event: IpcMainInvokeEvent, raw: unknown) => {
     assertTrustedSender(event);
-    const { id } = ReadArgs.parse(raw);
+    const { id } = invokeContract['document:read'].request.parse(raw);
     return repo.get(id);
   };
 }
 ```
 
 ```ts
-// src/main/handlers/files.test.ts
+// src/main/handlers/documents.test.ts
 import { describe, expect, it, vi } from 'vitest';
 import type { IpcMainInvokeEvent } from 'electron';
-import { makeReadDocument } from './files';
+import { makeReadDocument } from './documents';
 
-const fakeEvent = (url: string) =>
-  ({ senderFrame: { url } }) as unknown as IpcMainInvokeEvent;
+// Chromium's serialized origin, as WebFrameMain.origin reports it
+const fakeEvent = (origin: string | null) =>
+  ({ senderFrame: origin === null ? null : { origin } }) as unknown as IpcMainInvokeEvent;
 
 describe('readDocument', () => {
-  const repo = { get: vi.fn().mockResolvedValue('# hello') };
+  const doc = { name: 'notes.md', content: '# hello', mtimeMs: 0 };
+  const repo = { get: vi.fn().mockResolvedValue(doc) };
   const handler = makeReadDocument(repo);
   const id = '3f1c8a52-6a3e-4d2b-9a57-0c4b8e2f1d11';
 
-  it('returns content for a trusted sender', async () => {
-    await expect(handler(fakeEvent('app://atlas/index.html'), { id })).resolves.toBe('# hello');
+  it('returns the document for a trusted sender', async () => {
+    await expect(handler(fakeEvent('app://atlas'), { id })).resolves.toEqual(doc);
   });
 
-  it('rejects untrusted origins', async () => {
-    await expect(handler(fakeEvent('https://evil.example'), { id })).rejects.toThrow('Untrusted');
+  it.each(['https://evil.example', 'null', 'file://', null])('rejects sender %s', async (origin) => {
+    await expect(handler(fakeEvent(origin), { id })).rejects.toThrow('untrusted');
   });
 
   it('rejects malformed args', async () => {
-    await expect(handler(fakeEvent('app://atlas/'), { id: 42 })).rejects.toThrow();
+    await expect(handler(fakeEvent('app://atlas'), { id: 42 })).rejects.toThrow();
   });
 });
 ```
+
+`MAIN_WINDOW_VITE_DEV_SERVER_URL` is a Forge build-time global; define it for tests (`define` in the Vitest config, or `vi.stubGlobal`) so `security.ts` loads outside the Forge build.
 
 Notes:
 - Run main/shared tests with `environment: 'node'`. Don't import `electron` at runtime in handler modules (type imports only), or mock it with `vi.mock('electron', () => ({ app: { getPath: vi.fn(() => '/tmp/atlas') } }))`.
@@ -106,14 +103,24 @@ Framework-agnostic: use the testing library for your UI framework (Vue Test Util
 import { vi } from 'vitest';
 import type { AtlasApi } from '../../shared/ipc-contract';
 
+const unsubscribe = () => {};
+
 const api: AtlasApi = {
-  readDocument: vi.fn().mockResolvedValue('# hello'),
-  onUpdateAvailable: vi.fn(() => () => {}),
+  readDocument: vi.fn(async () => ({ name: 'notes.md', content: '# hello', mtimeMs: 0 })),
+  setSetting: vi.fn(async () => ({ ok: true as const })),
+  appVersion: vi.fn(async () => '0.0.0-test'),
+  showContextMenu: vi.fn(async () => {}),
+  restartToUpdate: vi.fn(async () => {}),
+  onUpdateReady: vi.fn(() => unsubscribe),
+  onSyncProgress: vi.fn(() => unsubscribe),
+  onMenuCommand: vi.fn(() => unsubscribe),
+  onDocumentOpened: vi.fn(() => unsubscribe),
+  onDocumentAction: vi.fn(() => unsubscribe),
 };
 Object.defineProperty(window, 'api', { value: api, writable: true });
 ```
 
-Typing the stub against the same `AtlasApi` interface the preload implements keeps tests and contract in sync.
+`AtlasApi` is exported from `src/shared/ipc-contract.ts` (typed-ipc.md) and the preload checks its bridge with `satisfies AtlasApi`, so a new channel fails to compile here until the stub covers it.
 
 ## E2E with Playwright
 
@@ -129,7 +136,7 @@ test.beforeAll(async () => {
   app = await electron.launch({
     // dev/unpackaged build: point at the bundled main entry
     args: ['.vite/build/main.cjs'],
-    // packaged build instead: executablePath: 'out/atlas-linux-x64/atlas'
+    // packaged build instead (Forge names output after productName): executablePath: 'out/Atlas-linux-x64/Atlas'
     env: { ...process.env, NODE_ENV: 'test' },
   });
 });

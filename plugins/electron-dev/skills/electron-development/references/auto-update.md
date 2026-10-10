@@ -72,10 +72,12 @@ updateElectronApp({
 ```ts
 // src/main/updater.ts (ESM; electron-updater is CJS)
 import electronUpdater from 'electron-updater';
-import { BrowserWindow } from 'electron';
+import type { BrowserWindow } from 'electron';
 import log from 'electron-log/main';
+import { emit } from './ipc'; // typed main → renderer events, see typed-ipc.md
 
 const { autoUpdater } = electronUpdater;
+let downloaded = false;
 
 export function initUpdates(win: BrowserWindow): void {
   autoUpdater.logger = log;
@@ -84,12 +86,19 @@ export function initUpdates(win: BrowserWindow): void {
   autoUpdater.allowDowngrade = false;       // default; never roll users back silently
 
   autoUpdater.on('update-downloaded', (info) => {
-    win.webContents.send('update:ready', { version: info.version });
+    downloaded = true;
+    emit(win.webContents, 'update:ready', { version: info.version });
   });
   autoUpdater.on('error', (err) => log.error('update failed', err));
 
   void autoUpdater.checkForUpdates();
   setInterval(() => void autoUpdater.checkForUpdates(), 4 * 60 * 60 * 1000);
+}
+
+/** 'update:restart' handler (registered in ipc.ts, behind assertTrustedSender + payload validation) */
+export function restartToUpdate(): void {
+  if (!downloaded) return; // ignore stray calls; nothing to install yet
+  autoUpdater.quitAndInstall();
 }
 ```
 
@@ -108,29 +117,21 @@ Differential updates: electron-builder generates blockmaps so clients download o
 5. Let users **check manually** from the app menu ("Check for Updates…").
 6. Before `quitAndInstall()`, let windows save state; unsaved work must never be lost to an update.
 
-Narrow IPC surface (preload):
+IPC goes through the shared contract (typed-ipc.md), not a separate bridge: `update:ready` (event, main → renderer) and `update:restart` (invoke) are contract channels, exposed as `window.api.onUpdateReady` and `window.api.restartToUpdate`. `registerIpc()` runs `assertTrustedSender` and payload validation before `restartToUpdate()` above.
 
 ```ts
-// src/preload/preload.ts
-import { contextBridge, ipcRenderer } from 'electron';
-
-contextBridge.exposeInMainWorld('updates', {
-  onReady: (cb: (v: { version: string }) => void) => {
-    const listener = (_e: Electron.IpcRendererEvent, v: { version: string }) => cb(v);
-    ipcRenderer.on('update:ready', listener);
-    return () => ipcRenderer.removeListener('update:ready', listener);
-  },
-  restart: () => ipcRenderer.invoke('update:restart'),
+// src/renderer/update-banner.ts
+const off = window.api.onUpdateReady(({ version }) => {
+  showBanner(`Version ${version} is ready`, {
+    restartNow: async () => { await saveAll(); await window.api.restartToUpdate(); },
+    later: () => {}, // autoInstallOnAppQuit installs on next quit
+  });
 });
+// on teardown
+off();
 ```
 
-```ts
-// main: validate sender, then install
-ipcMain.handle('update:restart', (event) => {
-  if (!isTrustedSender(event.senderFrame)) return;
-  autoUpdater.quitAndInstall();
-});
-```
+With update-electron-app and `notifyUser: false`, call `emit(win.webContents, 'update:ready', ...)` from `onNotifyUser` and use `autoUpdater.quitAndInstall()` from `electron` in `restartToUpdate()`.
 
 ## Rollout and Rollback Safety
 

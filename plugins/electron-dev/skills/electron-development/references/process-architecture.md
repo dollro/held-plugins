@@ -13,7 +13,7 @@ Rule: the renderer is untrusted. Everything it asks for goes through a validated
 
 ## Module Format (ESM)
 
-- Write main with ESM syntax; what runs is the bundle. Forge's Vite template emits main as CommonJS (`.vite/build/main.cjs`, referenced by `"main"` in `package.json`), so `__dirname` works and is the convention in this skill. Electron can also run an ESM main (`"type": "module"` or `.mjs`); only if you switch the main build to ESM, use `import.meta.dirname` and `await` pre-`ready` setup (e.g. `protocol.registerSchemesAsPrivileged`) at top level.
+- Write main with ESM syntax; what runs is the bundle. Forge's Vite template emits main as CommonJS (`.vite/build/main.cjs`, referenced by `"main"` in `package.json`), so `__dirname` works and is the convention in this skill, and top-level `await` does not (use `app.whenReady().then(...)` or an async `main()` you call). Electron can also run an ESM main (`"type": "module"` or `.mjs`); only if you switch the main build to ESM, use `import.meta.dirname` and `await` pre-`ready` setup (e.g. `protocol.registerSchemesAsPrivileged`) at top level.
 - Sandboxed preloads cannot be ESM. Bundle the preload to a single CommonJS file (Forge's Vite plugin does this). ESM preloads only work as `.mjs` with `sandbox: false`, which you should not do.
 - A sandboxed preload's `require` only resolves a small set: `electron` (contextBridge, ipcRenderer, webFrame, webUtils, nativeImage, crashReporter) plus `events`, `timers`, `url`. Anything else must be bundled in.
 - If you use another toolchain or change the main Vite config, check whether the bundled main is ESM or CJS and match `__dirname` vs `import.meta.dirname` to the output.
@@ -75,9 +75,11 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-await app.whenReady();
-registerIpc();
-createWindow();
+// No top-level await: Forge's Vite plugin bundles main as CommonJS
+void app.whenReady().then(() => {
+  registerIpc();
+  createWindow();
+});
 ```
 
 ## Renderer Process
@@ -86,11 +88,11 @@ The renderer sees only what the preload exposes. Subscriptions return an unsubsc
 
 ```typescript
 // src/renderer/update-banner.ts
-const off = window.api.onUpdateAvailable((info) => showUpdateBanner(info.version));
+const off = window.api.onUpdateReady((info) => showUpdateBanner(info.version));
 // framework teardown (onUnmounted / useEffect cleanup):
 off();
 
-const content = await window.api.readFile({ path: selectedPath });
+const { content } = await window.api.readDocument({ id: documentId }); // id issued by main
 ```
 
 ## Multiple Views: BaseWindow + WebContentsView
@@ -155,7 +157,7 @@ export const indexFolder = (dir: string) => child?.postMessage({ type: 'index', 
 ```
 
 ```typescript
-// src/main/indexer-worker.ts (built as a separate entry)
+// src/workers/indexer-worker.ts (built as a separate entry)
 process.parentPort.on('message', async ({ data }) => {
   if (data.type === 'index') {
     const count = await indexDirectory(data.dir);

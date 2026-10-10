@@ -12,7 +12,7 @@ Source of truth: the official checklist at https://www.electronjs.org/docs/lates
 | 4 | Process sandboxing | `sandbox: true` (default) |
 | 5 | Handle permission requests | `session.setPermissionRequestHandler` |
 | 6 | Don't disable `webSecurity` | leave default `true` |
-| 7 | Define a CSP | meta tag or response header |
+| 7 | Define a CSP | response header (meta tag only as a fallback) |
 | 8 | No `allowRunningInsecureContent` | leave default `false` |
 | 9 | No experimental features | no `experimentalFeatures: true` |
 | 10 | No `enableBlinkFeatures` | leave unset |
@@ -60,29 +60,82 @@ The old `enableRemoteModule` option and the `remote` module no longer exist; do 
 
 ## Content Security Policy
 
-Prefer a meta tag in `index.html` (works for custom protocols and the Vite dev server), plus a header for remote content.
+Deliver the CSP as a response header set by main, with one policy per mode. A header is enforced before any page script runs and supports every directive; a `<meta>` CSP ignores `frame-ancestors` (and `report-uri`, `sandbox`), so don't rely on a meta tag alone.
 
-```html
-<meta http-equiv="Content-Security-Policy"
-  content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
-           img-src 'self' data:; connect-src 'self' https://api.acme.example;
-           object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+```typescript
+// src/main/csp.ts
+const RELEASE_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "connect-src 'self' https://api.acme.example",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+// Dev only: the Vite dev server serves the page and HMR talks over ws:
+function devCsp(devUrl: string): string {
+  const { host } = new URL(devUrl);
+  return RELEASE_CSP
+    .replace("script-src 'self'", "script-src 'self' 'unsafe-eval'")
+    .replace("connect-src 'self'", `connect-src 'self' ws://${host}`);
+}
+
+export const CSP = MAIN_WINDOW_VITE_DEV_SERVER_URL
+  ? devCsp(MAIN_WINDOW_VITE_DEV_SERVER_URL)
+  : RELEASE_CSP;
 ```
+
+Release: attach the header in the `protocol.handle('app', ...)` handler (see "Custom Protocol" below), so every app response carries it. Dev: the page comes from the Vite server, so inject it with `onHeadersReceived`, scoped to the dev origin:
 
 ```typescript
 import { session } from 'electron';
+import { CSP } from './csp';
 
-session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-  callback({
-    responseHeaders: {
-      ...details.responseHeaders,
-      'Content-Security-Policy': ["default-src 'self'; script-src 'self'; object-src 'none'"],
-    },
+if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+  const devOrigin = new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL).origin; // http(s) origin: .origin is fine
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const isDevPage = new URL(details.url).origin === devOrigin;
+    callback({
+      responseHeaders: isDevPage
+        ? { ...details.responseHeaders, 'Content-Security-Policy': [CSP] }
+        : details.responseHeaders,
+    });
   });
-});
+}
 ```
 
-During development Vite's HMR needs `ws:` in `connect-src` and may need `'unsafe-eval'`; never ship those.
+The dev policy (`'unsafe-eval'`, `ws:`) must never reach a packaged build; keying it on `MAIN_WINDOW_VITE_DEV_SERVER_URL` (undefined when packaged) guarantees that.
+
+## App Origin Helpers
+
+Node's WHATWG `URL` only computes a tuple origin for `http`, `https`, `ws`, `wss` and `ftp`, so `new URL('app://atlas/index.html').origin` is the string `'null'` and an origin comparison silently fails for every request. Compare parsed `protocol` + `host` for URLs, and use Chromium's origin (`event.senderFrame.origin`, the permission check's `requestingOrigin`), which serializes the privileged standard scheme as `app://atlas`.
+
+```typescript
+// src/main/security.ts
+import type { IpcMainEvent, IpcMainInvokeEvent } from 'electron';
+
+export const APP_ORIGIN = 'app://atlas'; // as Chromium serializes a standard custom scheme
+// Forge's Vite plugin injects this global in dev; undefined in packaged builds. http(s), so .origin works.
+const DEV_ORIGIN = MAIN_WINDOW_VITE_DEV_SERVER_URL
+  ? new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL).origin
+  : null;
+
+/** For URLs (navigation, permission requestingUrl): never compare new URL(x).origin for app: */
+export function isAppUrl(raw: string): boolean {
+  let url: URL;
+  try { url = new URL(raw); } catch { return false; }
+  if (url.protocol === 'app:' && url.host === 'atlas') return true;
+  return DEV_ORIGIN !== null && url.origin === DEV_ORIGIN;
+}
+
+/** For origins Chromium already serialized (WebFrameMain.origin, requestingOrigin) */
+export function isAppOrigin(origin: string): boolean {
+  return origin === APP_ORIGIN || (DEV_ORIGIN !== null && origin === DEV_ORIGIN);
+}
+```
 
 ## Permissions
 
@@ -90,17 +143,16 @@ Deny by default; grant only what the app needs, only to your own origin.
 
 ```typescript
 import { session } from 'electron';
+import { isAppOrigin, isAppUrl } from './security';
 
-const APP_ORIGIN = 'app://atlas';
 const ALLOWED = new Set(['clipboard-sanitized-write', 'notifications']);
 
-session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
-  const origin = new URL(details.requestingUrl).origin;
-  callback(origin === APP_ORIGIN && ALLOWED.has(permission));
+session.defaultSession.setPermissionRequestHandler((_wc, permission, callback, details) => {
+  callback(isAppUrl(details.requestingUrl) && ALLOWED.has(permission));
 });
 
 session.defaultSession.setPermissionCheckHandler((_wc, permission, requestingOrigin) =>
-  requestingOrigin === APP_ORIGIN && ALLOWED.has(permission),
+  isAppOrigin(requestingOrigin) && ALLOWED.has(permission),
 );
 ```
 
@@ -108,11 +160,14 @@ session.defaultSession.setPermissionCheckHandler((_wc, permission, requestingOri
 
 ```typescript
 import { app, shell } from 'electron';
+import { isAppUrl } from './security';
 
 const EXTERNAL_ALLOW = new Set(['acme.example', 'docs.acme.example']);
 
-function openExternalSafe(raw: string): void {
-  const url = new URL(raw);
+// export from src/main/security.ts; menus and IPC handlers reuse it
+export function openExternalSafe(raw: string): void {
+  let url: URL;
+  try { url = new URL(raw); } catch { return; }
   if (url.protocol === 'https:' && EXTERNAL_ALLOW.has(url.hostname)) {
     void shell.openExternal(url.toString());
   }
@@ -120,7 +175,7 @@ function openExternalSafe(raw: string): void {
 
 app.on('web-contents-created', (_event, contents) => {
   contents.on('will-navigate', (event, url) => {
-    if (new URL(url).origin !== APP_ORIGIN) event.preventDefault();
+    if (!isAppUrl(url)) event.preventDefault();
   });
 
   contents.setWindowOpenHandler(({ url }) => {
@@ -139,21 +194,17 @@ Never pass renderer-supplied strings to `shell.openExternal` or `shell.openPath`
 Every `ipcMain.handle` / `ipcMain.on` must check where the message came from. See typed-ipc.md for wiring this into a typed contract with zod payload validation.
 
 ```typescript
-import type { IpcMainInvokeEvent } from 'electron';
-
-const TRUSTED_ORIGINS = new Set([
-  'app://atlas',
-  // Forge Vite plugin injects this global in dev; undefined in packaged builds
-  ...(MAIN_WINDOW_VITE_DEV_SERVER_URL ? [new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL).origin] : []),
-]);
-
-export function assertTrustedSender(event: IpcMainInvokeEvent): void {
-  const frame = event.senderFrame;
-  if (!frame || !TRUSTED_ORIGINS.has(new URL(frame.url).origin)) {
+// src/main/security.ts (continued)
+export function assertTrustedSender(event: IpcMainInvokeEvent | IpcMainEvent): void {
+  // senderFrame is null if the frame navigated away or was destroyed before the message arrived
+  const origin = event.senderFrame?.origin;
+  if (!origin || !isAppOrigin(origin)) {
     throw new Error('IPC from untrusted sender');
   }
 }
 ```
+
+Use `senderFrame.origin` (`WebFrameMain.origin`), not `new URL(senderFrame.url).origin`: the latter is `'null'` for `app://` (see "App Origin Helpers").
 
 Validate payloads too: normalize paths and confirm they resolve inside an allowed root (`path.relative(root, p)` must not start with `..`), cap sizes, reject unexpected shapes.
 
@@ -165,6 +216,7 @@ Validate payloads too: normalize paths and confirm they resolve inside an allowe
 import { app, net, protocol } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { CSP } from './csp';
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -173,20 +225,24 @@ protocol.registerSchemesAsPrivileged([
 const RENDERER_ROOT = path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}`);
 
 app.whenReady().then(() => {
-  protocol.handle('app', (request) => {
-    const { pathname } = new URL(request.url);
+  protocol.handle('app', async (request) => {
+    const { host, pathname } = new URL(request.url);
+    if (host !== 'atlas') return new Response('Not found', { status: 404 });
     const target = path.join(RENDERER_ROOT, decodeURIComponent(pathname));
     const rel = path.relative(RENDERER_ROOT, target);
     if (rel.startsWith('..') || path.isAbsolute(rel)) {
       return new Response('Forbidden', { status: 403 });
     }
-    return net.fetch(pathToFileURL(target).toString());
+    const file = await net.fetch(pathToFileURL(target).toString());
+    const headers = new Headers(file.headers);
+    headers.set('Content-Security-Policy', CSP); // release policy, see "Content Security Policy"
+    return new Response(file.body, { status: file.status, headers });
   });
   // win.loadURL('app://atlas/index.html')
 });
 ```
 
-`registerSchemesAsPrivileged` must run before `ready`. In ESM main, keep it at module top level.
+`registerSchemesAsPrivileged` must run before `ready`; keep it at module top level of main.
 
 ## Fuses (Forge FusesPlugin)
 

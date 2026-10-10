@@ -13,10 +13,10 @@ Docs: https://www.electronjs.org/docs/latest/tutorial/ipc
 
 ```
 src/
-  shared/ipc-contract.ts   ← channel names, zod schemas, request/response types
+  shared/ipc-contract.ts   ← channel names, zod schemas, request/response types, AtlasApi
   main/ipc.ts              ← registers handlers from the contract
-  preload/preload.ts       ← builds window.api from the contract (distinct name: Vite names bundles after the entry file)
-  renderer/env.d.ts        ← declares window.api
+  preload/preload.ts       ← builds window.api, checked against AtlasApi (distinct name: Vite names bundles after the entry file)
+  renderer/env.d.ts        ← declares window.api: AtlasApi
 ```
 
 `shared/` must only import `zod` and types: it is bundled into main, preload and renderer.
@@ -28,10 +28,12 @@ src/
 import { z } from 'zod';
 
 /** renderer → main, request/response via invoke/handle */
+const DocumentId = z.string().uuid(); // main owns the id → path mapping; the renderer never sends paths
+
 export const invokeContract = {
-  'file:read': {
-    request: z.object({ path: z.string().min(1).max(4096) }),
-    response: z.object({ content: z.string(), mtimeMs: z.number() }),
+  'document:read': {
+    request: z.object({ id: DocumentId }),
+    response: z.object({ name: z.string(), content: z.string(), mtimeMs: z.number() }),
   },
   'settings:set': {
     request: z.object({ key: z.enum(['theme', 'language']), value: z.string().max(64) }),
@@ -41,12 +43,26 @@ export const invokeContract = {
     request: z.void(),
     response: z.string(),
   },
+  'context-menu:show': {
+    request: z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('text-selection') }),
+      z.object({ kind: z.literal('document'), id: DocumentId }),
+    ]),
+    response: z.void(),
+  },
+  'update:restart': {
+    request: z.void(),
+    response: z.void(),
+  },
 } as const;
 
 /** main → renderer, fire-and-forget events */
 export const eventContract = {
-  'update:available': z.object({ version: z.string() }),
+  'update:ready': z.object({ version: z.string() }), // downloaded, restart to install
   'sync:progress': z.object({ done: z.number(), total: z.number() }),
+  'menu:command': z.enum(['new', 'save', 'preferences']),
+  'document:opened': z.object({ id: DocumentId, name: z.string() }),
+  'document:action': z.object({ action: z.enum(['open', 'delete']), id: DocumentId }),
 } as const;
 
 export type InvokeContract = typeof invokeContract;
@@ -56,9 +72,26 @@ export type Res<C extends InvokeChannel> = z.output<InvokeContract[C]['response'
 
 export type EventChannel = keyof typeof eventContract;
 export type EventPayload<C extends EventChannel> = z.output<(typeof eventContract)[C]>;
+
+type Invoke<C extends InvokeChannel> = (req: Req<C>) => Promise<Res<C>>; // Req void → call with no argument
+type Subscribe<C extends EventChannel> = (cb: (payload: EventPayload<C>) => void) => () => void;
+
+/** The window.api surface. Lives here so preload, renderer and tests share one type. */
+export interface AtlasApi {
+  readDocument: Invoke<'document:read'>;
+  setSetting: Invoke<'settings:set'>;
+  appVersion: Invoke<'app:version'>;
+  showContextMenu: Invoke<'context-menu:show'>;
+  restartToUpdate: Invoke<'update:restart'>;
+  onUpdateReady: Subscribe<'update:ready'>;
+  onSyncProgress: Subscribe<'sync:progress'>;
+  onMenuCommand: Subscribe<'menu:command'>;
+  onDocumentOpened: Subscribe<'document:opened'>;
+  onDocumentAction: Subscribe<'document:action'>;
+}
 ```
 
-Naming: `domain:action`. Keep channels coarse-grained and intention-revealing (`file:read`, not `fs:call`); never a generic "run this" channel.
+Naming: `domain:action`. Keep channels coarse-grained and intention-revealing (`document:read`, not `fs:call`); never a generic "run this" channel. Files are addressed by an id that main issued (see native-integration.md); the renderer never hands main a filesystem path.
 
 ## Main Handlers
 
@@ -70,14 +103,19 @@ import {
   type InvokeChannel, type Req, type Res, type EventChannel, type EventPayload,
 } from '../shared/ipc-contract';
 import { assertTrustedSender } from './security';
+import { readDocument } from './documents';        // id → path registry owned by main
+import { showContextMenu } from './context-menu';  // see native-integration.md
+import { restartToUpdate } from './updater';       // see auto-update.md
 
 type Handler<C extends InvokeChannel> = (req: Req<C>, event: IpcMainInvokeEvent) => Promise<Res<C>> | Res<C>;
 type Handlers = { [C in InvokeChannel]: Handler<C> };
 
 const handlers: Handlers = {
-  'file:read': async ({ path }) => readAllowedFile(path), // path checked against allowed roots
+  'document:read': ({ id }) => readDocument(id), // unknown id → throws
   'settings:set': async ({ key, value }) => { settings.set(key, value); return { ok: true }; },
   'app:version': () => app.getVersion(),
+  'context-menu:show': (req, event) => showContextMenu(req, event.sender),
+  'update:restart': () => restartToUpdate(),
 };
 
 export function registerIpc(): void {
@@ -108,7 +146,7 @@ export function emit<C extends EventChannel>(target: WebContents, channel: C, pa
 ```typescript
 // src/preload/preload.ts (bundled to CJS, sandboxed)
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import type { InvokeChannel, Req, Res, EventChannel, EventPayload } from '../shared/ipc-contract';
+import type { AtlasApi, InvokeChannel, Req, Res, EventChannel, EventPayload } from '../shared/ipc-contract';
 
 function invoke<C extends InvokeChannel>(channel: C) {
   return (req: Req<C>): Promise<Res<C>> => ipcRenderer.invoke(channel, req);
@@ -124,14 +162,17 @@ function subscribe<C extends EventChannel>(channel: C) {
 }
 
 const api = {
-  readFile: invoke('file:read'),
+  readDocument: invoke('document:read'),
   setSetting: invoke('settings:set'),
   appVersion: invoke('app:version'), // Req is void, so callable with no argument
-  onUpdateAvailable: subscribe('update:available'),
+  showContextMenu: invoke('context-menu:show'),
+  restartToUpdate: invoke('update:restart'),
+  onUpdateReady: subscribe('update:ready'),
   onSyncProgress: subscribe('sync:progress'),
-} as const;
-
-export type AtlasApi = typeof api;
+  onMenuCommand: subscribe('menu:command'),
+  onDocumentOpened: subscribe('document:opened'),
+  onDocumentAction: subscribe('document:action'),
+} satisfies AtlasApi; // compile error if the bridge and the shared type drift
 
 contextBridge.exposeInMainWorld('api', api);
 ```
@@ -144,7 +185,7 @@ contextBridge.exposeInMainWorld('api', api);
 
 ```typescript
 // src/renderer/env.d.ts
-import type { AtlasApi } from '../preload/preload';
+import type { AtlasApi } from '../shared/ipc-contract';
 
 declare global {
   interface Window {
@@ -156,35 +197,39 @@ export {};
 ```
 
 ```typescript
-// src/renderer/settings.ts
-const { content } = await window.api.readFile({ path: selectedPath });
-const off = window.api.onSyncProgress(({ done, total }) => setProgress(done / total));
+// src/renderer/editor.ts
+const offOpened = window.api.onDocumentOpened(async ({ id }) => {
+  const { name, content } = await window.api.readDocument({ id });
+  showDocument(name, content);
+});
+const offProgress = window.api.onSyncProgress(({ done, total }) => setProgress(done / total));
 // on teardown
-off();
+offOpened();
+offProgress();
 ```
 
-If the renderer tsconfig cannot reach the preload source, export `AtlasApi` from `src/shared/` instead and type the preload object against it with `satisfies AtlasApi`.
+`AtlasApi` lives in `src/shared/` so the renderer and its tests import it without reaching into the preload source.
 
 ## Main → Renderer Events
 
 ```typescript
 // anywhere in main
-emit(mainWindow.webContents, 'update:available', { version: '2.4.0' });
+emit(mainWindow.webContents, 'update:ready', { version: '2.4.0' });
 ```
 
 For broadcast to all windows, iterate `BrowserWindow.getAllWindows()`. For high-frequency streams (progress ticks, logs), throttle in main or move to a `MessagePort` (see process-architecture.md).
 
 ## Testing the Contract
 
-- Unit-test handlers directly (`handlers['file:read']({ path }, fakeEvent)`) with Vitest; no Electron needed.
+- Unit-test handlers directly (`handlers['document:read']({ id }, fakeEvent)`) with Vitest; no Electron needed.
 - Test schemas: invalid payloads must be rejected (`request.safeParse(bad).success === false`).
-- Test `assertTrustedSender` with fake `senderFrame.url` values (`https://evil.example`, `file:///...`).
+- Test `assertTrustedSender` with fake `senderFrame.origin` values (`'https://evil.example'`, `'null'`, `'file://'`) and with `senderFrame: null`.
 - E2E (Playwright) covers the real bridge; see testing.md.
 
 ## Checklist
 
 - [ ] Every channel lives in `src/shared/ipc-contract.ts`
 - [ ] Every handler validates sender and payload before doing work
-- [ ] Preload exposes named functions only, typed from the contract
+- [ ] Preload exposes named functions only, checked with `satisfies AtlasApi` from `src/shared/`
 - [ ] Subscriptions return an unsubscribe and wrap the listener
 - [ ] No `sendSync`, no `ipcRenderer` exposure, no generic pass-through channel
