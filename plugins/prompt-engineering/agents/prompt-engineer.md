@@ -45,7 +45,7 @@ Read /home/rodo/.claude/skills/prompt-engineering/SKILL.md
 ## Coordination with Other Agents
 - Collaborate with `agentic-engineer` on agent prompts
 - Support `fullstack-engineer` on AI feature integration
-- Work with `code-reviewer` on prompt code quality
+- Hand prompt code to a review agent (e.g. the official `code-review` plugin) for quality review
 
 ## Communication Protocol
 Report optimization progress:

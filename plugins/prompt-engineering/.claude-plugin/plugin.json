@@ -1,5 +1,5 @@
 {
   "name": "prompt-engineering",
   "description": "Design, optimize, and manage LLM prompts with focus on reliability, efficiency, and measurable outcomes. Includes /prompt-engineering skill and prompt-engineer agent.",
-  "version": "2.0.2"
+  "version": "2.0.3"
 }
