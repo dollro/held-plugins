@@ -71,13 +71,14 @@ environment:
   HOME: /tmp            # an unknown UID has no home; npm, pnpm and uv need a writable cache
 ```
 
-Or let `task setup` write `UID=` and `GID=` into an untracked `.env`.
+Or let `task setup` write `UID=` and `GID=` into an untracked `.env`. For plain `docker compose` without Task, export them in the shell: `export UID GID; GID=$(id -g)`. Bash refuses `UID=…` because `UID` is read-only, but it can export it.
 
 | Source of foreign-owned files | Example | Fix |
 |-|-|-|
 | Compose service without a user | A Node/Vite service writes `.pnpm-store/`, `.vite/`, `dist/` as root | `user:` as above |
 | Dependencies in the mount | `node_modules`, `.venv` and the pnpm store inside the repo | `node_modules` in a named volume; venv outside the mount (anonymous volume on `/app/.venv`, or `UV_PROJECT_ENVIRONMENT=/opt/venv`); pnpm store in a volume |
-| Same environment used on both sides | A `.venv` created in the sandbox, then used on the host | Each side builds its own. A venv records absolute interpreter paths and symlinks and does not move between machines (uv's Docker guide says the same) |
+| Same environment used on both sides | A `.venv` created in the sandbox, then used on the host | Each side builds its own. A venv records absolute interpreter paths and symlinks and does not move between machines (uv's Docker guide says the same). In the kit: `UV_PROJECT_ENVIRONMENT: "/home/agent/<repo>-venv"` |
+| App runtime state in the workspace | Local databases, ledgers or sync tokens under `state/` written by the app on both sides | Point the app's state setting outside the workspace in the kit environment (e.g. `STATE_DIR: "/home/agent/<repo>-state"`); the host keeps its own |
 | MCP servers on both sides | A code-index or browser MCP writes repo-local state (`.serena/`, `.playwright-mcp/`) from the sandbox and again from the host | Run each such server on one side, or move its state out of the repo (MCP section) |
 | Install steps as root | A kit install command writes into `$HOME` or the repo as root (root is the install default in `sbx` kits) | `user: "1000"` for anything that writes outside system paths |
 | Worktrees | A worktree inherits the compose setup and its root-owned output | Same fixes; check worktrees when hunting stray files |
@@ -91,7 +92,11 @@ find . -xdev ! -user "$(id -u)" -not -path '*/node_modules/*' -printf '%u %p\n' 
 docker run --rm -v "$PWD":/w alpine chown -R "$(id -u):$(id -g)" /w/<path>   # no sudo needed
 ```
 
-**Changing the store path or the container user breaks existing dependency volumes.** A `node_modules` volume created by root, or linked to the old pnpm store, makes pnpm refuse to start. Remove only that volume (`docker volume ls`, `docker volume rm <project>_<volume>`, or `docker compose rm -v <service>` for an anonymous one) and rebuild; `docker compose down -v` also deletes the database volumes.
+**Changing the store path or the container user breaks existing dependency volumes.** A `node_modules` volume created by root, or linked to the old pnpm store, makes pnpm refuse to start. `docker compose up -d --build -V` (`--renew-anon-volumes`) replaces anonymous volumes such as `node_modules` and keeps named ones such as the database. For a named dependency volume, remove just that one (`docker volume rm <project>_<volume>`). Never `docker compose down -v` for this: it deletes the database volumes too.
+
+**Set a moved pnpm store once for the whole image,** not per command: `ENV npm_config_store_dir=/pnpm-store` in the Dockerfile, and the same BuildKit cache mount on every `RUN` that calls pnpm. Indirect calls run pnpm without your flags (`npx browserslist --update-db` runs `pnpm up`) and fail when the store moved.
+
+**A service that must run as its own user** cannot take `--user <host uid>` (e.g. a database dump that locks the data directory owned by the service user). Run it as before and hand the output back at the end: `sh -c '<dump> && chown -R <uid>:<gid> /export'`.
 
 Repair is the fallback. Fix the compose file or the kit that produced the files, or they come back.
 
@@ -116,9 +121,11 @@ Proxy-based allowlists decide on the hostname. In `sbx` the default is the Balan
 
 - **Committed `.mcp.json` holds placeholders only.** Claude Code expands `${VAR}` and `${VAR:-default}` in `command`, `args`, `env`, `url` and `headers`; an unset variable without a default stays as literal text. Example: `"url": "${ATLAS_MCP_URL:-http://localhost:8090/mcp}"`, `"Authorization": "Bearer ${ATLAS_MCP_BEARER}"`.
 - **Values** come from the environment Claude Code starts in: shell, or the `env` key of `.claude/settings.local.json` (applied once the workspace is trusted). For short-lived tokens use `headersHelper`; a repo-supplied helper gets no `*TOKEN*`/`*SECRET*`/`*KEY*` variables and must read a file or credential store.
+- **Every repo whose `.mcp.json` points at a host service sets that URL in its own kit environment** (`ATLAS_MCP_URL: "http://host.docker.internal:8090/mcp"`). Without it the placeholder default `localhost` is the sandbox itself (`ECONNREFUSED`). A second repo using the same server needs the same entry.
 - **In `sbx`, the intended route is the MCP gateway:** `sbx mcp add` on the host, OAuth and secrets stay on the host, `--static-mcp` fixes the set at creation. Use `.mcp.json` placeholders for servers that are not in the gateway.
 - **Remote MCP with OAuth** (MCP authorization spec 2026-07-28: OAuth 2.1 for HTTP, client ID metadata documents preferred) needs a browser. In a headless sandbox, sign in with `claude mcp login <name> --no-browser`, use a pre-registered client, or fall back to a bearer token through the proxy.
 - **stdio servers via `uvx`/`npx`** download on first start. Pin versions (`pkg@1.2.3`, `git+https://...@<tag>`) rather than `@latest`, and pre-install them in the kit's install step so the first session neither waits nor hits the policy.
+- **Serena rewrites `.serena/project.yml`** from the template of the installed version (new keys, refreshed comments) whenever that version changes. Pin the same version for host and sandbox (one `.mcp.json` does that) and commit the refreshed file once; two versions rewrite it back and forth.
 - **Move repo-local MCP state out of the repo** when a server runs on both sides: Playwright MCP with `--output-dir` (or `PLAYWRIGHT_MCP_OUTPUT_DIR`) and `--isolated`; Serena with `project_serena_folder_location` in `serena_config.yml`.
 - **Claude Code's own config in containers:** `~/.claude.json` lives outside `~/.claude`. In a dev container, mount a named volume at the user's `.claude` and point `CLAUDE_CONFIG_DIR` at it; never bind-mount the host's `~/.claude`, `~/.ssh` or cloud credentials.
 
@@ -159,12 +166,15 @@ permissions:
 - Install as the agent user (`"1000"`); root (`"0"`, the default) only for system paths.
 - Pre-warm everything large or slow (tool environments, model downloads) at install, not at first use.
 - `sbx kit validate ./.sbx/atlas` before committing; local relative paths must start with `./`. A kit can also come from a Git URL pinned to a commit (`git+https://...#ref=<sha>&dir=<dir>`).
-- `sbx kit add` on an existing sandbox recreates it and only applies environment, install and allow entries.
+- **A sandbox reads its kit only when it is created.** After changing the kit, recreate it: `sbx rm -f <name>`, then `sbx run claude --kit ./<kit>` (`sbx kit add` also recreates, and only applies environment, install and allow entries). A running or stopped sandbox keeps its old environment.
+- `sbx rm` asks for confirmation; scripts use `sbx rm -f`, or they hang at a prompt that may be hidden.
+- The first `sbx run` with a new kit runs the install steps behind a spinner without progress output; large pre-downloads take minutes.
+- **Check a sandbox from the host:** `sbx exec <name> printenv <VAR>` shows what the kit set; `sbx exec <name> curl -s -o /dev/null -w '%{http_code}' http://host.docker.internal:<port>/` tests a host service (an MCP endpoint answering 406 to a plain request is reachable). `sbx exec` starts a stopped sandbox; `sbx stop <name>` afterwards.
 - For a team, `sbxenv.yaml` (no leading dot) in the repo declares sandboxes and their kits; `~/.sbxenv.yaml` holds personal defaults.
 
 ## Audit a repo's sandbox setup
 
-Run these checks against a repo and report each as `item · finding → fix`, most severe first. Apply repo changes only after the owner agrees; hand host commands (upgrades, `sbx policy`, `chown`) to the human.
+Run these checks against a repo and report each as `item · finding → fix`, most severe first. Apply repo changes only after the owner agrees, keeping each file's line endings (a CRLF file rewritten as LF turns a small change into a whole-file diff); hand host commands (upgrades, `sbx policy`, `chown`, recreating sandboxes) to the human. Verify the result inside a recreated sandbox with `sbx exec` (Kit section) and `/mcp`.
 
 1. **No host Docker socket** mounted into any sandbox, dev container or compose service that runs agent code (`grep -rn docker.sock`).
 2. **sbx version** at or above the one this reference was checked against (`sbx version`).
@@ -173,7 +183,7 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 5. **Compose:** every service that writes into the bind mount has `user: "${UID}:${GID}"` and a writable `HOME`; `node_modules`, the venv and package stores are out of the mount; ports bind to `127.0.0.1`.
 6. **IDs exported:** the Taskfile (or an untracked `.env`) sets `UID` and `GID`; no reliance on `${UID:-1000}`.
 7. **Ownership now:** `find . -xdev ! -user "$(id -u)" -not -path '*/node_modules/*'`, worktrees included; list the paths and the repair command.
-8. **MCP:** committed `.mcp.json` has placeholders only, no literal tokens or internal hosts that belong in env; `uvx`/`npx`/`git+` servers pinned; servers that write repo-local state run on one side or have it moved out; URLs to host services configurable (`${VAR:-http://localhost:<port>}`) and set in the kit environment.
+8. **MCP:** committed `.mcp.json` has placeholders only, no literal tokens or internal hosts that belong in env; `uvx`/`npx`/`git+` servers pinned; servers that write repo-local state run on one side or have it moved out; URLs to host services configurable (`${VAR:-http://localhost:<port>}`) and set in this repo's kit environment; app state and the venv pointed outside the workspace.
 9. **Secrets:** none in the kit, `.mcp.json` or committed settings; sandbox values through `sbx secret` or the MCP gateway.
 10. **CLAUDE.md:** says which sandbox kind the repo uses, which commands run in the sandbox, which the human runs on the host, and the URLs of host services.
 
@@ -182,7 +192,14 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | Symptom | Cause | Fix |
 |-|-|-|
 | `sbx run`/`create`: `500 ... failed to run sandbox container`; daemon log `unknown volume driver: block` | Before sbx 0.47 on Linux: sandboxd started without `/usr/sbin` on PATH, did not find `mkfs.ext4` and disabled its block volume driver; `sbx diagnose` stays green | Upgrade (0.47 bundles `mkfs.ext4`), or add `/usr/sbin:/sbin` to PATH and restart the daemon. Log: `~/.local/state/sandboxes/sandboxes/sandboxd/daemon.log` |
-| Tests or MCP calls fail with connection errors only in the sandbox | Domain or host port not allowed | `sbx policy log`; host ports as `localhost:<port>` |
+| Tests or MCP calls fail with connection errors only in the sandbox | Domain or host port not allowed (`sbx policy log` shows `deny`) | Allow it; host ports as `localhost:<port>` |
+| `sbx policy log` shows `forward … dial failed` for a host port | The rule allows it, but nothing listens on the host (service not started, wrong port) | Start the service on the host; check with `ss -ltn` |
+| MCP server fails with `ECONNREFUSED at ${VAR}` | `VAR` is not set in the sandbox, so the `localhost` default is the sandbox itself | Set the host URL in this repo's kit environment and recreate the sandbox |
+| Kit change has no effect | The sandbox was created before the change | `sbx rm -f <name>`, then `sbx run … --kit …` |
+| Script hangs after `sbx rm` | Confirmation prompt (possibly hidden by output redirection) | `sbx rm -f` |
+| First `sbx run` shows only a spinner for minutes | Kit install steps and pre-downloads run without progress output | Wait; if it never finishes, `sbx policy log` for a blocked download domain |
+| `sbx login`: `token is expired` | Device code confirmed too late, or a stale session | `sbx login` again and confirm promptly; otherwise `sbx logout` first |
+| pnpm refuses to start or link after the store moved | Old `node_modules` volume, or a pnpm call without the store setting | `up -V`; `ENV npm_config_store_dir` in the image (File ownership) |
 | Kit warns `allowedDomains` deprecated, or v2 rejects `commands:` | v1 kit fields | Migrate to v2 (`setup.install`, `permissions.network.allow`) |
 | `sbx run claude --kit ./x` fails on a v3 kit | v3 cannot mix with the v2 built-in agents | Use a v2 mixin |
 | Kit works locally but is missing for colleagues or in git | `.gitignore` swap-file rule `[._]s[a-v][a-z]` matches `.sbx` | Add `!/.sbx/` after it; check with `git check-ignore -v .sbx/<name>/spec.yaml` |
