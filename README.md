@@ -15,6 +15,72 @@ Maintained by Held.
 Then run `/plugin` to browse and enable what you want. Enabled plugins are
 referenced as `<plugin-name>@held-plugins`.
 
+## Idea to merged PR: the workflow
+
+The product, workflow and development plugins are built to chain. Each step
+hands a concrete artifact to the next; nothing is written to the tracker or
+merged without your confirmation.
+
+```
+ PRODUCT                                  ENGINEERING
+ prfaq-vision-builder      why, for whom?
+        │
+ product-roadmap-3-layers  what, in which order?
+        │
+ braindump2prd             one feature → PRD + spec ──► tracker project
+        │
+        └────────────► prd2issues   PRD → issues, parallel-safety ──► tracker issues
+                              │
+                  ┌───────────┴───────────┐
+             one issue              several in parallel
+       engineering-standards           agent-team
+       /branch → plan → build →    one worktree agent per issue,
+       check → docs → PR           or a team for one large issue
+                  │                       │
+                  │   domain skills while building: agentic-engineering,
+                  │   fullstack-dev, electron-dev, uiux-*, prompt-engineering
+                  └───────────┬───────────┘
+                     code-review (+ design-parity for UI)
+                              │
+                     merge, one PR at a time
+```
+
+|#|step|plugin|output|
+|-|-|-|-|
+|1|Vision (new products, optional)|`prfaq-vision-builder`|One PR/FAQ document: future press release plus lean FAQ|
+|2|Order the work|`product-roadmap-3-layers`|Now/Next/Later roadmap: outcomes → features → tech enablers|
+|3|Specify one feature|`braindump2prd`|`braindump_final.md` (interview record) → `prd.md` + `spec.md`, handed to the tracker project|
+|4|Cut into issues — run in the product repo|`prd2issues`|1–3 issues per result, each one reviewable PR, with files, pattern to follow, check command, `Blocked by` and `Parallel`|
+|5a|Build one issue|`engineering-standards`|`/branch` → short plan on the issue → code → checks, cheapest first → `docs/` update → PR|
+|5b|Build several issues at once|`agent-team`|Independent issues: one agent each in its own worktree. "Sync before merge" pairs: shared contract first|
+|6|Review|`code-review`, `design-parity`|Findings on the PR; design-vs-implementation diff for UI|
+
+**Principles**
+
+- **One fact, one place.** Goal in the PRD, behaviour in the spec, plan and
+  decisions on the issue, current state of the code in `docs/`.
+- **Plan just in time.** No upfront plan for a whole feature; each issue gets a
+  short plan against the code as it is when work starts.
+- **The pull request is the unit.** About 400 changed lines. Review capacity,
+  not agent count, limits parallelism — start with three parallel agents.
+
+**Variants**
+
+- Small feature: start at `braindump2prd`; if the idea is still fuzzy, run `brainstorming` first.
+- Feature already discussed in the chat: `braindump2prd` harvests the conversation instead of re-interviewing.
+- PRD already written: `braindump2prd` in "Harvest PRD" mode adds only the spec.
+- No tracker connected: everything works with files (`prd.md`, `spec.md`, `issues.md`); plans go to `plans/<branch>/`.
+- Large project: `prd2issues` cuts the first milestone fully and leaves placeholders; run it again in update mode per milestone.
+
+**Organisation profile.** `engineering-standards` reads its PR size guide,
+length limits and tracker conventions from `references/profile.md`, which ships
+with neutral defaults. Replace that file to adapt the standards to your team.
+
+**Migrating from earlier versions.** `ai-dev`, `branch`, `braindump2spec` and
+`spec2plan` were retired. Replace them with `agentic-engineering`,
+`engineering-standards`, `braindump2prd` and `prd2issues` (+ `agent-team` for
+parallel execution).
+
 ## What's inside
 
 ### AI agent development
