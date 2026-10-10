@@ -1,5 +1,0 @@
-{
-  "name": "braindump2spec",
-  "description": "Transform rough brain dumps — or an existing design conversation — into agent-implementable specifications through structured Q&A. Outputs braindump_final.md, spec.md (prioritized user stories, EARS requirements, Given/When/Then acceptance scenarios) and constraints.md. Adds a /braindump2spec skill.",
-  "version": "2.0.0"
-}

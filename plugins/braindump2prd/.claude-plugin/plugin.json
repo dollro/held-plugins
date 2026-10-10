@@ -1,0 +1,5 @@
+{
+  "name": "braindump2prd",
+  "description": "Interviews a PM thoroughly and turns a vague feature idea into a PRD and spec in plain language, via a reviewed interview record (braindump_final)",
+  "version": "1.1.3"
+}
