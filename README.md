@@ -1,23 +1,92 @@
 # held-plugins
 
-A curated marketplace of [Claude Code](https://claude.ai/code) plugins — skills and
-agents for AI agent development, spec-driven workflows, product management, full-stack and desktop
-development, UI/UX design systems, and financial analysis.
+A curated marketplace of [Claude Code](https://claude.ai/code) plugins: ways of
+working, engineering standards, reference stacks and design skills, so people
+and agents work from the same playbook. Covers product management (idea to
+issues), delivery (pull requests, parallel agents, review), agentic AI, full-stack
+web and desktop apps, UI/UX design systems and financial analysis.
+
+The marketplace is tenant-agnostic: no organisation names or defaults.
+Organisation-specific settings live in swappable profile files (see
+*Organisation profile* below).
 
 Maintained by Held.
 
 ## Install
 
+```bash
+# register the marketplace (once)
+claude plugin marketplace add dollro/held-plugins
+
+# install a plugin
+claude plugin install <plugin-name>@held-plugins
 ```
-/plugin marketplace add dollro/held-plugins
-```
 
-Then run `/plugin` to browse and enable what you want. Enabled plugins are
-referenced as `<plugin-name>@held-plugins`.
+Inside a session: `/plugin marketplace add dollro/held-plugins`, then `/plugin`
+to browse and enable what you want.
 
-## Idea to merged PR: the workflow
+Pull updates with `claude plugin marketplace update held-plugins`.
 
-The product, workflow and development plugins are built to chain. Each step
+Skills load on their own when a task matches their description; you can also
+call them directly as `/<skill-name>`. Agents are used by asking for them ("let
+the fullstack-engineer build …").
+
+## Plugins
+
+### Product management: from idea to issues
+
+| Plugin | What it does |
+|---|---|
+| `prfaq-vision-builder` | Guided Working Backwards PR/FAQ: a future-state press release plus lean FAQ, to align a team on a vision |
+| `product-roadmap-3-layers` | Roadmap in three layers (Business Outcomes, Product & Features, Tech Enablers) in Now/Next/Later, from an interview or a Notion roadmap database |
+| `braindump2prd` | Interviews a product manager and turns a feature idea into a plain-language PRD and spec, handed over to the issue tracker |
+| `prd2issues` | Cuts a Ready PRD into milestones and a few readable tracker issues, grounded in the actual codebase, each one reviewable pull request with its parallel-safety status |
+
+### Delivery: how work gets built and reviewed
+
+| Plugin | What it does |
+|---|---|
+| `engineering-standards` | Small reviewable pull requests, CLAUDE.md structure, where docs and plans live, how to implement an issue; `/branch` starts a branch with its `plans/` folder. Swappable organisation profile |
+| `agent-team` | Runs several issues (or one large one) with parallel coding agents: mechanism choice (worktrees or Agent Teams), parallel-safety check, contracts first, quality gates, one PR at a time |
+| `code-review` | Review for completeness, security, performance and best practices; includes the `code-reviewer` agent |
+| `brainstorming` | Structured exploration of intent, requirements and design before any implementation |
+
+### Engineering: reference stacks and agents
+
+| Plugin | What it does |
+|---|---|
+| `fullstack-engineering` | Guideline and tested reference stack for web apps (Django + optional FastAPI realtime, Vue 3, PostgreSQL, Redis, Celery, Docker, Task, SOPS), login for internal staff (company SSO over OpenID Connect), external users (accounts with MFA) or both, staging and production from the same image; `/fullstack-scaffold` generates a new repo that passes its own CI, the `fullstack-engineer` agent builds features |
+| `agentic-engineering` | Standards for production agent systems: LangGraph, Pydantic AI, CrewAI, Langfuse; state, model tiers, validation, human-in-the-loop, evals; the `agentic-engineer` agent builds them |
+| `prompt-engineering` | Prompt design, evaluation frameworks and production prompt systems; the `prompt-engineer` agent |
+| `electron-dev` | Secure, performant cross-platform desktop apps with Electron; the `electron-developer` agent |
+
+### UI/UX design and frontend
+
+| Plugin | What it does |
+|---|---|
+| `uiux-design-system` | Design system architecture: component hierarchy, three-tier tokens (DTCG), theming, typography, accessibility (WCAG 2.2) |
+| `uiux-design-tailwindv4` | Design systems in Tailwind CSS v4: CSS-first theme, semantic tokens, OKLCH colours, component variants, dark mode |
+| `uiux-design-vue3` | Vue 3 skills: Composition API, router, Pinia, composables, testing, debugging |
+| `uiux-image2design` | Turns UI screenshots into a design system and screens in Penpot or Figma |
+| `uiux-design-penpot` | Designing in Penpot via MCP: tokens, components, prototypes |
+| `uiux-design-figma` | Designing in Figma via MCP: variables, auto-layout, component variants |
+| `design-parity` | Closes the gap between a design spec and its implementation: screenshot diffs via Playwright or Chrome DevTools MCP, with a fix plan |
+| `pencil-pen-generator` | Generates and converts Pencil `.pen` design files |
+
+### Analysis
+
+| Plugin | What it does |
+|---|---|
+| `equity-research` | Equity research with chance/risk reports, DCF valuation and a recommendation for US-listed stocks |
+| `investment-memo` | VC investment memos (seed, Series A) from pitch decks and DD material, scored across team, technology, market, competition, business model and financials |
+
+Versions live in each plugin's `plugin.json` and in `.claude-plugin/marketplace.json`; `/plugin` shows them.
+
+## Workflows
+
+### Idea to merged PR
+
+The product, delivery and engineering plugins are built to chain. Each step
 hands a concrete artifact to the next; nothing is written to the tracker or
 merged without your confirmation.
 
@@ -37,15 +106,15 @@ merged without your confirmation.
        /branch → plan → build →    one worktree agent per issue,
        check → docs → PR           or a team for one large issue
                   │                       │
-                  │   domain skills while building: agentic-engineering,
-                  │   fullstack-engineering, electron-dev, uiux-*, prompt-engineering
+                  │   domain skills while building: fullstack-engineering,
+                  │   agentic-engineering, electron-dev, uiux-*, prompt-engineering
                   └───────────┬───────────┘
                      code-review (+ design-parity for UI)
                               │
                      merge, one PR at a time
 ```
 
-|#|step|plugin|output|
+|#|Step|Plugin|Output|
 |-|-|-|-|
 |1|Vision (new products, optional)|`prfaq-vision-builder`|One PR/FAQ document: future press release plus lean FAQ|
 |2|Order the work|`product-roadmap-3-layers`|Now/Next/Later roadmap: outcomes → features → tech enablers|
@@ -72,66 +141,73 @@ merged without your confirmation.
 - No tracker connected: everything works with files (`prd.md`, `spec.md`, `issues.md`); plans go to `plans/<branch>/`.
 - Large project: `prd2issues` cuts the first milestone fully and leaves placeholders; run it again in update mode per milestone.
 
-**Organisation profile.** `engineering-standards` reads its PR size guide,
-length limits and tracker conventions from `references/profile.md`, which ships
-with neutral defaults. Replace that file to adapt the standards to your team.
+### A new web app
 
-**Migrating from earlier versions.** `ai-dev`, `branch`, `braindump2spec`,
-`spec2plan` and `fullstack-dev` were retired; installed copies get no more
-updates. Replace them with `agentic-engineering`, `engineering-standards`,
-`braindump2prd`, `prd2issues` (+ `agent-team` for parallel execution) and
-`fullstack-engineering`.
+1. `/fullstack-scaffold` asks a few questions: name, realtime service yes/no,
+   who logs in (internal staff, external users or both), CI platform
+   (GitHub, GitLab or both), hostname. It generates the repo with current
+   dependency versions and proves it with the repo's own `task ci`.
+2. `task dev:up` starts the stack in the background at http://localhost:8000;
+   `task --list` shows everything else. The generated CLAUDE.md files tell
+   every agent how to start, stop, test and deploy.
+3. Single sign-on works with any OpenID Connect provider (Entra ID, Google
+   Workspace, Keycloak, Okta …): register the app there and set `SSO_*` in the
+   encrypted env file. Steps are in the generated `docs/operations.md`.
+4. Features: issues from `prd2issues`, built by you or the `fullstack-engineer`
+   agent under the `fullstack-engineering` guideline; pull requests per
+   `engineering-standards`.
+5. Release: tag `vX.Y.Z` → pin it for staging → `task deploy ENV=staging` →
+   verify → same version to production. Each server runs one shared Traefik
+   (`plugins/fullstack-engineering/skills/fullstack-engineering/assets/traefik-host/`).
 
-## What's inside
+Existing repos on another stack are not migrated: the guideline applies its
+stack-independent rules and flags the deviations that matter.
 
-### AI agent development
+### An agent system
 
-|plugin|version|what it does|
-|-|-|-|
-|`agentic-engineering`|2.0.0|Standards and guardrails for production agentic AI on LangGraph, Pydantic AI, CrewAI, and Langfuse|
-|`prompt-engineering`|2.0.2|Prompt design, evaluation frameworks, and production prompt systems|
+Design and build with `agentic-engineering` (framework roles, state,
+validation, evals); `prompt-engineering` for the prompts and their evaluation.
+Where the agents need a web app around them (users, admin, streaming UI),
+combine it with `fullstack-engineering`: agent workloads run in its FastAPI
+service and stream to the browser.
 
-### Workflows
+### UI design
 
-|plugin|version|what it does|
-|-|-|-|
-|`agent-team`|2.0.0|Run parallel agents (teams, worktrees) with contracts, parallel-safety and quality gates|
-|`brainstorming`|1.0.0|Structured exploration of intent and design before implementation|
-|`code-review`|2.0.0|Review for completeness, security, performance, and best practices|
-|`engineering-standards`|1.1.0|Small reviewable PRs, CLAUDE.md and docs structure, `/branch`; swappable org profile|
+From screenshots or a brief: `uiux-image2design` extracts a design system and
+builds it in Penpot or Figma (`uiux-design-penpot`, `uiux-design-figma`),
+following `uiux-design-system`. In code, tokens and components follow
+`uiux-design-tailwindv4` and `uiux-design-vue3`, which the fullstack frontend
+uses too. `design-parity` checks the built UI against the design.
 
-### Product management
+## Organisation profile
 
-|plugin|version|what it does|
-|-|-|-|
-|`prfaq-vision-builder`|1.0.1|Working Backwards PR/FAQ vision document|
-|`product-roadmap-3-layers`|1.0.1|3-layer Now/Next/Later product roadmap, from an interview or a Notion database|
-|`braindump2prd`|1.1.3|Interview a PM and write a plain-language PRD and spec for the issue tracker|
-|`prd2issues`|1.1.1|Cut a Ready PRD into a few readable, codebase-grounded tracker issues|
+`engineering-standards` reads its PR size guide, length limits and tracker
+conventions from `references/profile.md`, which ships with neutral defaults.
+Replace that file to adapt the standards to your team. Tracker and roadmap
+tools are named only as examples (Linear, GitHub issues, Notion); every skill
+also works with files.
 
-### Development
+## Migrating from earlier versions
 
-|plugin|version|what it does|
-|-|-|-|
-|`electron-dev`|2.0.2|Secure cross-platform desktop apps with Electron|
-|`fullstack-engineering`|1.1.0|Web app guideline (Django, FastAPI, Vue, Docker, CI) plus a scaffold that generates a repo passing its own CI|
-|`design-parity`|2.0.0|Close the gap between a Claude Design spec and its implementation|
-|`uiux-design-system`|4.0.0|Design system architecture, token hierarchy, and naming conventions|
-|`uiux-design-figma`|1.1.0|UI/UX design in Figma via figma-console-mcp|
-|`uiux-design-penpot`|2.7.0|UI/UX design in Penpot via MCP tools|
-|`uiux-design-tailwindv4`|1.0.0|Tailwind CSS v4 design systems with CSS-first configuration|
-|`uiux-design-vue3`|1.0.0|Vue 3 with Composition API, Pinia, Router, and testing|
-|`uiux-image2design`|3.0.1|Extract a design system from screenshots into Penpot or Figma|
-|`pencil-pen-generator`|1.0.0|Generate and convert Pencil `.pen` design files|
+`ai-dev`, `branch`, `braindump2spec`, `spec2plan` and `fullstack-dev` were
+retired; installed copies get no more updates. Uninstall them and install the
+replacements by hand:
 
-### Analysis
+| Retired | Replacement |
+|---|---|
+| `ai-dev` | `agentic-engineering` |
+| `branch` | `engineering-standards` (includes `/branch`) |
+| `braindump2spec` | `braindump2prd` |
+| `spec2plan` | `prd2issues` (+ `agent-team` for parallel execution) |
+| `fullstack-dev` | `fullstack-engineering` |
 
-|plugin|version|what it does|
-|-|-|-|
-|`equity-research`|1.0.0|Equity research with chance/risk reports and DCF valuation|
-|`investment-memo`|1.0.0|VC investment memos from pitch decks and DD materials|
+## Local development
 
-## Contributing
+```bash
+claude plugin validate .                     # check marketplace + all plugins
+claude plugin marketplace add ./             # register this checkout locally
+claude --plugin-dir ./plugins/<plugin-name>  # try one plugin without installing
+```
 
 See [CLAUDE.md](CLAUDE.md) for the repository layout, the `SKILL.md` format,
-versioning rules, and commit message conventions.
+versioning rules and commit message conventions.
