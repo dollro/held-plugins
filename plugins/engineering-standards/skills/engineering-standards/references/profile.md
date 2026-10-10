@@ -37,6 +37,10 @@ Structure as in `claude-md.md`. Every repo has a root CLAUDE.md, a component CLA
 
 **Plans and docs:** plans and decisions go on the tracker issue. `docs/` always describes the code as it is now, with no specs subfolder. `plans/<branch-name>/`, created by `/branch`, holds temporary files only, and the plan itself only where a repo has no tracker or no connection to it. PRD and spec stay in the tracker, and coding agents read them there through its connection; a copy goes to `plans/` only where that connection is not available. All of `plans/` is safe to delete.
 
-## E4. Not yet covered
+## E4. Agent sandbox
+
+Method in `agent-sandbox.md`. Default sandbox: Docker Sandboxes (`sbx`) with a v2 kit in the repo under `.sbx/<name>/`, or none where the repo's CLAUDE.md says so. Code in the sandbox, Docker stack on the host. Workspace UID/GID: the host user's (`id -u`, `id -g`), exported from the Taskfile.
+
+## E5. Not yet covered
 
 Tech stack and approved tools, test and eval standards, Definition of Done in detail, code review rules, CI requirements, secrets handling. Until a profile adds them, look them up in the repo's own CLAUDE.md, or ask the team; never invent them.

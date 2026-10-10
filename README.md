@@ -46,7 +46,7 @@ the fullstack-engineer build …").
 
 | Plugin | What it does |
 |---|---|
-| `engineering-standards` | Small reviewable pull requests, CLAUDE.md structure, where docs and plans live, how to implement an issue; `/branch` starts a branch with its `plans/` folder. Swappable organisation profile |
+| `engineering-standards` | Small reviewable pull requests, CLAUDE.md structure, where docs and plans live, how to implement an issue, agent sandbox practice (code in the sandbox, stack on the host); `/branch` starts a branch with its `plans/` folder. Swappable organisation profile |
 | `agent-team` | Runs several issues (or one large one) with parallel coding agents: mechanism choice (worktrees or Agent Teams), parallel-safety check, contracts first, quality gates, one PR at a time |
 | `brainstorming` | Structured exploration of intent, requirements and design before any implementation |
 

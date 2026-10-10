@@ -1,15 +1,15 @@
 ---
 name: engineering-standards
-description: "Engineering standards for how code gets into a repo: small reviewable pull requests, the structure of CLAUDE.md files, and where planning and documentation live (issue tracker for plans and decisions, docs/ for the current state of the code, plans/ for disposable temporary files). Sizes a change before a PR and proposes a split, writes or reviews a CLAUDE.md, sets up or checks a repo's documentation. Loaded profile: default (replace references/profile.md with your organisation's). Use whenever someone is about to open, split or review a pull request, sets up a new repo, writes or cleans up a CLAUDE.md, asks where documentation or plans belong, or asks how the team builds software, even if standards are not mentioned. Not for cutting a PRD into issues (prd2issues)."
+description: "Engineering standards for how code gets into a repo: small reviewable pull requests, the structure of CLAUDE.md files, where planning and documentation live (issue tracker for plans and decisions, docs/ for the current state of the code, plans/ for disposable temporary files), and how coding agents work in a sandbox (Docker Sandboxes, Claude Code native sandbox, dev containers: where the Docker stack runs, one UID, network allowlist, MCP secrets). Sizes a change before a PR and proposes a split, writes or reviews a CLAUDE.md, sets up or checks a repo's documentation, sets up, audits or debugs an agent sandbox. Loaded profile: default (replace references/profile.md with your organisation's). Use whenever someone is about to open, split or review a pull request, sets up a new repo, writes or cleans up a CLAUDE.md, asks where documentation or plans belong, sets up an agent sandbox (Docker Sandboxes, sbx, devcontainer) or hits permission, root-owned file or network-policy problems in one, or asks how the team builds software, even if standards are not mentioned. Not for cutting a PRD into issues (prd2issues)."
 ---
 
 # Engineering Standards
 
 This skill has two parts. **This file** is the method and is organisation-agnostic. **`references/profile.md`** is the organisation profile: where things live, which tools are used, what is still open. **`references/claude-md.md`** is the CLAUDE.md and documentation structure both build on.
 
-**Read `references/profile.md` before any job below.** Read `references/claude-md.md` before writing or reviewing a CLAUDE.md or a `docs/` tree.
+**Read `references/profile.md` before any job below.** Read `references/claude-md.md` before writing or reviewing a CLAUDE.md or a `docs/` tree. Read `references/agent-sandbox.md` before setting up or debugging an agent sandbox.
 
-Four jobs: **implement an issue**, **size** a change into reviewable pull requests, **write or review a CLAUDE.md**, **set up or check documentation**.
+Five jobs: **implement an issue**, **size** a change into reviewable pull requests, **write or review a CLAUDE.md**, **set up or check documentation**, **work in an agent sandbox**.
 
 These standards are guide values for most changes, not law. Where a rule is broken on purpose, the pull request says so and why.
 
@@ -55,6 +55,10 @@ Follow the documentation part of `references/claude-md.md`. Two places, two jobs
 A command or hard constraint an agent needs every session belongs in CLAUDE.md, once.
 
 When code changes behaviour that a `docs/` page describes, the same pull request updates that page.
+
+## Work in an agent sandbox
+
+Follow `references/agent-sandbox.md` (sources in `references/sources.md`). Name the sandbox kind first (Docker Sandboxes microVM, Claude Code native sandbox, dev container), because Docker and host access differ between them. Default split: the agent writes and checks code in the sandbox, the Docker stack runs on the host; running the stack inside an `sbx` microVM is an option for self-contained stacks and clone mode, after the ownership test. Never mount the host's Docker socket into a sandbox. One UID writes into the repo, passed explicitly from the Taskfile. The network allowlist and MCP placeholders live in the repo's kit, secrets stay at the proxy or on the host. When a check fails only in the sandbox, read the policy log before changing code. To check or migrate an existing repo, run the reference's audit: findings first as `item · finding → fix`, repo changes after the owner agrees, host commands handed to the human.
 
 ## Language
 
