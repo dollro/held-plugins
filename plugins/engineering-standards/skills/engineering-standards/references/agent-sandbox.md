@@ -295,6 +295,8 @@ permissions:
 
 The built-in `claude` agent starts bare: no plugins or marketplaces, no user `CLAUDE.md`, default settings. The user's harness belongs in a **personal** kit, not in the repo's kit: it differs per person and holds their instructions. `/sandbox harness` (`sandbox.sh harness`) builds it from the host's user-level setup at `${XDG_CONFIG_HOME:-~/.config}/sbx-kits/claude-harness/` and `/sandbox` adds it to every sandbox it creates.
 
+**Build it before the first sandbox.** Order on a new machine: `/sandbox harness` (personal kit, once, refreshed when the host setup changes), then `/sandbox` on the current branch, or `/sandbox <type>/<name>` for a new worktree branch (the repo's kit plus the harness). A sandbox created without it stays bare until `sbx kit add <name> <kit-dir>`, which recreates the container.
+
 **The user picks what goes in.** `harness.selection.json` next to the kit lists every candidate with `"enabled": true|false`; the first run, and every run that finds something new, stops after printing it (exit 5) until the user has decided and reruns with `--yes`. Decisions are kept; only new items are asked about. Defaults: what is enabled on the host is on, except plugins that drive a browser or the desktop, marketplaces no enabled plugin comes from, MCP servers that are not registered with sbx (host services, credentials), and files that look like they hold a secret.
 
 | Item | Host source | In the sandbox |

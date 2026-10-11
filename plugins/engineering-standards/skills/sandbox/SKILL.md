@@ -1,6 +1,6 @@
 ---
 name: sandbox
-description: "Starts Claude Code in a Docker Sandbox (sbx) on a branch: creates the worktree (or uses the checkout or a private clone), the sandbox with the repo's kit and git push over SSH, checks it and prints the line to attach; can carry the user's Claude Code harness; tears it down after the merge. Invoke as /sandbox <type>/<name>, /sandbox, /sandbox --clone, /sandbox harness, /sandbox --done <name>. Background: engineering-standards references/agent-sandbox.md."
+description: "Moves Claude Code work into a Docker Sandbox (sbx): by default on the current checkout and branch, or on a new worktree branch or a private clone; the sandbox with the repo's kit and git push over SSH, checks it and prints the line to attach; can carry the user's Claude Code harness; tears it down after the merge. Invoke as /sandbox, /sandbox <type>/<name>, /sandbox --clone, /sandbox harness, /sandbox --done <name>. Background: engineering-standards references/agent-sandbox.md."
 disable-model-invocation: true
 ---
 
@@ -12,8 +12,8 @@ The script is `<this skill>/scripts/sandbox.sh`. Its lines start with `OK`, `WAR
 
 Argument `$ARGUMENTS`, one of:
 
-- `<type>/<short-name>`: new worktree on a new branch, plus its sandbox (the usual case)
-- empty: a sandbox for the current checkout or worktree
+- empty (the default): a sandbox for the current checkout or worktree, on the branch that is checked out. No new branch or worktree: the sandbox mounts the same files, so work just moves into it. Do not ask for a branch name
+- `<type>/<short-name>`: new worktree on a new branch, plus its sandbox (parallel work next to the current checkout)
 - `--clone`: a sandbox on a private clone of the repo, nothing on the host checkout changes
 - `--done <sandbox-name>`: tear down after the work is merged
 - `harness`: build or refresh the personal harness kit (Harness below)
@@ -25,11 +25,11 @@ Argument `$ARGUMENTS`, one of:
 
 ## Set up
 
-1. **Preflight.** `bash <this skill>/scripts/sandbox.sh preflight`. On `FAIL`, stop and give the user the one fix from the output: install sbx, `sbx daemon start -d`, or `sbx login` in their own terminal (device code in the browser, confirm promptly). Continue when preflight passes. Its harness line: `INFO no Claude Code harness kit` or `WARN … stale` / `new since the last selection`: offer to run the Harness flow below first (one question); the sandbox works without it, just with a bare Claude Code.
+1. **Preflight.** `bash <this skill>/scripts/sandbox.sh preflight`. On `FAIL`, stop and give the user the one fix from the output: install sbx, `sbx daemon start -d`, or `sbx login` in their own terminal (device code in the browser, confirm promptly). Continue when preflight passes. Its harness line: `INFO no Claude Code harness kit` or `WARN … stale` / `new since the last selection`: run the Harness flow below **before creating** (one question, "Build the harness kit first" recommended; skip only on the user's no or `--no-harness`). Kits are fixed at creation: adding the harness later takes `sbx kit add`, which recreates the container and ends a running session. Without it the sandbox gets a bare Claude Code.
 2. **Branch name** (only for `<type>/<short-name>`): the same rules as `/branch`: `<type>` is a commit type of the engineering-standards profile, `<short-name>` lowercase kebab-case; propose a correction and ask once if needed. Base branch: the one the repo's CLAUDE.md names; otherwise the script uses `develop` if it exists, else the remote default. Pass `--base <branch>` when the CLAUDE.md names one.
 3. **Create.**
+   - Current checkout (no argument): `bash <this skill>/scripts/sandbox.sh create` (from inside it), or `--path <dir>`.
    - New branch: `bash <this skill>/scripts/sandbox.sh create --branch <type>/<short-name> [--base <branch>]`. The worktree goes next to the main checkout as `../<repo>-<short-name>`.
-   - Current checkout: `bash <this skill>/scripts/sandbox.sh create` (from inside it), or `--path <dir>`.
    - Clone: `bash <this skill>/scripts/sandbox.sh create --clone`.
 
    Add `--stack` when the user asked for it or wants the agent to run integration tests itself; suggest it when the repo's CLAUDE.md says the agent runs the stack inside the sandbox.
