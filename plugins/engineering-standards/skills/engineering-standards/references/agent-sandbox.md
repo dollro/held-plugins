@@ -68,6 +68,17 @@ Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.4
 - **Warnings from the app show up as well.** A teardown warning such as `database "test_…" is being accessed by other users` comes from the code (a test or client leaving a connection open), not from the sandbox; a fresh stack in a sandbox is a good place to fix it, because the agent can rerun the suite itself.
 - **Startup order shows up here first.** A clean stack in a fresh sandbox exposes races a long-lived host stack hides, such as a scheduler starting before migrations; use `depends_on: … condition: service_healthy`.
 
+#### Test loop: how the agent runs the suite
+
+1. **Copy the CI job.** Read the job that runs the suite (`.gitlab-ci.yml`, the GitHub workflow) and reuse its compose files, images and command order. Do not invent a separate flow.
+2. **Tools run in containers, not in the sandbox.** Missing pnpm or browsers are not installed into the sandbox; use the image CI uses, pinned to the project's version (for E2E the official Playwright image matching `@playwright/test` in `package.json`).
+3. **Throwaway overlays stay out of the repo.** One-off compose files (a tool container, a production-like setting) go into the agent's scratchpad and are added with another `-f`. Relative paths in them resolve against the first compose file's directory. An `environment:` entry in an overlay overrides the service's `env_file` (e.g. switch the app from the Vite dev server to built assets). If the overlay is worth keeping, commit it next to `compose.sbx.yml`.
+4. **Tool containers follow the same rules:** the proxy/CA block above (with every compose service name in `NO_PROXY`) and `user: "${UID}:${GID}"` with `HOME` under `/tmp` (File ownership below). For pnpm as non-root, set `COREPACK_HOME` to a writable path and `corepack enable --install-directory <writable dir>`. Escape `$` as `$$` inside a compose `command:`.
+5. **Start only what the tests need:** `up -d --wait <services>`, not the whole stack.
+6. **Long runs:** send build and test output to a log file in the scratchpad and read it with `tail`; wrap commands in `timeout`; raise the Bash tool timeout (up to 600000 ms) instead of polling.
+7. **`exec` into running services.** `docker compose run --no-deps <svc>` hangs when the entrypoint waits for a database that is not part of the run.
+8. **Check the result, not just exit code 0:** print the versions and settings that matter from inside the container (`exec`), search the logs for warnings and tracebacks, check `docker inspect -f '{{.RestartCount}}' <container>` for crash loops, confirm `git status` is clean, and state what the run did not cover (local images instead of CI's, production-only settings).
+
 ### Stack on the host
 
 - The workspace is shared, so the host stack's dev servers (Django runserver, uvicorn `--reload`, Vite) pick up the agent's edits immediately.
@@ -303,4 +314,6 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | `git push` inside: `Permission denied (publickey)` | Host's ssh-agent empty or not running in the terminal that attached | `ssh-add ~/.ssh/<key>`, check `ssh-add -l`, attach again |
 | `git push` over HTTPS to GitLab inside: `HTTP Basic: Access denied` or a prompt for a password | The proxy cannot inject Basic auth for GitLab | SSH remote plus `gitlab-ssh` kit (Git hosts) |
 | `sbx create`/`kit add` refuses a kit from `github.com/docker/…` | `kit.allowedSources` does not list it | `sbx settings set kit.allowedSources '["docker.io/","github.com/docker/"]'` |
+| `docker compose run --no-deps <svc>` never returns | The entrypoint waits for a database that `--no-deps` did not start | `exec` into the running service, or start its dependencies |
+| A container exits with 137 after the agent removed it | Killed by the removal (SIGKILL), not a failure | Nothing to fix |
 | `sbx kit add` refuses an older sandbox | Created before sbx could recreate sandboxes | Recreate the sandbox |
