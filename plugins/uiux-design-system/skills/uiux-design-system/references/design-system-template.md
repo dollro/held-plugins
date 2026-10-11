@@ -31,7 +31,7 @@ Use slash-separated hierarchy for component naming — this creates nested group
 ### Full Component Inventory
 
 ```
-── Atoms ──
+-- Atoms --
 atoms/button/primary/default
 atoms/button/primary/hover
 atoms/button/primary/active
@@ -97,7 +97,7 @@ atoms/spinner/sm
 atoms/spinner/md
 atoms/spinner/lg
 
-── Molecules ──
+-- Molecules --
 molecules/form-field/default
 molecules/form-field/error
 molecules/form-field/required
@@ -134,7 +134,7 @@ molecules/search-bar/with-results
 molecules/pagination/default
 molecules/pagination/compact
 
-── Organisms ──
+-- Organisms --
 organisms/header/desktop/default
 organisms/header/desktop/scrolled
 organisms/header/mobile/default
@@ -158,7 +158,7 @@ organisms/footer/mega/default
 
 organisms/command-palette/default
 
-── Icons ──
+-- Icons --
 icons/navigation/home
 icons/navigation/settings
 icons/navigation/search

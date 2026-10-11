@@ -55,12 +55,12 @@ Set `TOOL = 'penpot' | 'figma'` for the rest of the workflow.
 ## The 6-Phase Workflow
 
 ```
-Phase 1: Screenshot Analysis    ──→ Design Inventory
-Phase 2: User Confirmation      ──→ Confirmed Spec
-Phase 3: Token Generation       ──→ Token files + design tool tokens/variables + tokenMap
-Phase 4: Board Generation       ──→ Pages (cover, foundations, atoms, molecules, organisms, screens-*)
-Phase 5: Screen Pages           ──→ screens-* pages from Confirmed Spec
-Phase 6: Token Binding Audit    ──→ All shapes bound to tokens, coverage report
+Phase 1: Screenshot Analysis    --> Design Inventory
+Phase 2: User Confirmation      --> Confirmed Spec
+Phase 3: Token Generation       --> Token files + design tool tokens/variables + tokenMap
+Phase 4: Board Generation       --> Pages (cover, foundations, atoms, molecules, organisms, screens-*)
+Phase 5: Screen Pages           --> screens-* pages from Confirmed Spec
+Phase 6: Token Binding Audit    --> All shapes bound to tokens, coverage report
 ```
 
 Each phase completes before the next begins.

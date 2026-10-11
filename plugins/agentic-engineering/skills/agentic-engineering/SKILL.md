@@ -168,19 +168,19 @@ Details in `references/operations.md`.
 
 ```
 project/
-├── pyproject.toml / uv.lock
-├── pipeline/
-│   ├── orchestrator.py      # entry point: run_pipeline(), tracing context
-│   ├── graph.py             # StateGraph builder, edges, node defaults
-│   ├── state.py             # TypedDict envelope
-│   ├── schemas.py           # Pydantic payloads and contracts
-│   ├── models.py            # model factory (tiers → IDs from config)
-│   ├── tracing.py           # idempotent Langfuse/OTel init
-│   ├── research.py          # Pydantic AI agents + adapter nodes
-│   ├── handlers/            # domain I/O adapters
-│   └── refinement/          # multi-agent subpackage: schemas, prompts, crews, memory, subgraph
-├── evals/                   # datasets and evaluators
-└── tests/ (unit/, integration/, conftest.py)
+  pyproject.toml / uv.lock
+  pipeline/
+    orchestrator.py  # entry point: run_pipeline(), tracing context
+    graph.py         # StateGraph builder, edges, node defaults
+    state.py         # TypedDict envelope
+    schemas.py       # Pydantic payloads and contracts
+    models.py        # model factory (tiers → IDs from config)
+    tracing.py       # idempotent Langfuse/OTel init
+    research.py      # Pydantic AI agents + adapter nodes
+    handlers/        # domain I/O adapters
+    refinement/      # multi-agent subpackage: schemas, prompts, crews, memory, subgraph
+  evals/             # datasets and evaluators
+  tests/ (unit/, integration/, conftest.py)
 ```
 
 ## Review checklist (top mistakes)

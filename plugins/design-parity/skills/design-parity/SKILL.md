@@ -12,15 +12,13 @@ Close the gap between a Claude Design spec (target) and its implementation (actu
 ## Core loop
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│  1. Prepare target  (HTML → rendered PNG, or PNG as-is)   │
-│  2. Screenshot impl (running dev server, same viewport)   │
-│  3. Pixel diff      (odiff finds WHERE things differ)     │
-│  4. Vision analysis (Claude explains WHAT and WHY)        │
-│  5. Rank deltas     (by perceptual impact, not pixel count)│
-│  6. Emit fix_plan   (operable edits, not advice)          │
-│  7. Apply + re-run  (goto 2 until converged or accepted)  │
-└───────────────────────────────────────────────────────────┘
+1. Prepare target  (HTML → rendered PNG, or PNG as-is)
+2. Screenshot impl (running dev server, same viewport)
+3. Pixel diff      (odiff finds WHERE things differ)
+4. Vision analysis (Claude explains WHAT and WHY)
+5. Rank deltas     (by perceptual impact, not pixel count)
+6. Emit fix_plan   (operable edits, not advice)
+7. Apply + re-run  (goto 2 until converged or accepted)
 ```
 
 Every iteration writes to `.parity/runs/<screen>/iteration_N/`. The loop is resumable and reviewable.

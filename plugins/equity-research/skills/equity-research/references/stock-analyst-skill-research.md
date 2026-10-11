@@ -14,7 +14,7 @@ Building a professional-grade stock chance/risk analysis skill for Claude requir
 ### Tier 1: Best-in-Class (Recommended Stack)
 
 | MCP Server | Data Coverage | API Key? | Best For |
-|---|---|---|---|
+|-|-|-|-|
 | **Octagon MCP** (`octagon-mcp`) | SEC filings (8K+ companies), 10yr earnings transcripts, financial metrics/ratios, stock data (10K+ tickers), 13F holdings, private markets | Yes (free tier) | **All-in-one investment research** — orchestrates multiple specialized agents |
 | **SEC EDGAR MCP** (`sec-edgar-mcp`) | 10-K, 10-Q, 8-K, XBRL financials, insider trading (Form 4), company facts | No (free SEC API) | **Primary source financials** — exact numeric precision from XBRL |
 | **Yahoo Finance MCP** (`mcp-yahoo-finance`) | Real-time prices, historical data, company info, financial statements, options, earnings, news | No (no auth) | **Quick market data** — zero setup, ideal for price/valuation snapshot |
@@ -22,7 +22,7 @@ Building a professional-grade stock chance/risk analysis skill for Claude requir
 ### Tier 2: Complementary / Specialized
 
 | MCP Server | Data Coverage | API Key? | Best For |
-|---|---|---|---|
+|-|-|-|-|
 | **Alpha Vantage MCP** | Stocks, options, forex, crypto, commodities, 50+ technical indicators (RSI, MACD, SMA, Bollinger) | Yes (free tier) | **Technical analysis** — richest indicator library |
 | **Financial Datasets MCP** | Income statements, balance sheets, cash flow, stock prices, market news | Yes | **Clean fundamental data** with millisecond latency |
 | **Financial Modeling Prep (FMP)** | Fundamentals, DCF valuations, ratios, ETF composition, peer comparisons | Yes | **Valuation models** — includes DCF and comps data |
@@ -31,7 +31,7 @@ Building a professional-grade stock chance/risk analysis skill for Claude requir
 ### Tier 3: Specialized Add-ons
 
 | MCP Server | Use Case |
-|---|---|
+|-|-|
 | **Alpaca MCP** | Paper trading, position tracking, brokerage-grade real-time data |
 | **Bright Data Yahoo Finance** | Enterprise-grade scraping with CAPTCHA bypass (paid) |
 | **EdgarTools (Python lib)** | AI-native SEC analysis with MCP server built-in, 3,450+ lines of API docs |
@@ -63,7 +63,7 @@ Building a professional-grade stock chance/risk analysis skill for Claude requir
 ### Open Source: Notable Projects
 
 | Project | Platform | Description |
-|---|---|---|
+|-|-|-|
 | **OctagonAI/skills** | Claude Code / Skills.sh | Collection of financial analyst skills including `financial-analyst-master` that orchestrates income statement, balance sheet, cash flow, growth analysis, earnings transcript analysis, and stock quotes |
 | **quant-sentiment-ai/claude-equity-research** | Claude Code Plugin | Goldman Sachs-style equity research: executive summary, fundamental analysis, technical analysis, options flow, insider activity, ESG, bull/base/bear scenarios with price targets |
 | **tradermonty/claude-trading-skills** | Claude Code / Skills.sh | Technical analysis skill for chart pattern recognition with probabilistic scenarios |
@@ -84,14 +84,14 @@ Your VC skill is an excellent structural template. The stock analyst skill shoul
 
 ```
 /mnt/skills/user/stock-investment-analyst/
-├── SKILL.md                          # Main skill definition
-└── references/
-    ├── frameworks.md                 # Analysis frameworks (see below)
-    ├── scoring-criteria.md           # Chance/risk scoring rubric
-    ├── report-template.md            # Output template for the report
-    ├── valuation-methods.md          # DCF, comps, precedent, sum-of-parts
-    ├── risk-taxonomy.md              # Risk categories and early-warning indicators
-    └── sector-benchmarks.md          # Key metrics by sector (margins, growth, multiples)
+  SKILL.md                          # Main skill definition
+  references/
+    frameworks.md                 # Analysis frameworks (see below)
+    scoring-criteria.md           # Chance/risk scoring rubric
+    report-template.md            # Output template for the report
+    valuation-methods.md          # DCF, comps, precedent, sum-of-parts
+    risk-taxonomy.md              # Risk categories and early-warning indicators
+    sector-benchmarks.md          # Key metrics by sector (margins, growth, multiples)
 ```
 
 ### Core Analysis Frameworks (for `frameworks.md`)
@@ -138,7 +138,7 @@ Your VC skill is an excellent structural template. The stock analyst skill shoul
 
 Each criterion scored 1-5:
 | Score | Label | Meaning |
-|---|---|---|
+|-|-|-|
 | 5 | Exceptional | Top-decile, significant competitive advantage |
 | 4 | Strong | Above-average, clear positive signal |
 | 3 | Adequate | In-line with expectations, neutral |
@@ -209,7 +209,7 @@ APPENDIX
 ### Modes
 
 | Mode | Trigger | Output |
-|---|---|---|
+|-|-|-|
 | **Full Analysis** | "analyze [TICKER]", "investment report on [TICKER]" | Complete 15-20 page report with all 8 sections |
 | **Quick Take** | "quick take on [TICKER]", "what do you think of [TICKER]" | 3-5 paragraph summary with key thesis, biggest risk, preliminary score |
 | **Chance/Risk Focus** | "chance/risk for [TICKER]", "risk analysis [TICKER]" | Focused sections 6-7 with risk matrix and scenario analysis |
@@ -220,40 +220,40 @@ APPENDIX
 
 ```
 Step 1: DATA GATHERING
-  ├── MCP: Octagon → financial metrics, SEC filings, earnings transcripts, 13F holdings
-  ├── MCP: Yahoo Finance → current price, historical prices, company info, news
-  ├── Web Search → analyst consensus, recent news, macro context, competitors
-  └── User Uploads → any provided documents (10-K, earnings deck, etc.)
+  - MCP: Octagon → financial metrics, SEC filings, earnings transcripts, 13F holdings
+  - MCP: Yahoo Finance → current price, historical prices, company info, news
+  - Web Search → analyst consensus, recent news, macro context, competitors
+  - User Uploads → any provided documents (10-K, earnings deck, etc.)
 
 Step 2: FUNDAMENTAL ANALYSIS
-  ├── Parse financial statements (IS, BS, CF) for 3-5 years
-  ├── Calculate key ratios and growth rates
-  ├── Compare to sector benchmarks
-  └── Identify trends, inflections, anomalies
+  - Parse financial statements (IS, BS, CF) for 3-5 years
+  - Calculate key ratios and growth rates
+  - Compare to sector benchmarks
+  - Identify trends, inflections, anomalies
 
 Step 3: VALUATION
-  ├── Pull peer multiples
-  ├── Build simplified DCF (conservative/base/optimistic)
-  ├── Historical valuation range analysis
-  └── Determine fair value range
+  - Pull peer multiples
+  - Build simplified DCF (conservative/base/optimistic)
+  - Historical valuation range analysis
+  - Determine fair value range
 
 Step 4: QUALITATIVE ASSESSMENT
-  ├── Moat analysis from competitive data
-  ├── Management quality from earnings transcripts
-  ├── Growth catalysts from recent filings/news
-  └── Risk identification from 10-K risk factors + external research
+  - Moat analysis from competitive data
+  - Management quality from earnings transcripts
+  - Growth catalysts from recent filings/news
+  - Risk identification from 10-K risk factors + external research
 
 Step 5: SCORING & SYNTHESIS
-  ├── Score each criterion (1-5)
-  ├── Calculate weighted IAS
-  ├── Map to recommendation
-  └── Build chance/risk matrix
+  - Score each criterion (1-5)
+  - Calculate weighted IAS
+  - Map to recommendation
+  - Build chance/risk matrix
 
 Step 6: REPORT GENERATION
-  ├── Generate professional report (docx or PDF via skill)
-  ├── Include data tables, scoring summaries
-  ├── Add disclaimer
-  └── Output to user
+  - Generate professional report (docx or PDF via skill)
+  - Include data tables, scoring summaries
+  - Add disclaimer
+  - Output to user
 ```
 
 ---
@@ -329,7 +329,7 @@ Build a React artifact that displays the analysis interactively — with tabs fo
 ## 6. Key Differentiators vs. Existing Solutions
 
 | Feature | Octagon Skills | quant-sentiment-ai | **Your Custom Skill** |
-|---|---|---|---|
+|-|-|-|-|
 | Chance/Risk Matrix | ❌ | Partial (bull/base/bear) | ✅ Full probability × impact matrix |
 | Weighted Scoring System | ❌ | ❌ | ✅ 35+ criteria, weighted IAS score |
 | Investment Recommendation | ❌ | ✅ Buy/Sell/Hold | ✅ 5-tier with conviction level |

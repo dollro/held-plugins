@@ -173,17 +173,17 @@ Every service has liveness and readiness endpoints used by healthchecks, logs to
 
 ```
 repo/
-├── backend/             # Django: config/settings, users, api, templates, static
-├── realtime/            # FastAPI: routers, auth, db, models, alembic/   (if used)
-├── frontend/            # create-vue tooling + src/ (islands, SPA), e2e/
-├── docker/              # app/Dockerfile (dev + prod targets), proxy/Caddyfile, start scripts
-├── compose.local.yml    # dev stack · compose.ci.yml (CI overlay) · compose.deploy.yml (staging + production)
-├── docker-bake.hcl      # release images (multi-platform on request)
-├── Taskfile.yml         # the one command surface
-├── .envs/               # local|staging|production: app.env.enc (+ .example); staging|production: deploy.env
-├── scripts/             # deploy.sh, env_examples.py
-├── docs/ + mkdocs.yml   # index, architecture, environments, operations; built strictly in CI
-└── pyproject.toml, uv.lock, .pre-commit-config.yaml, .mcp.json, CLAUDE.md
+  backend/            # Django: config/settings, users, api, templates, static
+  realtime/           # FastAPI: routers, auth, db, models, alembic/   (if used)
+  frontend/           # create-vue tooling + src/ (islands, SPA), e2e/
+  docker/             # app/Dockerfile (dev + prod targets), proxy/Caddyfile, start scripts
+  compose.local.yml   # dev stack · compose.ci.yml (CI overlay) · compose.deploy.yml (staging + production)
+  docker-bake.hcl     # release images (multi-platform on request)
+  Taskfile.yml        # the one command surface
+  .envs/              # local|staging|production: app.env.enc (+ .example); staging|production: deploy.env
+  scripts/            # deploy.sh, env_examples.py
+  docs/ + mkdocs.yml  # index, architecture, environments, operations; built strictly in CI
+  pyproject.toml, uv.lock, .pre-commit-config.yaml, .mcp.json, CLAUDE.md
 ```
 
 `/fullstack-scaffold` (user-invoked) generates this layout and verifies it with the repo's own `task ci`.

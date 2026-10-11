@@ -16,18 +16,10 @@ The BCSA framework assesses whether a product achieves adoption readiness across
 
 ### Framework
 
-```
-┌─────────────────────────────────────┐
-│        B+C = Business Case          │
-│  ┌──────────┐  ┌──────────┐        │
-│  │  Better   │  │  Cheaper  │        │
-│  └──────────┘  └──────────┘        │
-│        S+A = Ease of Adoption       │
-│  ┌──────────┐  ┌──────────┐        │
-│  │  Simpler  │  │ Available │        │
-│  └──────────┘  └──────────┘        │
-└─────────────────────────────────────┘
-```
+|Group|Dimensions|
+|-|-|
+|B+C = Business Case|Better, Cheaper|
+|S+A = Ease of Adoption|Simpler, Available|
 
 ### The Four Dimensions
 
@@ -79,20 +71,20 @@ The Deep-Tech Matrix (originally developed as the HTGF DTM) is a two-dimensional
 
 ```
 Technology Readiness Level (Y-axis)
-  9 ┌─────────────────────────────────────────┐
-  8 │                              Series B    │ ☆
-  7 │ Engineering          Series A            │
-  6 │ Execution                                │
-  5 │ TRL              Seed                    │
-  4 │                                          │
-  3 │ Proof of    Pre-Seed                     │
-  2 │ Concept                                  │
-  1 │ Scientific  (No Money Land)              │
-    └─────────────────────────────────────────┘
+  9 +------------------------------------------+
+  8 |                              Series B    | ☆
+  7 | Engineering          Series A            |
+  6 | Execution                                |
+  5 | TRL              Seed                    |
+  4 |                                          |
+  3 | Proof of    Pre-Seed                     |
+  2 | Concept                                  |
+  1 | Scientific  (No Money Land)              |
+    +------------------------------------------+
       1       2       3       4       5       6   Market Certainty
       unclear niche   estab.  high    main-   block-
                       niche   momentum stream  buster
-      ←── unproven ──→       ←── proven ──→
+      <-- unproven -->       <-- proven -->
 ```
 
 ### Y-Axis: Technology Readiness Level (TRL 1–9)

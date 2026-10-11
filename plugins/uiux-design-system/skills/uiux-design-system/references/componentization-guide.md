@@ -126,9 +126,9 @@ Group related variations into a single component with switchable properties:
 
 ```
 Button
-  ├── style: primary | secondary | ghost | danger
-  ├── size: sm | md | lg
-  └── state: default | hover | active | disabled | loading
+  - style: primary | secondary | ghost | danger
+  - size: sm | md | lg
+  - state: default | hover | active | disabled | loading
 ```
 
 **Use this when:**
@@ -253,10 +253,10 @@ not a design system — it cannot propagate changes.
 
 ```
 Card (molecule, registered component)
-  ├── Avatar instance (atom)
-  ├── Text (styled with tokens)
-  ├── Badge instance (atom)
-  └── Button instance (atom)
+  - Avatar instance (atom)
+  - Text (styled with tokens)
+  - Badge instance (atom)
+  - Button instance (atom)
 ```
 
 Each nested atom is a component instance. The card owns the layout (flex/grid) and
@@ -268,9 +268,9 @@ Design components with clear "swap points" where different content can be insert
 
 ```
 ListItem (molecule)
-  ├── [leading slot] → swap between: Avatar, Icon, Checkbox
-  ├── Text content
-  └── [trailing slot] → swap between: Badge, ChevronIcon, Toggle
+  - [leading slot] → swap between: Avatar, Icon, Checkbox
+  - Text content
+  - [trailing slot] → swap between: Badge, ChevronIcon, Toggle
 ```
 
 The leading/trailing elements are nested component instances that consumers swap.
@@ -281,9 +281,9 @@ For components that change structure at breakpoints:
 
 ```
 NavigationBar
-  ├── variant: desktop → horizontal layout, text labels
-  ├── variant: tablet → horizontal, icon-only with tooltips
-  └── variant: mobile → bottom bar, icon + small label
+  - variant: desktop → horizontal layout, text labels
+  - variant: tablet → horizontal, icon-only with tooltips
+  - variant: mobile → bottom bar, icon + small label
 ```
 
 These are structural variants (layer tree differs), so they're variants of the same
@@ -352,25 +352,25 @@ Review generated design files against these:
 
 ```
 Is it used in 3+ places?
-  ├── Yes → Register as component
-  └── No
+  - Yes → Register as component
+  - No
       Has meaningful state variations?
-        ├── Yes → Register as component
-        └── No
+        - Yes → Register as component
+        - No
             Represents an enforced design decision?
-              ├── Yes → Register as component
-              └── No → Keep as one-off (pattern or local group)
+              - Yes → Register as component
+              - No → Keep as one-off (pattern or local group)
 ```
 
 ### "Should I add a variant or create a new component?"
 
 ```
 Does the new variation share the same layer structure?
-  ├── Yes
-  │   Does it share the same semantic role? (both are "buttons")
-  │     ├── Yes → Add as variant
-  │     └── No → New component
-  └── No (different layers, different structure)
+  - Yes
+      Does it share the same semantic role? (both are "buttons")
+        - Yes → Add as variant
+        - No → New component
+  - No (different layers, different structure)
       → New component
 ```
 
@@ -378,14 +378,14 @@ Does the new variation share the same layer structure?
 
 ```
 Does a registered component exist for this element?
-  ├── Yes
-  │   Would I override >50% of its properties?
-  │     ├── Yes → Consider new variant or build fresh
-  │     └── No → Use instance
-  └── No
+  - Yes
+      Would I override >50% of its properties?
+        - Yes → Consider new variant or build fresh
+        - No → Use instance
+  - No
       Does this element meet the componentization criteria?
-        ├── Yes → Register it first, then use instances
-        └── No → Build fresh (one-off)
+        - Yes → Register it first, then use instances
+        - No → Build fresh (one-off)
 ```
 
 ---

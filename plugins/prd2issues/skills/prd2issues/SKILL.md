@@ -13,7 +13,7 @@ Cut a Ready PRD into tracker issues that a person can read and a coding agent ca
 Explain this flow to the user in a few lines at the start:
 
 ```
-PRD + spec ──► read the code ──► cut, shown as table ──► issues ──► tracker
+PRD + spec --> read the code --> cut, shown as table --> issues --> tracker
 (Ready)        what exists,      you review and          written     on your
                patterns, checks  adjust it               in full     confirmation
 ```

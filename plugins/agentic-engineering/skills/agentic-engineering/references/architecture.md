@@ -11,15 +11,15 @@ A deterministic harness around probabilistic engines. In this picture:
 - **Langfuse** is the flight recorder.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    LangGraph (control plane)                    │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐  │
-│  │  Router  │───▶│ Pydantic │───▶│  CrewAI  │───▶│ Validator│  │
-│  │   node   │    │ AI node  │    │   node   │    │   node   │  │
-│  └──────────┘    └──────────┘    └──────────┘    └──────────┘  │
-│        └──────────────┴───────────────┴───────────────┘         │
-│                 Shared typed state (TypedDict + Pydantic)        │
-└─────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------+
+|                    LangGraph (control plane)                    |
+|  +----------+    +----------+    +----------+    +----------+  |
+|  |  Router  |--->| Pydantic |--->|  CrewAI  |--->| Validator|  |
+|  |   node   |    | AI node  |    |   node   |    |   node   |  |
+|  +----------+    +----------+    +----------+    +----------+  |
+|        +--------------+---------------+---------------+         |
+|                 Shared typed state (TypedDict + Pydantic)        |
++-----------------------------------------------------------------+
 ```
 
 ## Component responsibilities
@@ -41,11 +41,11 @@ LangGraph owns the workflow; framework agents are wrapped as node functions.
 
 ```
 LangGraph node types
-├── Standard nodes      → pure functions: routing, validation, preprocessing
-├── Pydantic AI nodes   → single-agent tasks with typed output
-├── CrewAI nodes        → multi-agent collaborative tasks
-├── Interrupt nodes     → human decisions (one interrupt per node)
-└── Subgraphs           → iterative sub-flows with their own state
+  Standard nodes      → pure functions: routing, validation, preprocessing
+  Pydantic AI nodes   → single-agent tasks with typed output
+  CrewAI nodes        → multi-agent collaborative tasks
+  Interrupt nodes     → human decisions (one interrupt per node)
+  Subgraphs           → iterative sub-flows with their own state
 ```
 
 Every adapter does the same four steps:
@@ -71,20 +71,20 @@ Alternatives inside a node, under the same adapter rules:
 ## Layered view with observability
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Langfuse (observability)                                           │
-│  - session = business ID (e.g. document_id) groups all rounds       │
-│  - LangGraph nodes via callback handler                             │
-│  - Pydantic AI and CrewAI via OTel                                  │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │  LangGraph (orchestration)                                  │    │
-│  │  - owns iteration loop, global state, routing, persistence  │    │
-│  │  ┌───────────────────────────────────────────────────────┐  │    │
-│  │  │  CrewAI / Pydantic AI (execution), fresh per call     │  │    │
-│  │  │  memory scoped per pipeline run                       │  │    │
-│  │  └───────────────────────────────────────────────────────┘  │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────────┘
++---------------------------------------------------------------------+
+|  Langfuse (observability)                                           |
+|  - session = business ID (e.g. document_id) groups all rounds       |
+|  - LangGraph nodes via callback handler                             |
+|  - Pydantic AI and CrewAI via OTel                                  |
+|  +-------------------------------------------------------------+    |
+|  |  LangGraph (orchestration)                                  |    |
+|  |  - owns iteration loop, global state, routing, persistence  |    |
+|  |  +-------------------------------------------------------+  |    |
+|  |  |  CrewAI / Pydantic AI (execution), fresh per call     |  |    |
+|  |  |  memory scoped per pipeline run                       |  |    |
+|  |  +-------------------------------------------------------+  |    |
+|  +-------------------------------------------------------------+    |
++---------------------------------------------------------------------+
 ```
 
 ## Key design patterns
@@ -116,32 +116,32 @@ Organise by **pipeline phase**, not by framework.
 
 ```
 project/
-├── pyproject.toml
-├── uv.lock
-├── pipeline/
-│   ├── orchestrator.py        # entry point, run_pipeline(), tracing context
-│   ├── graph.py               # StateGraph builder + node adapters, node defaults
-│   ├── state.py               # TypedDict graph state
-│   ├── schemas.py             # Pydantic output models and contracts
-│   ├── models.py              # model factory (get_model, get_crewai_llm)
-│   ├── research.py            # Pydantic AI agents + adapters
-│   ├── tracing.py             # Langfuse/OTel init
-│   ├── handlers/              # domain I/O adapters (extract/apply)
-│   │   ├── base.py
-│   │   └── pdf.py
-│   ├── refinement/            # multi-agent refinement subpackage
-│   │   ├── schemas.py         # inter-agent contracts
-│   │   ├── prompts.py         # prompt builders
-│   │   ├── crews.py           # crew builders + agent templates
-│   │   ├── memory.py          # scoped memory factory
-│   │   └── loop.py            # refinement subgraph
-│   └── prompts/
-├── evals/                     # datasets, evaluators, judge prompts
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── conftest.py
-└── main.py
+  pyproject.toml
+  uv.lock
+  pipeline/
+    orchestrator.py  # entry point, run_pipeline(), tracing context
+    graph.py         # StateGraph builder + node adapters, node defaults
+    state.py         # TypedDict graph state
+    schemas.py       # Pydantic output models and contracts
+    models.py        # model factory (get_model, get_crewai_llm)
+    research.py      # Pydantic AI agents + adapters
+    tracing.py       # Langfuse/OTel init
+    handlers/        # domain I/O adapters (extract/apply)
+      base.py
+      pdf.py
+    refinement/      # multi-agent refinement subpackage
+      schemas.py     # inter-agent contracts
+      prompts.py     # prompt builders
+      crews.py       # crew builders + agent templates
+      memory.py      # scoped memory factory
+      loop.py        # refinement subgraph
+    prompts/
+  evals/             # datasets, evaluators, judge prompts
+  tests/
+    unit/
+    integration/
+    conftest.py
+  main.py
 ```
 
 Keep files and functions within the length limits of `engineering-standards`. Split a growing `graph.py` by phase before it crosses them.

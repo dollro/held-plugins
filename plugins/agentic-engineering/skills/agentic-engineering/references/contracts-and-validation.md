@@ -27,9 +27,9 @@ How each framework enforces the contract:
 ## 2. Moderator shield
 
 ```
-Expert A ──┐
-Expert B ──┼──► Moderator ──► Writer
-Expert C ──┘
+Expert A --+
+Expert B --+--> Moderator --> Writer
+Expert C --+
 ```
 
 Experts never talk to downstream consumers directly. Without the shield, the writer gets contradictory instructions and hedges; the moderator makes the editorial calls and produces one coherent plan.
@@ -80,9 +80,9 @@ else:
 | 3. Fixer node | Graph | Precise errors turned into a correction prompt, routed back to the source | `max_retries` in state |
 
 ```
-Generator → Validator → Router ─┬─ success → next phase
-                                ├─ retry   → Fixer → Generator
-                                └─ fatal   → END (or human review)
+Generator -> Validator -> Router -+- success -> next phase
+                                  +- retry   -> Fixer -> Generator
+                                  +- fatal   -> END (or human review)
 ```
 
 Rules:

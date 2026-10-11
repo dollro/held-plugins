@@ -85,7 +85,7 @@ I found **5 distinct project families** that attempt to solve this, each with di
 No existing skill combines ALL of these:
 
 | Capability | tradermonty | quant-sentiment | OctagonAI | Jimmy's Journal | **Your Skill** |
-|---|---|---|---|---|---|
+|-|-|-|-|-|-|
 | Structured persona | ✅ | ✅ | ❌ | ✅ | ✅ |
 | MCP data integration | ❌ (FMP script) | ❌ | ✅ (Octagon only) | ❌ | ✅ (Yahoo Finance MCP) |
 | Web search fallback | Partial | ✅ | ❌ | ✅ | ✅ |
@@ -138,60 +138,25 @@ Based on analysis of all projects, here's what makes a SKILL.md great:
 
 Your `dollro/yahoo-finance-mcp-server` (fork of laxmimerit) provides these 9 tools:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  YOUR MCP SERVER TOOLS → ANALYSIS MAPPING                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  get_stock_info(ticker)                                         │
-│  → Company overview, current price, market cap, PE, EPS,        │
-│    sector, industry, forward PE, dividend yield                 │
-│  → USED IN: Section 1 (Overview), Section 4 (Valuation)        │
-│                                                                 │
-│  get_financial_statement(ticker, financial_type)                 │
-│  → income_stmt / quarterly_income_stmt                          │
-│  → balance_sheet / quarterly_balance_sheet                      │
-│  → cashflow / quarterly_cashflow                                │
-│  → USED IN: Section 3 (Financial Analysis) — THE CORE          │
-│                                                                 │
-│  get_historical_stock_prices(ticker, period, interval)          │
-│  → Price history for trend analysis, volatility, drawdowns      │
-│  → USED IN: Section 4 (Valuation - historical range),          │
-│             Section 7 (Risk - volatility metrics)               │
-│                                                                 │
-│  get_yahoo_finance_news(ticker)                                 │
-│  → Recent news articles for sentiment analysis                  │
-│  → USED IN: Section 2 (Recent Developments), Section 6 (Catalysts) │
-│                                                                 │
-│  get_recommendations(ticker, "recommendations" | "upgrades_..") │
-│  → Analyst consensus, upgrades/downgrades history               │
-│  → USED IN: Section 4 (Valuation - analyst targets),           │
-│             Section 8 (Decision - consensus check)              │
-│                                                                 │
-│  get_holder_info(ticker, holder_type)                           │
-│  → Institutional holders, insider transactions, mutual funds    │
-│  → USED IN: Section 5 (Moat - institutional conviction),       │
-│             Section 7 (Risk - insider selling patterns)         │
-│                                                                 │
-│  get_stock_actions(ticker)                                      │
-│  → Dividends, stock splits history                              │
-│  → USED IN: Section 3 (Shareholder returns)                    │
-│                                                                 │
-│  get_option_chain(ticker, date, type) +                         │
-│  get_option_expiration_dates(ticker)                            │
-│  → Options data for implied volatility, put/call ratio          │
-│  → USED IN: Section 7 (Risk - implied vol as forward risk),    │
-│             Section 6 (Catalysts - unusual options activity)    │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+**YOUR MCP SERVER TOOLS → ANALYSIS MAPPING**
+
+| Tool | Provides | Used in |
+|-|-|-|
+| `get_stock_info(ticker)` | Company overview, current price, market cap, PE, EPS, sector, industry, forward PE, dividend yield | Section 1 (Overview), Section 4 (Valuation) |
+| `get_financial_statement(ticker, financial_type)` | income_stmt / quarterly_income_stmt; balance_sheet / quarterly_balance_sheet; cashflow / quarterly_cashflow | Section 3 (Financial Analysis) — THE CORE |
+| `get_historical_stock_prices(ticker, period, interval)` | Price history for trend analysis, volatility, drawdowns | Section 4 (Valuation - historical range), Section 7 (Risk - volatility metrics) |
+| `get_yahoo_finance_news(ticker)` | Recent news articles for sentiment analysis | Section 2 (Recent Developments), Section 6 (Catalysts) |
+| `get_recommendations(ticker, "recommendations" \| "upgrades_..")` | Analyst consensus, upgrades/downgrades history | Section 4 (Valuation - analyst targets), Section 8 (Decision - consensus check) |
+| `get_holder_info(ticker, holder_type)` | Institutional holders, insider transactions, mutual funds | Section 5 (Moat - institutional conviction), Section 7 (Risk - insider selling patterns) |
+| `get_stock_actions(ticker)` | Dividends, stock splits history | Section 3 (Shareholder returns) |
+| `get_option_chain(ticker, date, type)` + `get_option_expiration_dates(ticker)` | Options data for implied volatility, put/call ratio | Section 7 (Risk - implied vol as forward risk), Section 6 (Catalysts - unusual options activity) |
 
 ### 3.3 What Web Search Must Fill
 
 Your MCP gives you company-level data. Web search fills the gaps:
 
 | Gap | Search Query Pattern | Used In |
-|---|---|---|
+|-|-|-|
 | Peer/competitor identification | `"[company] competitors market share 2025"` | Moat analysis, peer comps |
 | Sector/industry multiples | `"[sector] average PE EV/EBITDA 2025"` | Valuation benchmarking |
 | Macro risks | `"[sector] regulatory risk 2025"`, `"interest rate impact [sector]"` | Risk assessment |
@@ -228,17 +193,17 @@ These scripts can be invoked by Claude during analysis via bash tool, making the
 
 ```
 stock-investment-analyst/
-├── SKILL.md                              # ~250-300 lines
-├── references/
-│   ├── frameworks.md                     # Scoring framework, IAS calculation
-│   ├── scoring-criteria.md               # All criteria with rubrics [1-5]
-│   ├── analyst-checklists.md             # "How to assess" operational guides
-│   ├── report-template.md               # Complete output template
-│   ├── valuation-methods.md             # DCF, comps, historical range
-│   └── risk-taxonomy.md                 # Risk categories + early warnings
-└── scripts/                              # Optional Python helpers
-    ├── financial_ratios.py               # Derived metric calculations
-    └── valuation_model.py               # Simple DCF calculator
+  SKILL.md                              # ~250-300 lines
+  references/
+    frameworks.md                     # Scoring framework, IAS calculation
+    scoring-criteria.md               # All criteria with rubrics [1-5]
+    analyst-checklists.md             # "How to assess" operational guides
+    report-template.md               # Complete output template
+    valuation-methods.md             # DCF, comps, historical range
+    risk-taxonomy.md                 # Risk categories + early warnings
+  scripts/                              # Optional Python helpers
+    financial_ratios.py               # Derived metric calculations
+    valuation_model.py               # Simple DCF calculator
 ```
 
 ### SKILL.md Core Sections (Best-Breed Synthesis)
@@ -342,7 +307,7 @@ Step 5: OUTPUT — Generate report per template
 ### 5.1 Fewer, Deeper Criteria vs. Many Shallow Ones
 
 | Approach | OctagonAI (50+ skills) | tradermonty (4 ref files) | **Recommended** |
-|---|---|---|---|
+|-|-|-|-|
 | Criteria count | ~100 data points | ~20 qualitative | **25 scored criteria** |
 | Scoring | None | None | **Quantitative [1-5] with rubric** |
 | Integration | Fragmented | Manual orchestration | **Single skill, single workflow** |
@@ -360,7 +325,7 @@ If you later want sector analysis, macro briefing, or options strategy — those
 ### 5.3 MCP-First vs. Web-Search-First
 
 | Strategy | Pros | Cons |
-|---|---|---|
+|-|-|-|
 | MCP-first (your Yahoo Finance) | Structured data, reliable, parseable | Limited to what yfinance provides |
 | Web-search-first | Broader data (analyst targets, qualitative) | Unstructured, may be stale |
 | **Hybrid (recommended)** | Best of both | More complex workflow |
@@ -370,7 +335,7 @@ If you later want sector analysis, macro briefing, or options strategy — those
 ### 5.4 Report Format
 
 | Format | When to Use |
-|---|---|
+|-|-|
 | **Markdown artifact** | Default — renders beautifully in claude.ai |
 | **PDF via pdf skill** | When user says "create a report" or "PDF" |
 | **React artifact** | When user wants interactive (expandable sections, charts) |

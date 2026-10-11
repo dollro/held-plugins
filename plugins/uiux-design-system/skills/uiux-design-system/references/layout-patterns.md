@@ -135,15 +135,12 @@ Complex UIs combine both. The principle:
 - **Flex** for inner component layout (content-driven flow within each cell)
 
 ```text
-┌─ Grid (page) ──────────────────────────┐
-│ ┌── sidebar ──┐ ┌── main ────────────┐ │
-│ │ Flex column  │ │ Grid (card grid)   │ │
-│ │  nav items   │ │ ┌────┐ ┌────┐     │ │
-│ │  ↕ flow      │ │ │Flex│ │Flex│     │ │
-│ │              │ │ │col │ │col │     │ │
-│ └──────────────┘ │ └────┘ └────┘     │ │
-│                  └───────────────────┘ │
-└────────────────────────────────────────┘
+Grid (page)
+  sidebar: Flex column
+    nav items (↕ flow)
+  main: Grid (card grid)
+    card: Flex col
+    card: Flex col
 ```
 
 - Page layout: Grid (`fixed 240px` sidebar + `1fr` main)

@@ -180,19 +180,19 @@ parity.config.yaml             # committed
 parity.rubric.yaml             # committed
 parity/fixtures/               # committed — seed helpers
 .parity/                       # gitignored
-├── .gitignore
-├── auth.json                  # storageState
-├── node_modules/              # bundled runtime deps
-├── package.json
-└── runs/
-    └── <screen>/
-        └── iteration_N/
-            ├── target.png
-            ├── impl.png
-            ├── diff.png
-            ├── run.json
-            ├── deltas.json
-            └── fix_plan.json
+  .gitignore
+  auth.json                    # storageState
+  node_modules/                # bundled runtime deps
+  package.json
+  runs/
+    <screen>/
+      iteration_N/
+        target.png
+        impl.png
+        diff.png
+        run.json
+        deltas.json
+        fix_plan.json
 ```
 
 Old iterations prune automatically when `artifacts.keep_iterations` is exceeded.

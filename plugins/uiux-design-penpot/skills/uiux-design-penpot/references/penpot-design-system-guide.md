@@ -9,19 +9,19 @@
 
 ```
 Team
- └── Project
-      └── File (= 1 shared library = entire design system)
-           ├── Page 1
-           │    ├── Frame (board) A
-           │    │    ├── Component (main)
-           │    │    ├── Shapes, text, groups
-           │    │    └── Nested component instances
-           │    └── Frame (board) B
-           ├── Page 2
-           │    └── ...
-           ├── Colors (asset palette — separate from canvas)
-           ├── Typographies (asset palette — separate from canvas)
-           └── Tokens (native tokens panel — W3C DTCG format)
+  Project
+    File (= 1 shared library = entire design system)
+      Page 1
+        Frame (board) A
+          Component (main)
+          Shapes, text, groups
+          Nested component instances
+        Frame (board) B
+      Page 2
+        ...
+      Colors (asset palette — separate from canvas)
+      Typographies (asset palette — separate from canvas)
+      Tokens (native tokens panel — W3C DTCG format)
 ```
 
 Key facts:
@@ -92,7 +92,7 @@ Slashes for hierarchy — consistent with Penpot's asset grouping. Lowercase wit
 On consolidated pages (atoms, molecules, organisms), boards carry the component scope. Each component gets a group of boards:
 
 ```
-── atoms page ──
+--- atoms page ---
 button/variants          ← All variant instances in a grid
 button/anatomy           ← Dissected view: padding, token refs, spacing
 button/usage             ← Do/don't examples, usage guidelines
@@ -103,7 +103,7 @@ badge/variants
 badge/anatomy
 ...
 
-── organisms page ──
+--- organisms page ---
 header-navbar/variants
 header-navbar/responsive ← Desktop, tablet, mobile breakpoints
 data-table/variants

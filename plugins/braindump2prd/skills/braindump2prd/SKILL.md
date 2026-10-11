@@ -13,7 +13,7 @@ Interview a product manager until a vague idea is sharp, then write the PRD and 
 Explain this flow to the user in a few lines at the start of an Interview, so they know what is coming:
 
 ```
-idea ──► interview ──► braindump_final.md ──► prd.md + spec.md ──► tracker
+idea --> interview --> braindump_final.md --> prd.md + spec.md --> tracker
          one question   you review and        written from the      on your
          at a time      correct it            reviewed record       confirmation
 ```

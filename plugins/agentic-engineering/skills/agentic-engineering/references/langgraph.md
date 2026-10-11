@@ -160,11 +160,11 @@ from langgraph.graph import StateGraph, START, END
 
 def build_workflow() -> StateGraph:
     """
-    START ─► router ─┬─► research ──► validator ─┬─► router
-                     ├─► analyzer ──► validator ─┤
-                     ├─► content_crew ► validator┤
-                     ├─► human_approval ─────────┤
-                     └─► END            fixer ◄──┘ (retry) ─► back to source
+    START -> router -+-> research --> validator -+-> router
+                     +-> analyzer --> validator -+
+                     +-> content_crew > validator+
+                     +-> human_approval ---------+
+                     +-> END            fixer <--+ (retry) -> back to source
     """
     g = StateGraph(PipelineState)
     g.add_node("router", router_node)

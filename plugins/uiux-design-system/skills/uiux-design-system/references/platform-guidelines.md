@@ -5,7 +5,7 @@
 ### Screen Sizes
 
 | Device | Size | Design At |
-| ------ | ---- | --------- |
+|-|-|-|
 | iPhone SE | 375×667 | Small mobile |
 | iPhone 14/15 | 390×844 | Standard mobile |
 | iPhone 14 Pro Max | 430×932 | Large mobile |
@@ -14,19 +14,11 @@
 
 ### Safe Areas
 
-```text
-┌─────────────────────────────────┐
-│ ▓▓▓▓▓▓▓ Status Bar ▓▓▓▓▓▓▓▓▓▓ │ 44-47px
-├─────────────────────────────────┤
-│                                 │
-│      Safe Content Area          │
-│                                 │
-│                                 │
-├─────────────────────────────────┤
-│ ▓▓▓▓▓▓ Home Indicator ▓▓▓▓▓▓▓ │ 34px
-└─────────────────────────────────┘
-
-```
+| Region (top to bottom) | Height |
+|-|-|
+| Status Bar | 44-47px |
+| Safe Content Area | remaining space |
+| Home Indicator | 34px |
 
 ### Touch Targets
 
@@ -47,7 +39,7 @@
 ### Navigation Patterns
 
 | Pattern | When to Use |
-| ------- | ----------- |
+|-|-|
 | Tab Bar | 3-5 top-level destinations |
 | Navigation Bar | Hierarchical content |
 | Sidebar | iPad, rich content apps |
@@ -55,13 +47,11 @@
 
 ### Tab Bar Specifications
 
-```text
-┌─────────────────────────────────┐
-│  🏠    🔍    ➕    💬    👤    │
-│ Home  Search Add  Chat  Profile │ 49pt height
-└─────────────────────────────────┘
+| 🏠 | 🔍 | ➕ | 💬 | 👤 |
+|-|-|-|-|-|
+| Home | Search | Add | Chat | Profile |
 
-```
+Height: 49pt
 
 - Max 5 tabs
 - Icons 25×25pt with 10pt labels
@@ -70,12 +60,9 @@
 
 ### Navigation Bar
 
-```text
-┌─────────────────────────────────┐
-│ ‹ Back    Page Title    Action │ 44pt minimum
-└─────────────────────────────────┘
-
-```
+| Left | Center | Right | Height |
+|-|-|-|-|
+| ‹ Back | Page Title | Action | 44pt minimum |
 
 - Left: Back button or cancel
 - Center: Title
@@ -84,7 +71,7 @@
 ### Typography (SF Pro)
 
 | Style | Size | Weight |
-| ----- | ---- | ------ |
+|-|-|-|
 | Large Title | 34pt | Bold |
 | Title 1 | 28pt | Bold |
 | Title 2 | 22pt | Bold |
@@ -99,7 +86,7 @@
 ### iOS Colors (System)
 
 | Color | Light | Dark |
-| ----- | ----- | ---- |
+|-|-|-|
 | Label | #000000 | #FFFFFF |
 | Secondary Label | #3C3C43 @ 60% | #EBEBF5 @ 60% |
 | Tertiary Label | #3C3C43 @ 30% | #EBEBF5 @ 30% |
@@ -129,7 +116,7 @@
 ### Android Navigation Patterns
 
 | Pattern | When to Use |
-| ------- | ----------- |
+|-|-|
 | Bottom Navigation | 3-5 top destinations |
 | Navigation Drawer | 5+ destinations, less frequent |
 | Navigation Rail | Tablet landscape |
@@ -137,13 +124,11 @@
 
 ### Bottom Navigation
 
-```text
-┌─────────────────────────────────┐
-│  🏠    🔍    📷    💬    👤    │
-│ Home  Search Camera Chat Account│ 80dp height
-└─────────────────────────────────┘
+| 🏠 | 🔍 | 📷 | 💬 | 👤 |
+|-|-|-|-|-|
+| Home | Search | Camera | Chat | Account |
 
-```
+Height: 80dp
 
 - 3-5 destinations
 - Icons 24dp with 12sp labels
@@ -152,12 +137,9 @@
 
 ### App Bar
 
-```text
-┌─────────────────────────────────┐
-│ ≡  App Title                🔍 │ 64dp height
-└─────────────────────────────────┘
-
-```
+| Left | Center-left | Right | Height |
+|-|-|-|-|
+| ≡ (navigation icon) | App Title | 🔍 | 64dp |
 
 - Left: Navigation icon (menu or back)
 - Center: Title (can be left-aligned)
@@ -173,7 +155,7 @@
 ### Typography (Roboto)
 
 | Style | Size | Weight | Tracking |
-| ----- | ---- | ------ | -------- |
+|-|-|-|-|
 | Display Large | 57sp | Regular | -0.25 |
 | Display Medium | 45sp | Regular | 0 |
 | Display Small | 36sp | Regular | 0 |
@@ -193,7 +175,7 @@
 ### Material Colors
 
 | Role | Purpose |
-| ---- | ------- |
+|-|-|
 | Primary | Main brand color |
 | On Primary | Text/icons on primary |
 | Primary Container | Filled buttons, active states |
@@ -207,7 +189,7 @@
 ### Elevation (Shadows)
 
 | Level | Elevation | Use Case |
-| ----- | --------- | -------- |
+|-|-|-|
 | 0 | 0dp | Flat surfaces |
 | 1 | 1dp | Cards, raised buttons |
 | 2 | 3dp | Elevated cards |
@@ -229,7 +211,7 @@
 ### Breakpoints
 
 | Name | Width | Typical Device |
-| ---- | ----- | -------------- |
+|-|-|-|
 | xs | <576px | Mobile portrait |
 | sm | 576-767px | Mobile landscape |
 | md | 768-991px | Tablet |
@@ -275,7 +257,7 @@ Desktop:
 ### Responsive Patterns
 
 | Pattern | Description |
-| ------- | ----------- |
+|-|-|
 | Stack | Columns become rows on mobile |
 | Reflow | Content reorders based on priority |
 | Reveal | More content shown at larger sizes |
@@ -288,19 +270,12 @@ Desktop:
 
 ### Window Chrome
 
-```text
-┌─────────────────────────────────────────┐
-│ ● ● ●   App Title              ─ □ ×  │ Title bar
-├────────┬────────────────────────────────┤
-│ Sidebar│ Content Area                   │
-│        │                                │
-│        │                                │
-│        │                                │
-│        ├────────────────────────────────┤
-│        │ Status Bar                     │
-└────────┴────────────────────────────────┘
-
-```
+| Region | Contents |
+|-|-|
+| Title bar | ● ● ● (window controls), App Title, _ □ × (minimize, maximize, close) |
+| Sidebar (left column, full height below title bar) | Sidebar |
+| Content Area (right of sidebar) | Content Area |
+| Status Bar (right of sidebar, below content area) | Status Bar |
 
 ### Keyboard-First Design
 
@@ -342,7 +317,7 @@ Desktop allows for:
 ### Platform-Specific Adaptations
 
 | Aspect | iOS | Android | Web |
-| ------ | --- | ------- | --- |
+|-|-|-|-|
 | Back | Left nav | Left or gesture | Browser back |
 | Primary action | Right nav | FAB | Top right button |
 | Lists | Swipe actions | Long press | Hover actions |

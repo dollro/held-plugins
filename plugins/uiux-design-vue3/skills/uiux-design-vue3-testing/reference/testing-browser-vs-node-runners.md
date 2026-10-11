@@ -193,14 +193,14 @@ export default defineConfig({
 ### Directory Structure
 ```
 tests/
-├── unit/              # Fast node-based tests
-│   ├── Button.test.js
-│   └── useCounter.test.js
-├── component/         # Slower browser-based tests
-│   ├── Button.browser.test.js
-│   └── DragDrop.browser.test.js
-└── e2e/               # Full E2E tests (Playwright)
-    └── user-flow.spec.ts
+  unit/       # Fast node-based tests
+    Button.test.js
+    useCounter.test.js
+  component/  # Slower browser-based tests
+    Button.browser.test.js
+    DragDrop.browser.test.js
+  e2e/        # Full E2E tests (Playwright)
+    user-flow.spec.ts
 ```
 
 ## Reference

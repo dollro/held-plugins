@@ -4,18 +4,18 @@
 
 ```
                 Browser (one origin)
-                       │  HTTPS
-              ┌────────┴─────────┐
-              │  reverse proxy   │  TLS; / → django, /v1/* → realtime
-              └───┬──────────┬───┘
-                  │          │
-          ┌───────┴──┐   ┌───┴───────────┐
-          │  Django  │◄──┤  realtime     │  internal API (X-Internal-Secret):
-          │ web, API │   │  FastAPI      │  validate-session, validate-key
-          │ admin    │   │  SSE / WS     │
-          └──┬───┬───┘   └──┬────────┬───┘
-             │   │          │        │
-     Celery ─┘   └── PostgreSQL ─────┘        Redis: cache, broker, pub/sub
+                       |  HTTPS
+              +--------+---------+
+              |  reverse proxy   |  TLS; / -> django, /v1/* -> realtime
+              +---+----------+---+
+                  |          |
+          +-------+--+   +---+-----------+
+          |  Django  |<--+  realtime     |  internal API (X-Internal-Secret):
+          | web, API |   |  FastAPI      |  validate-session, validate-key
+          | admin    |   |  SSE / WS     |
+          +--+---+---+   +--+--------+---+
+             |   |          |        |
+     Celery -+   +-- PostgreSQL -----+        Redis: cache, broker, pub/sub
      worker/beat     (one owner per table)    (Celery publishes, realtime streams)
 ```
 

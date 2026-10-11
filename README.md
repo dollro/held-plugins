@@ -93,30 +93,21 @@ The product, delivery and engineering plugins are built to chain. Each step
 hands a concrete artifact to the next; nothing is written to the tracker or
 merged without your confirmation.
 
-```
- PRODUCT                                  ENGINEERING
- prfaq-vision-builder      why, for whom?
-        │
- product-roadmap-3-layers  what, in which order?
-        │
- braindump2prd             one feature → PRD + spec ──► tracker project
-        │
-        └────────────► prd2issues   PRD → issues, parallel-safety ──► tracker issues
-                              │
-                  ┌───────────┴───────────┐
-             one issue              several in parallel
-       engineering-standards           agent-team
-       /branch → plan → build →    one worktree agent per issue,
-       check → docs → PR           or a team for one large issue
-                  │                       │
-                  │   domain skills while building: fullstack-engineering,
-                  │   agentic-engineering, electron-dev, uiux-*, prompt-engineering
-                  └───────────┬───────────┘
-                     review: official code-review plugin,
-                     /security-review (+ design-parity for UI)
-                              │
-                     merge, one PR at a time
-```
+**Product**
+
+1. **prfaq-vision-builder** — why, for whom?
+2. **product-roadmap-3-layers** — what, in which order?
+3. **braindump2prd** — one feature → PRD + spec -> tracker project
+
+**Engineering**
+
+4. **prd2issues** — PRD → issues, parallel-safety -> tracker issues
+5. Build, one of two ways:
+   - one issue: **engineering-standards** — /branch → plan → build → check → docs → PR
+   - several in parallel: **agent-team** — one worktree agent per issue, or a team for one large issue
+   - in both cases, domain skills while building: fullstack-engineering, agentic-engineering, electron-dev, uiux-*, prompt-engineering
+6. review: official code-review plugin, /security-review (+ design-parity for UI)
+7. merge, one PR at a time
 
 |#|Step|Plugin|Output|
 |-|-|-|-|

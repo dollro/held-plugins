@@ -106,18 +106,18 @@ Without the manual span, CrewAI spans would still be captured, but as top-level 
 
 ```
 Session: {document_id}
-└─ document-refinement                    (root span)
-   ├─ LangGraph: refine_document          (callback, node)
-   │  ├─ refinement-round-1               (manual span)
-   │  │  └─ crew kickoff                  (OTel)
-   │  │     ├─ agent task: expert technical (+ LLM calls)
-   │  │     ├─ agent task: expert growth
-   │  │     ├─ agent task: expert legal
-   │  │     ├─ agent task: moderator
-   │  │     └─ agent task: writer
-   │  ├─ LangGraph: should_continue
-   │  └─ refinement-round-2 …
-   └─ research (Pydantic AI agent run, tool calls, LLM calls)
+  document-refinement           (root span)
+    LangGraph: refine_document  (callback, node)
+      refinement-round-1        (manual span)
+        crew kickoff            (OTel)
+          agent task: expert technical (+ LLM calls)
+          agent task: expert growth
+          agent task: expert legal
+          agent task: moderator
+          agent task: writer
+      LangGraph: should_continue
+      refinement-round-2 …
+    research (Pydantic AI agent run, tool calls, LLM calls)
 ```
 
 If the trace doesn't look like this, debug the context propagation before anything else.

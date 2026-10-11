@@ -7,14 +7,14 @@ Complete guide for installing, configuring, and troubleshooting the Penpot MCP S
 The Penpot MCP integration requires **three components** working together:
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   MCP Client    │────▶│   MCP Server    │◀───▶│  Penpot Plugin  │
-│ (VS Code/Claude)│     │  (port 4401)    │     │ (in browser)    │
-└─────────────────┘     └────────┬────────┘     └────────┬────────┘
-                                 │                       │
-                                 │    WebSocket          │
-                                 │    (port 4402)        │
-                                 └───────────────────────┘
++-----------------+     +-----------------+     +-----------------+
+|   MCP Client    |---->|   MCP Server    |<--->|  Penpot Plugin  |
+| (VS Code/Claude)|     |  (port 4401)    |     | (in browser)    |
++-----------------+     +--------+--------+     +--------+--------+
+                                 |                       |
+                                 |    WebSocket          |
+                                 |    (port 4402)        |
+                                 +-----------------------+
 ```
 
 1. **MCP Server** - Exposes tools to your AI client (HTTP on port 4401)
