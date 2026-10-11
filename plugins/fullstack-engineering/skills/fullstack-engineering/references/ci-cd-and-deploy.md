@@ -26,6 +26,7 @@ GitHub Actions and GitLab CI files only install Task (and uv/Docker where needed
 
 - A version tag `vX.Y.Z` builds production images with `docker buildx bake` and pushes `<registry>/<project>-<service>:vX.Y.Z`. The version is baked into the image (`APP_VERSION`, shown by the health endpoint).
 - No mutable `latest` for deployment. Registry build caches go to a separate cache tag.
+- **Local build from the CI bake file:** it pushes and uses the registry cache, so override both to load into the local Docker instead: `docker buildx bake --set '*.output=type=docker' --set '*.cache-from=' --set '*.cache-to='` (`type=docker` takes one platform).
 - **Multi-platform:** one bake run with several platforms (`PLATFORMS=linux/amd64,linux/arm64`) pushes a single multi-platform image per tag; no per-architecture tags or manifest-merge scripts. Stages whose output is platform-independent (the frontend bundle) run on `$BUILDPLATFORM`, so they are not emulated per target.
 
 ## Deploy (single host)

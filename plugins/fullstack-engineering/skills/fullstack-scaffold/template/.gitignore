@@ -27,6 +27,7 @@ frontend/e2e-results.xml
 !.envs/**/app.env.example
 !.envs/**/app.env.enc
 .envs/**/app.env.enc.tmp
+.envs/**/app.env.tmp
 
 # Docs site build output
 site/

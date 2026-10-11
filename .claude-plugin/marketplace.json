@@ -85,7 +85,7 @@
       "name": "fullstack-engineering",
       "source": "./plugins/fullstack-engineering",
       "description": "Guideline and reference implementation for web apps: Django system of record, optional FastAPI realtime service, Vue 3 + Vite + TypeScript, PostgreSQL, Redis, Celery, company SSO over OpenID Connect and/or external accounts with MFA, Docker, Task, SOPS, platform-neutral CI, staging and production from the same images. Includes /fullstack-engineering, /fullstack-scaffold and the fullstack-engineer agent.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "development",
       "tags": ["fullstack", "django", "fastapi", "vue", "scaffold", "sso", "docker", "ci-cd"],
       "keywords": ["fullstack", "full-stack", "django", "fastapi", "vue", "oidc", "scaffold"]

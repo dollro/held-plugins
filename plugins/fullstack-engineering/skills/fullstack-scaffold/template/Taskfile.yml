@@ -29,10 +29,13 @@ tasks:
     status: [test -f .envs/local/app.env]
     cmds:
       - |
+        # Via a temp file: `> app.env` would truncate first and leave an empty file on failure.
         if [ -f .envs/local/app.env.enc ] && sops --decrypt --input-type dotenv --output-type dotenv \
-             .envs/local/app.env.enc > .envs/local/app.env 2>/dev/null; then
+             .envs/local/app.env.enc > .envs/local/app.env.tmp 2>/dev/null; then
+          mv .envs/local/app.env.tmp .envs/local/app.env
           echo "decrypted .envs/local/app.env"
         else
+          rm -f .envs/local/app.env.tmp
           cp .envs/local/app.env.example .envs/local/app.env
           echo "copied .envs/local/app.env from the example"
         fi
@@ -170,7 +173,9 @@ tasks:
     desc: Decrypt app.env.enc into the gitignored app.env
     requires: { vars: [ENV] }
     cmds:
-      - sops --decrypt --input-type dotenv --output-type dotenv .envs/{{.ENV}}/app.env.enc > .envs/{{.ENV}}/app.env
+      # Via a temp file: a failed decrypt must not leave an empty app.env.
+      - sops --decrypt --input-type dotenv --output-type dotenv .envs/{{.ENV}}/app.env.enc > .envs/{{.ENV}}/app.env.tmp
+      - mv .envs/{{.ENV}}/app.env.tmp .envs/{{.ENV}}/app.env
 
   secrets:updatekeys:
     desc: Re-encrypt for the recipients in .sops.yaml (after adding/removing a person)

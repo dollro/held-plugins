@@ -108,6 +108,13 @@ services:
   realtime:
     <<: *app
     command: /docker/start-realtime-dev
+    # Runs Alembic on start: healthy only once migrated and serving.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health/ready')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
     depends_on:
       django:
         condition: service_healthy

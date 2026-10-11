@@ -54,6 +54,6 @@ Values that differ per environment reach the frontend through JSON that Django r
 ## Pitfalls
 
 - `typescript@latest` can be ahead of the Vue tooling (vue-tsc, typescript-eslint): use the TypeScript line create-vue generates.
-- Recent pnpm versions block dependency build scripts until approved (`pnpm approve-builds`); Corepack is removed from Node 25 on and should not be relied on; install the exact pnpm explicitly.
+- Recent pnpm versions block dependency build scripts until approved (`pnpm approve-builds`); Corepack is removed from Node 25 on and should not be relied on; install the exact pnpm explicitly. An older pnpm silently ignores newer settings such as build-script approvals; when an install fails oddly, check the pnpm version against `packageManager` first (`local-dev-and-tooling.md`).
 - The Playwright Docker image tag must equal the installed `@playwright/test` version: pin `@playwright/test` exactly.
 - A Pinia persistence plugin is not needed for auth; if you persist UI state, check the plugin's maintenance status first.

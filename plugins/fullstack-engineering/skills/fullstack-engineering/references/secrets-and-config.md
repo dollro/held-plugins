@@ -18,6 +18,7 @@
 
 - Edit in place with `sops` (Task: `secrets:edit ENV=...`), which re-encrypts on save; then regenerate the examples (`secrets:examples`). A pre-commit hook fails when an example is out of date.
 - Masking in the example generator blanks credential-shaped keys (API keys, tokens, passwords, secrets, private keys, URLs with embedded credentials such as `DATABASE_URL`), with an explicit allowlist of harmless local values.
+- **Decrypt and generate via a temp file.** `cmd > file` truncates the target before `cmd` runs, so a failed `sops -d` leaves an empty env file (which `status:` checks then treat as done). Replace the target only on success: `sops -d in > out.tmp && mv out.tmp out`. Same for encrypting into the committed `.enc`.
 - **Adding a person:** add their age public key to `.sops.yaml`, run `sops updatekeys` on each file, commit.
 - **Removing a person:** remove the key, `updatekeys`, and **rotate every secret they could read**; old ciphertext stays readable in git history for anyone who had the key.
 - The age private key never enters git. Back it up outside the repo (password manager). CI gets its own age key as a masked secret.

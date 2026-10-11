@@ -30,7 +30,7 @@ repos:
         name: block plaintext env files (commit app.env.enc instead)
         entry: plaintext env files must not be committed
         language: fail
-        files: '^\.envs/[^/]+/app\.env$'
+        files: '^\.envs/[^/]+/app\.env(\.tmp)?$'
       - id: env-examples-in-sync
         name: app.env.example matches the decrypted env
         entry: python3 scripts/env_examples.py --check

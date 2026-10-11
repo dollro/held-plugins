@@ -38,7 +38,20 @@ Conventions:
 - **One Dockerfile for both Python services**, with targets `dev`, `django` (includes the built frontend) and `realtime`; dependencies installed with `uv sync --locked --no-install-project` into a venv outside the code mount; BuildKit cache mounts for uv and pnpm.
 - **`compose.local.yml`:** PostgreSQL, Redis, Django (dev server, auto-migrate), Celery worker and beat, Flower, realtime (reload), a Node container for Vite, and the proxy. Code is bind-mounted; `node_modules` lives in a named volume.
 - **Healthchecks + `depends_on: condition: service_healthy`** for the database, Redis and Django; services that need Django wait for it.
+- **Fresh database: every migrating service before its dependents.** Not only Django (`migrate`) but also the realtime service (Alembic) migrates on start; dependents wait with `depends_on: condition: service_healthy` (or `service_completed_successfully` for a one-shot migrate container). Give migrating services a healthcheck with a generous `start_period` (30s or more), since the first run on an empty database is the slow one.
 - **Ports bind to `127.0.0.1`** only.
+- **Second stack side by side** (another worktree, a test stack, `-p atlas-test`): projects are isolated only by their default network. If the base file fixes `networks.default.name`, both projects join one network and `postgres` resolves to either stack. The overlay for the second project overrides the network name and drops published ports:
+
+  ```yaml
+  networks:
+    default:
+      name: atlas-test_default
+  services:
+    postgres:
+      ports: !reset []
+  ```
+
+  `!reset` is a custom YAML tag, so pre-commit's `check-yaml` needs `args: [--unsafe]` (syntax check only) or an `exclude` for that file.
 - **`compose.ci.yml`** overlays the local stack for end-to-end tests: built assets instead of the Vite server, a Playwright container, base URL through the proxy.
 - Compose files have no `version:` key (obsolete).
 - `develop.watch` is an option for the Node service on macOS/Windows file sharing; bind mounts remain fine for Python reload.
@@ -58,6 +71,7 @@ A Caddy container on `localhost:8000` routes `/` to Django and `/v1/*` to the re
 - `packageManager` in `package.json` pins the exact pnpm; containers install that version explicitly. Do not rely on Corepack (removed from Node 25 on).
 - `pnpm install --frozen-lockfile` in images and CI.
 - Approve dependency build scripts explicitly when pnpm asks; review new approvals like code.
+- **Tool versions can silently ignore newer config.** An older pnpm in the same major ignores settings it does not know yet (e.g. build-script approval settings): the build scripts never run and the install "fails" in odd ways later. Every environment uses the pinned `packageManager` version; when an install misbehaves, check the tool version first.
 - Consider a minimum release age for new package versions as supply-chain protection (check pnpm's current setting name).
 
 ## File ownership
