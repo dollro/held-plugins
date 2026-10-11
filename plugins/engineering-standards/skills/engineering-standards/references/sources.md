@@ -28,6 +28,15 @@ Official pages behind `agent-sandbox.md`, checked October 2026 (sbx 0.47, MCP sp
 - `sbx secret set github` (examples: `--command 'gh auth token'`): Docker's docs list `github.com` as an injection domain but do not state git-over-HTTPS push; the `gitlab` kit README says GitHub works because git goes to `github.com` and the API to `api.github.com`. Not tested here.
 - Kits are also published as `docker.io/sbx/<kit>-kit:latest` per the READMEs; not tested here.
 
+### Claude Code harness in a sandbox: notes as of 2026-10-11 (sbx 0.47, Claude Code 2.1)
+
+- Kits v2 (https://docs.docker.com/ai/sandboxes/customize/kits-v2/): `setup.install` runs at creation or `sbx kit add`, `sh -c`, default user `"0"`; static `files/home/` and `setup.files` exist, but `sbx kit add` rejects kits that declare static files, `setup.startup` or `setup.files`. Order: network and environment, static files, install, `setup.files`, startup.
+- `sbx skills --help`: the shared store is linked read-only into every sandbox at start (`skills.defaultMode` `readonly`); `--skills off|readonly|readwrite` at create. `sbx skills import` copies from `~/.agents/skills`, `~/.claude/skills` and others, follows top-level symlinks, cannot select single skills.
+- `sbx mcp add` registers a server for `sbx create/run --static-mcp`; `sbx mcp ls -q` lists names.
+- `claude plugin marketplace add <owner/repo|url|path> --scope user`, `claude plugin install <plugin>@<marketplace> --scope user`; `-y` accepts a marketplace-declared install command and is required for those without a TTY.
+- Observed: inside the `claude` agent image `CLAUDE_CONFIG_DIR` is unset (config in `/home/agent/.claude`), `python3` and `jq` are present, `settings.json` already holds keys (`permissions`, `themeId`, …) that a harness merge must keep. 23 plugins from three public GitHub marketplaces installed in about 95–150 s at creation with only the GitHub hosts allowed.
+- Observed: a public marketplace whose repo has nested git submodules on another host failed: Claude Code clones recursively, the submodule host was denied by the policy, and the retry over SSH failed on host-key verification. Allowing the submodule host alone did not fix it in the test (large clone); leaving that marketplace off did.
+
 ## Claude Code
 
 - Native sandbox (bubblewrap/Seatbelt, network proxy, `excludedCommands`, Docker incompatibility): https://code.claude.com/docs/en/sandboxing

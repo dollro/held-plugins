@@ -289,6 +289,29 @@ permissions:
 - **Check a sandbox from the host:** `sbx exec <name> printenv <VAR>` shows what the kit set; `sbx exec <name> curl -s -o /dev/null -w '%{http_code}' http://host.docker.internal:<port>/` tests a host service (an MCP endpoint answering 406 to a plain request is reachable). `sbx exec` starts a stopped sandbox; `sbx stop <name>` afterwards.
 - For a team, `sbxenv.yaml` (no leading dot) in the repo declares sandboxes and their kits; `~/.sbxenv.yaml` holds personal defaults.
 
+## Claude Code harness in the sandbox (`sbx`)
+
+The built-in `claude` agent starts bare: no plugins or marketplaces, no user `CLAUDE.md`, default settings. The user's harness belongs in a **personal** kit, not in the repo's kit: it differs per person and holds their instructions. `/sandbox harness` (`sandbox.sh harness`) builds it from the host's user-level setup at `${XDG_CONFIG_HOME:-~/.config}/sbx-kits/claude-harness/` and `/sandbox` adds it to every sandbox it creates.
+
+**The user picks what goes in.** `harness.selection.json` next to the kit lists every candidate with `"enabled": true|false`; the first run, and every run that finds something new, stops after printing it (exit 5) until the user has decided and reruns with `--yes`. Decisions are kept; only new items are asked about. Defaults: what is enabled on the host is on, except plugins that drive a browser or the desktop, marketplaces no enabled plugin comes from, MCP servers that are not registered with sbx (host services, credentials), and files that look like they hold a secret.
+
+| Item | Host source | In the sandbox |
+|-|-|-|
+| Marketplaces | `extraKnownMarketplaces` in `~/.claude/settings.json`, `~/.claude/plugins/known_marketplaces.json` | `claude plugin marketplace add <owner/repo or URL> --scope user` at creation, as the agent user. Directory sources are skipped (host path) |
+| Plugins | `enabledPlugins: true` | `claude plugin install <name>@<marketplace> --scope user` (no `-y`: plugins installed by a marketplace-declared command fail visibly instead of being accepted) |
+| Skills | `~/.claude/skills/*` and the sbx skills store (`sbx skills ls`) | Copied by the kit; the sandbox is created with `--skills off`, so a skill left out stays out. `sbx skills import` is the shared alternative, but its store is linked into every sandbox and cannot be filtered per sandbox |
+| MCP servers | User-scope servers in `~/.claude.json` (names and transport only) and `sbx mcp ls` | Configs are never copied (headers and env hold tokens). Registered servers go in with `--static-mcp`; others are registered on the host first with `sbx mcp add` (MCP section). A plugin's own MCP servers come with the plugin |
+| Files | `~/.claude/CLAUDE.md`, `agents/`, `commands/`, `output-styles/`, the status line script | Written to `/home/agent/.claude/`; the status line path is rewritten |
+| Settings | An allowlist: `model`, `effortLevel`, `autoCompactEnabled`, `attribution`, `outputStyle`, `statusLine`, … | Merged key by key into the `settings.json` the agent image already has (python3 or jq), never overwritten |
+
+Never copied: credentials, `~/.claude.json`, history, `projects/` and memory, sessions, `env`, `permissions`, `hooks`, helper commands (`apiKeyHelper` and the like). Content goes inline into the install steps (base64), not as kit files: `sbx kit add` refuses kits with static files or `setup.files`, and this way an existing sandbox can take the kit without losing its state.
+
+- **Network:** the kit allows `github.com`, `codeload.github.com`, `api.github.com`, `objects.githubusercontent.com`, `raw.githubusercontent.com`, the hosts of non-GitHub marketplaces and of git submodules found in the host's clone, plus `networkAllow` from the selection (host names only).
+- **Private GitHub marketplaces** clone through the proxy with the `github` service secret (`sbx secret set github --command 'gh auth token'`); the command warns when one is private and the secret is missing. Private marketplaces on other hosts cannot authenticate from the sandbox (the same limit as git over HTTPS in Git hosts).
+- **Drift:** the kit stores a hash of what it carries (`harness.sha256`) and the sandbox a stamp (`~/.claude/.sbx-harness.sha256`). `sandbox.sh check` reports a stale kit (host config or selection changed), new candidates, a sandbox older than the kit (fix: `sbx kit add <name> <kit-dir>`) and install failures from `~/.claude/.sbx-harness.log` inside.
+- **Install failures do not fail creation.** Each step logs `OK`/`FAIL` per item and exits 0, so one unreachable marketplace does not cost the whole sandbox.
+- `kit.allowLocalKits` must be `true` (the default) for a kit from a local directory.
+
 ## Audit a repo's sandbox setup
 
 Run these checks against a repo and report each as `item · finding → fix`, most severe first. Apply repo changes only after the owner agrees, keeping each file's line endings (a CRLF file rewritten as LF turns a small change into a whole-file diff); hand host commands (upgrades, `sbx policy`, `chown`, recreating sandboxes) to the human. Verify the result inside a recreated sandbox with `sbx exec` (Kit section) and `/mcp`.
@@ -338,3 +361,6 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | `docker compose run --no-deps <svc>` never returns | The entrypoint waits for a database that `--no-deps` did not start | `exec` into the running service, or start its dependencies |
 | A container exits with 137 after the agent removed it | Killed by the removal (SIGKILL), not a failure | Nothing to fix |
 | `sbx kit add` refuses an older sandbox | Created before sbx could recreate sandboxes | Recreate the sandbox |
+| Claude Code inside has none of your plugins or your CLAUDE.md | No harness kit, or the sandbox predates it | `/sandbox harness`, then `sbx kit add <name> <kit-dir>` |
+| Harness log: marketplace failed with `SSH host key is not in your known_hosts` | Claude Code fell back from HTTPS to SSH after the HTTPS clone failed: submodules on a host the kit does not allow, or a very large clone | `sbx policy log <name>` for the host, add it to `networkAllow` in `harness.selection.json`; or leave that marketplace off |
+| Harness log: plugin install failed, marketplace fine | The plugin installs through a marketplace-declared command that needs confirmation, or its download host is not allowed | Install it by hand inside (`claude plugin install …`), or allow the host |

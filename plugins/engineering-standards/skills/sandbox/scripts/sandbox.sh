@@ -4,16 +4,18 @@
 # the sandbox; the human attaches with the printed `sbx run --name` line.
 #
 #   sandbox.sh preflight
+#   sandbox.sh harness [--out <dir>] [--yes]
 #   sandbox.sh create [--branch <type>/<name>] [--base <branch>] [--path <dir>]
 #                     [--kit <dir>] [--clone] [--recreate]
 #                     [--stack [--docker-size 40g] [--memory 12g]]
-#                     [--no-git-auth] [--host-key '<alg> <base64>']
+#                     [--no-git-auth] [--host-key '<alg> <base64>'] [--no-harness]
 #   sandbox.sh check  <sandbox-name>
 #   sandbox.sh done   <sandbox-name> [--force]
 #
 # Output lines start with OK, WARN, FAIL, INFO or ATTACH. Exit codes:
 # 0 ok, 1 usage/error, 2 preflight failed, 3 no kit found,
-# 4 git auth prerequisite missing (fix printed; or pass --no-git-auth).
+# 4 git auth prerequisite missing (fix printed; or pass --no-git-auth),
+# 5 harness selection needs review (edit harness.selection.json, then --yes).
 set -uo pipefail
 
 # Docker's contributed kits that pin a git host's SSH key in the sandbox; the
@@ -21,6 +23,10 @@ set -uo pipefail
 KITS_REPO="git+https://github.com/docker/sbx-kits-contrib.git"
 KITS_SOURCE="github.com/docker/sbx-kits-contrib.git"   # must match a kit.allowedSources prefix
 KITS_PREFIX="github.com/docker/"
+
+# Personal kit with the host's Claude Code harness (sandbox.sh harness).
+HARNESS_KIT=${SBX_HARNESS_KIT:-${XDG_CONFIG_HOME:-$HOME/.config}/sbx-kits/claude-harness}
+HARNESS_PY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/harness.py"
 
 ok()   { echo "OK    $*"; }
 warn() { echo "WARN  $*"; }
@@ -202,6 +208,79 @@ git_check() {
   esac
 }
 
+# harness_status: prints one line about the harness kit. Returns 0 current,
+# 1 stale (host config changed), 2 missing, 5 new candidates to review.
+harness_status() {
+  local rc=0 res
+  res=$(python3 "$HARNESS_PY" status "$HARNESS_KIT" 2>/dev/null) || rc=$?
+  case $rc in
+    0) ok "harness kit $HARNESS_KIT matches your Claude Code config and selection" ;;
+    1) warn "harness kit $HARNESS_KIT is stale (your ~/.claude config or the selection changed). Run: sandbox.sh harness" ;;
+    2) info "no Claude Code harness kit at $HARNESS_KIT: the sandbox gets a bare Claude Code. Run: sandbox.sh harness (/sandbox harness)" ;;
+    5) warn "harness: new since the last selection: ${res#NEW }. Review with: sandbox.sh harness" ;;
+    *) warn "harness: could not check $HARNESS_KIT" ;;
+  esac
+  return $rc
+}
+
+local_kits_allowed() {
+  if [ "$(sbx settings get kit.allowLocalKits 2>/dev/null)" = false ]; then
+    fail "local kits are disabled (kit.allowLocalKits=false). Run on the host: sbx settings set kit.allowLocalKits true"
+    return 1
+  fi
+}
+
+# harness_check <sandbox>: did the harness kit reach this sandbox, is it current?
+harness_check() {
+  local name=$1 stamp kit_sha log
+  [ -f "$HARNESS_KIT/spec.yaml" ] || { harness_status; return 0; }
+  harness_status || true
+  kit_sha=$(head -1 "$HARNESS_KIT/harness.sha256" 2>/dev/null)
+  stamp=$(sbx exec "$name" sh -c 'cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.sbx-harness.sha256" 2>/dev/null' </dev/null 2>/dev/null | tail -1)
+  if [ -z "$stamp" ]; then
+    warn "harness: not in sandbox $name. Add it (recreates the container, keeps its state): sbx kit add $name $HARNESS_KIT"
+    return 0
+  fi
+  if [ "$stamp" = "$kit_sha" ]; then ok "harness in sandbox matches the kit"
+  else warn "harness in sandbox $name is older than the kit. Update it: sbx kit add $name $HARNESS_KIT (or --recreate)"; fi
+  log=$(sbx exec "$name" sh -c 'grep "^FAIL" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.sbx-harness.log" 2>/dev/null' </dev/null 2>/dev/null)
+  if [ -n "$log" ]; then
+    while IFS= read -r l; do warn "harness install: ${l#FAIL  }"; done <<<"$log"
+    info "blocked hosts: sbx policy log $name, then add them to networkAllow in $HARNESS_KIT/harness.selection.json and rerun sandbox.sh harness --yes; private GitHub marketplaces need: sbx secret set github --command 'gh auth token'"
+  fi
+}
+
+cmd_harness() {
+  local out=$HARNESS_KIT yes=""
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --out) out=$2; shift 2 ;;
+      --yes) yes=--yes; shift ;;
+      *) die "unknown option $1" ;;
+    esac
+  done
+  command -v python3 >/dev/null || die "python3 is required"
+  local anc=$out
+  while [ ! -d "$anc" ] && [ "$anc" != / ]; do anc=$(dirname "$anc"); done
+  if git -C "$anc" rev-parse --show-toplevel >/dev/null 2>&1; then
+    die "$out is inside a git repository; the harness kit is personal, keep it outside any repo (--out)"
+  fi
+  local rc=0
+  python3 "$HARNESS_PY" select "$out" $yes || rc=$?
+  [ $rc -eq 5 ] && exit 5
+  [ $rc -eq 0 ] || die "harness selection failed"
+  local res; res=$(python3 "$HARNESS_PY" generate "$out") || { echo "$res"; exit 1; }
+  grep -v '^PRIVATE_GITHUB=' <<<"$res"
+  if grep -q '^PRIVATE_GITHUB=1' <<<"$res"; then
+    if [ -n "$(sbx secret ls --service github -q 2>/dev/null)" ]; then ok "github secret is set: the proxy authenticates private GitHub marketplaces"
+    else warn "private GitHub marketplaces fail to clone in the sandbox without the github secret: sbx secret set github --command 'gh auth token'"; fi
+  fi
+  sbx kit validate "$out" >/dev/null 2>&1 && ok "kit valid (sbx kit validate)" || die "kit invalid: sbx kit validate $out"
+  local_kits_allowed || exit 1
+  info "selection: $out/harness.selection.json (change it, then: sandbox.sh harness --yes)"
+  info "sandbox.sh create adds this kit, --skills off and --static-mcp automatically (--no-harness to skip); existing sandbox: sbx kit add <name> $out"
+}
+
 cmd_preflight() {
   local rc=0
   if ! command -v sbx >/dev/null; then
@@ -216,11 +295,12 @@ cmd_preflight() {
     else fail "not signed in: run 'sbx login' in a terminal and confirm the code in the browser"; rc=2; fi
   fi
   git rev-parse --show-toplevel >/dev/null 2>&1 || { fail "not inside a git repository"; rc=2; }
+  [ $rc -eq 0 ] && { harness_status || true; }
   exit $rc
 }
 
 cmd_create() {
-  local branch="" base="" path="" kit="" clone=0 recreate=0 stack=0 dsize=40g mem=12g gitauth=1 hostkey=""
+  local branch="" base="" path="" kit="" clone=0 recreate=0 stack=0 dsize=40g mem=12g gitauth=1 hostkey="" harness=1
   while [ $# -gt 0 ]; do
     case $1 in
       --branch) branch=$2; shift 2 ;;
@@ -234,6 +314,7 @@ cmd_create() {
       --memory) mem=$2; shift 2 ;;
       --no-git-auth) gitauth=0; shift ;;
       --host-key) hostkey=$2; shift 2 ;;
+      --no-harness) harness=0; shift ;;
       *) die "unknown option $1" ;;
     esac
   done
@@ -249,6 +330,18 @@ cmd_create() {
   # Worktrees and the clone share the main checkout's remotes.
   if [ $gitauth -eq 1 ]; then git_auth_prepare "$root" "$hostkey"
   else GIT_KIT=(); info "git auth skipped (--no-git-auth): push from the host"; fi
+
+  local HKIT=()
+  if [ $harness -eq 1 ]; then
+    harness_status || true
+    if [ -f "$HARNESS_KIT/spec.yaml" ]; then
+      local_kits_allowed || exit 1
+      # The kit carries the selected skills, so the shared sbx skills store stays out.
+      HKIT=(--kit "$HARNESS_KIT" --skills off)
+      local mcp; mcp=$(paste -sd, "$HARNESS_KIT/static-mcp.txt" 2>/dev/null)
+      [ -n "$mcp" ] && HKIT+=(--static-mcp "$mcp")
+    fi
+  else info "harness skipped (--no-harness)"; fi
 
   local repo; repo=$(basename "$root")
   local ws extra=() name
@@ -286,6 +379,7 @@ cmd_create() {
     else
       warn "sandbox $name already exists (kit and mounts are fixed at creation); pass --recreate to rebuild it"
       git_check "$name" "$ws"
+      harness_check "$name"
       echo "ATTACH: sbx run --name $name"
       exit 0
     fi
@@ -300,9 +394,9 @@ cmd_create() {
   fi
   info "creating sandbox $name (first creation runs the kit's install steps; can take minutes)"
   if [ $clone -eq 1 ]; then
-    env "${envsz[@]}" sbx create --name "$name" "${sizing[@]}" --clone claude --kit "$kit" "${GIT_KIT[@]}" "$ws" >/dev/null || die "sbx create failed"
+    env "${envsz[@]}" sbx create --name "$name" "${sizing[@]}" --clone claude --kit "$kit" "${HKIT[@]}" "${GIT_KIT[@]}" "$ws" >/dev/null || die "sbx create failed"
   else
-    env "${envsz[@]}" sbx create --name "$name" "${sizing[@]}" claude --kit "$kit" "${GIT_KIT[@]}" "$ws" "${extra[@]}" >/dev/null || die "sbx create failed"
+    env "${envsz[@]}" sbx create --name "$name" "${sizing[@]}" claude --kit "$kit" "${HKIT[@]}" "${GIT_KIT[@]}" "$ws" "${extra[@]}" >/dev/null || die "sbx create failed"
   fi
   ok "sandbox $name created"
   if [ $stack -eq 1 ]; then
@@ -352,6 +446,7 @@ cmd_check() {
     done < <(kit_env "$kit")
   fi
   git_check "$name" "$ws"
+  harness_check "$name"
   echo "ATTACH: sbx run --name $name"
 }
 
@@ -388,8 +483,9 @@ cmd_done() {
 
 case "${1:-}" in
   preflight) shift; cmd_preflight "$@" ;;
+  harness) shift; cmd_harness "$@" ;;
   create) shift; cmd_create "$@" ;;
   check) shift; cmd_check "$@" ;;
   done) shift; cmd_done "$@" ;;
-  *) sed -n '2,15p' "$0"; exit 1 ;;
+  *) sed -n '2,18p' "$0"; exit 1 ;;
 esac
