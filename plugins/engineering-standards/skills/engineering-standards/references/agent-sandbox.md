@@ -50,6 +50,7 @@ Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.4
     SSL_CERT_FILE: /sbx-ca/ca-certificates.crt
     REQUESTS_CA_BUNDLE: /sbx-ca/ca-certificates.crt
     NODE_EXTRA_CA_CERTS: /sbx-ca/ca-certificates.crt
+    ELECTRON_GET_USE_PROXY: "1"   # only if a container downloads Electron
   x-sbx-ca: &sbx-ca
     - /etc/ssl/certs/ca-certificates.crt:/sbx-ca/ca-certificates.crt:ro   # system CAs + proxy CA
   services:
@@ -58,9 +59,23 @@ Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.4
     worker:  { environment: *sbx-proxy, volumes: *sbx-ca }
   ```
 
-  The proxy address and bundle path are what the sandbox itself uses (`env | grep -i proxy` inside it). Check them when sbx changes.
+  The proxy address and bundle path are what the sandbox itself uses (`env | grep -i proxy` inside it). Check them when sbx changes. Image builds (`docker build`, `buildx bake`) already go through the proxy; only running containers need the overlay.
+- **One Taskfile for host and sandbox.** Detect the sandbox with `$SANDBOX_NAME` (set by sbx) and let only the compose files or `docker run` flags differ (`-f compose.sbx.yml` inside). Tasks that need host-only things (a display, SSH or SOPS keys, host-installed tools) stop early with a message naming the alternative, instead of failing halfway:
+
+  ```yaml
+  # Taskfile.yml
+  vars:
+    COMPOSE: 'docker compose -f compose.local.yml{{if .SANDBOX_NAME}} -f compose.sbx.yml{{end}}'
+  tasks:
+    secrets:decrypt:
+      preconditions:
+        - sh: test -z "$SANDBOX_NAME"
+          msg: "No SOPS key in the sandbox: run 'task secrets:decrypt' on the host, then copy the env file in."
+  ```
+- **No apt mirrors on the allow list.** `apt-get install` inside a container fails; prefer images that already carry the dependencies (the Playwright image has xvfb and the libraries Electron needs) over installing at run time.
 - **External APIs the stack calls go into the kit's allow list** (speech-to-text, LLM providers); otherwise they fail with HTTP 403 `Approval required`.
-- **Gitignored files a new worktree lacks** (decrypted env files) must be copied in before `up`; they then sit inside the sandbox where the agent can read them.
+- **Gitignored files a new worktree lacks** (decrypted env files) must be copied in before `up`; they then sit inside the sandbox where the agent can read them. Decrypt on the host and copy the file in once; the sandbox never holds the SOPS key.
+- **What may enter the sandbox:** local-only secrets (dev database passwords, local signing keys) are fine. Production files and keys never. Paid third-party APIs get separate dev keys with spending caps, because the agent can read and use them.
 - **Ports stay inside the sandbox.** Parallel sandboxes each run their own stack on the same ports without colliding; publish one to the host only to look at it (`sbx ports <name> --publish <host>:<port>`; services listen on `0.0.0.0`).
 - **Ownership is fine.** A container running as root inside the sandbox writes files that appear on the host owned by the host user (tested on a host with UID 1000, the same as the agent user's; rerun `touch` from a container and `ls -ln` on the host when the UIDs differ).
 - **Integration tests are usually deselected by default** (a marker such as `-m 'not integration'` in the pytest config) because they need live API keys and outside services. Inside the sandbox they run when the keys are in the copied env file and every host they call is in the kit; run them explicitly (`pytest -m integration`). A `403 Approval required for <host>` in the output names the next host for the kit's allow list.
@@ -78,6 +93,12 @@ Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.4
 6. **Long runs:** send build and test output to a log file in the scratchpad and read it with `tail`; wrap commands in `timeout`; raise the Bash tool timeout (up to 600000 ms) instead of polling.
 7. **`exec` into running services.** `docker compose run --no-deps <svc>` hangs when the entrypoint waits for a database that is not part of the run.
 8. **Check the result, not just exit code 0:** print the versions and settings that matter from inside the container (`exec`), search the logs for warnings and tracebacks, check `docker inspect -f '{{.RestartCount}}' <container>` for crash loops, confirm `git status` is clean, and state what the run did not cover (local images instead of CI's, production-only settings).
+9. **Habits that saved time:**
+   - Cleanup steps (`defer` in Task) delete the logs and containers you need to debug; reproduce a failure by running the steps by hand.
+   - Python `read_text`/`write_text` turns CRLF into LF; a whole-file change in `git diff --stat` is the giveaway. Preserve line endings when editing files programmatically.
+   - Local images are not rebuilt when you switch branches; rebuild (`up --build`) before trusting a run on another branch.
+
+Stack lessons that hold without a sandbox (atomic secret decryption, isolating a second compose project, migrations on a fresh database, pinned tool versions, local bake overrides) live in `fullstack-engineering` (`local-dev-and-tooling.md`, `secrets-and-config.md`, `ci-cd-and-deploy.md`).
 
 ### Stack on the host
 
