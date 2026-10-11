@@ -12,6 +12,21 @@ Official pages behind `agent-sandbox.md`, checked October 2026 (sbx 0.47, MCP sp
 - Network policy concepts: https://docs.docker.com/ai/sandboxes/governance/concepts/
 - MCP gateway and secrets: https://docs.docker.com/ai/sandboxes/mcp-gateway/
 - Environment files (`sbxenv.yaml`): https://docs.docker.com/ai/sandboxes/configuration/environment-files/
+- Credentials (service secrets, `github` service, `gh auth token`, SSH agent forwarding for git): https://docs.docker.com/ai/sandboxes/security/credentials/
+- Contributed kits: https://github.com/docker/sbx-kits-contrib (`gitlab-ssh/README.md`, `github-ssh/README.md`, `gitlab/README.md`, `gitea/README.md`)
+- GitLab git-over-HTTP auth (Basic with the token as password, or Kerberos): https://docs.gitlab.com/user/profile/personal_access_tokens/ and `app/controllers/repositories/git_http_client_controller.rb` in https://gitlab.com/gitlab-org/gitlab
+
+### Git push from a sandbox: notes as of 2026-10-10 (sbx 0.47)
+
+- Observed: a self-hosted GitLab `git@` remote failed inside with `Host key verification failed`; the sandbox has no SSH key by design. `gitlab-ssh` kit added with `sbx kit add <sandbox> "git+https://github.com/docker/sbx-kits-contrib.git#dir=gitlab-ssh" --kit-arg host=<host> --kit-arg "hostKey=…"` fixed it; `ssh -T` and `git push` worked with the existing remote and `.git/config`.
+- Observed: `kit.allowedSources` defaults to `["docker.io/"]` (`sbx settings get --json kit.allowedSources`); the git kit needed `github.com/docker/` added. `sbx settings set <key> <value>` takes raw JSON for json settings; `["*"]` allows every source; env `DOCKER_SANDBOXES_KIT_ALLOWED_SOURCES` overrides.
+- Observed: `ssh.agentForwardingEnabled` defaults to `true` (daemon restart after a change); `ssh.agentSocketPath` can fix the host socket.
+- `sbx kit add --help`: recreates the container with the kit appended, keeps kit-owned volumes; sandboxes created before the recreate feature are refused. `--kit-arg name=value` applies to every kit declaring `name`, `kit.name=value` to one.
+- `gitlab-ssh` spec: args `host` (default `gitlab.com`) and `hostKey` (`<alg> <base64>`, required for other hosts; no scanning by design, to avoid trust on first use); allows `host` in the network policy; appends `host <key>` to `/home/agent/.ssh/known_hosts` (port 22 only).
+- `github-ssh` spec: no args; fetches keys from `api.github.com/meta` at install.
+- `gitlab` kit README: git-over-HTTPS Basic auth cannot be injected for GitLab (one host for API and git, inject rules not told apart by scheme); use SSH. Its `glab` token covers the API only.
+- `sbx secret set github` (examples: `--command 'gh auth token'`): Docker's docs list `github.com` as an injection domain but do not state git-over-HTTPS push; the `gitlab` kit README says GitHub works because git goes to `github.com` and the API to `api.github.com`. Not tested here.
+- Kits are also published as `docker.io/sbx/<kit>-kit:latest` per the READMEs; not tested here.
 
 ## Claude Code
 

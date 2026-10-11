@@ -49,7 +49,7 @@
       "name": "engineering-standards",
       "source": "./plugins/engineering-standards",
       "description": "Small reviewable pull requests, CLAUDE.md structure and where documentation and plans live, and how agents work in a sandbox (code in the sandbox, Docker stack on the host), with a swappable organisation profile. Includes /engineering-standards, /branch and /sandbox (Claude in a Docker Sandbox on a new worktree, optionally with the full stack inside for self-run tests) skills.",
-      "version": "1.5.1",
+      "version": "1.6.0",
       "category": "workflows",
       "tags": ["engineering", "pull-requests", "documentation", "sandbox"],
       "keywords": ["pull request", "pr size", "code review", "claude.md", "documentation", "docs", "plans", "coding standards", "branch", "sandbox", "sbx", "docker sandboxes", "worktree"]

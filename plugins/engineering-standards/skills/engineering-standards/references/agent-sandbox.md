@@ -160,6 +160,48 @@ Proxy-based allowlists decide on the hostname. In `sbx` the default is the Balan
 - **Broad entries are exfiltration paths.** `github.com`, `*.googleapis.com` or a paste site let an agent send data out; the proxy does not inspect TLS, so domain fronting can slip past it. Allow what the work needs, narrow with deny rules (`sbx policy deny`, `sandbox.network.deniedDomains`).
 - **Credentials at the proxy, not in the sandbox.** `sbx secret` service secrets reach the agent only as a sentinel (`proxy-managed`) and the proxy injects the real value; `sbx secret set-custom` does the same for other tokens through an `sbx-cs-*` placeholder. The native sandbox can mask variables with `sandbox.credentials`.
 
+## Git hosts: push and pull from the sandbox (`sbx`)
+
+The agent should commit, push and pull inside the sandbox with plain `git` against the repo's existing remote. No private key enters the sandbox: SSH goes through the host's ssh-agent, which sbx forwards when you attach (`ssh.agentForwardingEnabled`, on by default), and HTTPS tokens stay at the proxy. What blocks out of the box is SSH host-key verification (no TTY to accept a new key, so `Host key verification failed`) and, for HTTPS, the auth scheme. `/sandbox` sets this up from the `origin` push URL; this is what it does and why.
+
+| Remote | Route | Setup |
+|-|-|-|
+| GitHub, HTTPS | Built-in `github` service secret; the proxy injects it for `github.com` (git push over HTTPS not tested here) | `sbx secret set github --command 'gh auth token'` (or `sbx secret set github`, paste a token) |
+| GitHub, SSH | Forwarded ssh-agent plus GitHub's host keys | Kit `github-ssh` (fetches the keys GitHub publishes at `api.github.com/meta`) |
+| GitLab or another self-hosted host, SSH | Forwarded ssh-agent plus the pinned host key | Kit `gitlab-ssh` with `host` and `hostKey` (gitlab.com's keys are built in) |
+| GitLab or another self-hosted host, HTTPS | Does not work through the proxy | Switch the remote to SSH: `git remote set-url origin git@git.example.com:acme/atlas.git`, then the row above |
+
+**Why HTTPS fails for GitLab.** GitLab's git-over-HTTP accepts Basic auth (the token as password, any username such as `oauth2`) or Kerberos, not a Bearer or `PRIVATE-TOKEN` header. The sbx proxy only swaps a literal placeholder it finds in a header (`sbx secret set-custom`), and inside a base64 Basic header there is no literal placeholder to find. Docker's `gitlab` kit hit the same wall: two inject rules on one host are not told apart by scheme, and GitLab serves the API and git from one host. sbx handles git Basic auth only for its built-in `github` service. The `gitlab` kit (glab with a token) is useful for the API, never for git.
+
+Kits come from Docker's contributed collection, `git+https://github.com/docker/sbx-kits-contrib.git#dir=<kit>` (pin with `#ref=<sha>&dir=<kit>` for a team).
+
+1. **Allow the kit source once.** `sbx settings get kit.allowedSources` defaults to `["docker.io/"]`; a git kit from Docker's GitHub is refused until its prefix is listed. Keep the existing entries and add it: `sbx settings set kit.allowedSources '["docker.io/","github.com/docker/"]'`. (The kits are also published as `docker.io/sbx/<kit>-kit:latest`, which the default admits; unpinned.)
+2. **Load the key on the host.** `ssh-add -l` must list the key registered with the git host, in the terminal you attach from. The socket is forwarded even when the agent is empty; then push fails inside with `Permission denied (publickey)`.
+3. **Get the host key and verify it out of band.** `ssh-keyscan -t ed25519 git.example.com 2>/dev/null | grep -v '^#' | cut -d' ' -f2,3` gives `ssh-ed25519 AAAA…`, but scanning is trust on first use. Compare its fingerprint (`ssh-keygen -lf -` on the scan output) with the server's (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`, from the admin), or take the key from your own `~/.ssh/known_hosts` if you verified it before (`ssh-keygen -F git.example.com`).
+4. **Attach the kit.**
+
+   ```bash
+   # new sandbox
+   sbx create claude --kit ./.sbx/atlas \
+     --kit "git+https://github.com/docker/sbx-kits-contrib.git#dir=gitlab-ssh" \
+     --kit-arg host=git.example.com --kit-arg "hostKey=ssh-ed25519 AAAA…" ~/src/atlas
+   # existing sandbox, keeps its work
+   sbx kit add claude-atlas "git+https://github.com/docker/sbx-kits-contrib.git#dir=gitlab-ssh" \
+     --kit-arg host=git.example.com \
+     --kit-arg "hostKey=$(ssh-keyscan -t ed25519 git.example.com 2>/dev/null | grep -v '^#' | cut -d' ' -f2,3)"
+   ```
+
+   `sbx kit add` recreates the container: a running session ends, kit volumes and session state stay (resume with `claude --continue`). Sandboxes created before sbx could recreate are refused; recreate those (`sbx rm -f`, then create). The existing `git@` remote and the shared `.git/config` stay as they are.
+5. **Test inside.** `ssh -T git@git.example.com` greets you by user name; then `git fetch` and `git push`.
+
+The `gitlab-ssh` kit only pins a host key, so it serves any SSH git host on port 22 (Gitea, Bitbucket Server); GitHub has its own. Not covered: SSH on another port (the pinned entry is for port 22) and host aliases from `~/.ssh/config`, which the sandbox lacks; use the real host name in the remote, or push from the host.
+
+**Don't:**
+
+- mount `~/.ssh` or copy a private key into the sandbox; the agent could read and send it;
+- wire GitLab git over HTTPS with `sbx secret set-custom`, `url.<base>.insteadOf`, `http.extraHeader` or a credential helper: the placeholder is never substituted, or the real token sits inside the sandbox;
+- accept a host key that differs from the one you trusted before without asking the server's admin.
+
 ## MCP servers and secrets
 
 - **Committed `.mcp.json` holds placeholders only.** Claude Code expands `${VAR}` and `${VAR:-default}` in `command`, `args`, `env`, `url` and `headers`; an unset variable without a default stays as literal text. Example: `"url": "${ATLAS_MCP_URL:-http://localhost:8090/mcp}"`, `"Authorization": "Bearer ${ATLAS_MCP_BEARER}"`.
@@ -228,8 +270,9 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 7. **Ownership now:** `find . -xdev ! -user "$(id -u)" -not -path '*/node_modules/*'`, worktrees included; list the paths and the repair command.
 8. **MCP:** committed `.mcp.json` has placeholders only, no literal tokens or internal hosts that belong in env; `uvx`/`npx`/`git+` servers pinned; servers that write repo-local state run on one side or have it moved out; URLs to host services configurable (`${VAR:-http://localhost:<port>}`) and set in this repo's kit environment; app state and the venv pointed outside the workspace.
 9. **Secrets:** none in the kit, `.mcp.json` or committed settings; sandbox values through `sbx secret` or the MCP gateway.
-10. **Stack inside the sandbox** (if the agent should run integration tests itself): a compose overlay passes the sandbox proxy and CA to the containers; external APIs the stack calls are in the kit; services that need migrations wait for a healthy backend.
-11. **CLAUDE.md:** says which sandbox kind the repo uses, which commands run in the sandbox, which the human runs on the host, and the URLs of host services.
+10. **Git push from the sandbox:** remote type matches a route in Git hosts (SSH remote plus host-key kit, or GitHub HTTPS with the `github` secret); no mounted `~/.ssh`, no token in `.git/config`, no `insteadOf`/`extraHeader` for the git host; the host key was verified out of band.
+11. **Stack inside the sandbox** (if the agent should run integration tests itself): a compose overlay passes the sandbox proxy and CA to the containers; external APIs the stack calls are in the kit; services that need migrations wait for a healthy backend.
+12. **CLAUDE.md:** says which sandbox kind the repo uses, which commands run in the sandbox, which the human runs on the host, and the URLs of host services.
 
 ## Troubleshooting
 
@@ -256,3 +299,8 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | `no space left on device` while building images in the sandbox | Docker disk default 10 GB | Recreate with `DOCKER_SANDBOXES_DOCKER_SIZE=40g` (`/sandbox --stack`) |
 | `sbx daemon start` stays in the foreground ("not daemonized") | Foreground is the default | `sbx daemon start -d` |
 | `sbx ls` or `run`: not authenticated | Docker login expired | `sbx login` |
+| `git push` inside: `Host key verification failed` | No known_hosts entry for the git host in the sandbox, no TTY to accept one | Host-key kit (Git hosts); existing sandbox: `sbx kit add` |
+| `git push` inside: `Permission denied (publickey)` | Host's ssh-agent empty or not running in the terminal that attached | `ssh-add ~/.ssh/<key>`, check `ssh-add -l`, attach again |
+| `git push` over HTTPS to GitLab inside: `HTTP Basic: Access denied` or a prompt for a password | The proxy cannot inject Basic auth for GitLab | SSH remote plus `gitlab-ssh` kit (Git hosts) |
+| `sbx create`/`kit add` refuses a kit from `github.com/docker/…` | `kit.allowedSources` does not list it | `sbx settings set kit.allowedSources '["docker.io/","github.com/docker/"]'` |
+| `sbx kit add` refuses an older sandbox | Created before sbx could recreate sandboxes | Recreate the sandbox |
