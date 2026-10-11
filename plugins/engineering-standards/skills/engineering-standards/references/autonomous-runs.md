@@ -28,7 +28,7 @@ Record the choice in the handover and in the goal text, as one line: `Autonomous
 
 **Asked once, at launch,** in the interactive session that starts the run; never again inside it. Inside a run, skip the gate when any of these holds: the session is in an `sbx` sandbox (`$SANDBOX_NAME` set) launched for an autonomous task; it is non-interactive (`claude -p`); a `/goal` is active; or the handover or goal text carries the approval line.
 
-**During the run, never ask or wait.** No AskUserQuestion, no "shall I…?": a question stalls the loop until the stall or check-in logic stops it. Make the reasonable choice within the spec's constraints, note it, and list open questions and decisions in the final report. If blocked on something only a human can decide, stop cleanly and report. Skills that normally interview or confirm (design-first, braindump2prd, prd2issues confirmation tables, `/sandbox harness` selection) use their defaults and record assumptions instead of asking.
+**During the run, never ask or wait.** No AskUserQuestion, no "shall I…?": a question stalls the loop until the stall or check-in logic stops it. Make the reasonable choice within the spec's constraints, note it, and list open questions and decisions in the final report. If blocked on something only a human can decide, stop cleanly and report. Skills that normally interview or confirm (design-first, braindump2prd, prd2issues confirmation tables, `/sbx harness` selection) use their defaults and record assumptions instead of asking.
 
 ## 1. Write the spec, then start fresh
 
@@ -103,7 +103,7 @@ Choose: `/goal` for one task's end state, typed per session; a Stop hook for a r
 
 ## 3. Isolate the run
 
-- **Sandbox first.** A Docker Sandbox (`sbx`) on a worktree branch: its own Docker engine so the agent runs the stack and integration tests itself, a network allowlist from the repo's kit, no production secrets, never the host Docker socket. Setup and audit in `agent-sandbox.md`; start it with `/sandbox <type>/<name>`, and hand over the task with its "Hand over an autonomous task" section. `sbx run claude` starts Claude with `--dangerously-skip-permissions` by default, which is why the boundary matters. The workspace is a bind mount of real host files: what the agent deletes is gone on the host too.
+- **Sandbox first.** A Docker Sandbox (`sbx`) on a worktree branch: its own Docker engine so the agent runs the stack and integration tests itself, a network allowlist from the repo's kit, no production secrets, never the host Docker socket. Setup and audit in `agent-sandbox.md`; start it with `/sbx <type>/<name>`, and hand over the task with its "Hand over an autonomous task" section. `sbx run claude` starts Claude with `--dangerously-skip-permissions` by default, which is why the boundary matters. The workspace is a bind mount of real host files: what the agent deletes is gone on the host too.
 - **Worktree without a sandbox:** `claude -w <name>` gives an isolated checkout; edits don't collide with your own work, but the agent still has your machine's network and credentials.
 - **No production credentials** in the sandbox, the env or MCP configs used by the run. Deploys stay with CI and people.
 

@@ -46,7 +46,7 @@ the fullstack-engineer build …").
 
 | Plugin | What it does |
 |-|-|
-| `engineering-standards` | Small reviewable pull requests, CLAUDE.md structure, where docs and plans live, how to implement an issue, agent sandbox practice (code in the sandbox, stack on the host); `/branch` starts a branch with its `plans/` folder; `/sandbox <type>/<name>` creates a worktree and a Docker Sandbox for it, checks both and prints the one line to attach Claude; `--stack` sizes it so the agent runs the Docker stack and integration tests inside the sandbox itself. Swappable organisation profile |
+| `engineering-standards` | Small reviewable pull requests, CLAUDE.md structure, where docs and plans live, how to implement an issue, agent sandbox practice (code in the sandbox, stack on the host); `/branch` starts a branch with its `plans/` folder; `/sbx <type>/<name>` creates a worktree and a Docker Sandbox for it, checks both and prints the one line to attach Claude; `--stack` sizes it so the agent runs the Docker stack and integration tests inside the sandbox itself. Swappable organisation profile |
 | `agent-team` | Runs several issues (or one large one) with parallel coding agents: mechanism choice (worktrees or Agent Teams), parallel-safety check, contracts first, quality gates, one PR at a time |
 | `brainstorming` | `/design-first`: explore intent, requirements and design before larger changes; skipped for one-sentence diffs |
 
@@ -115,7 +115,7 @@ merged without your confirmation.
 |2|Order the work|`product-roadmap-3-layers`|Now/Next/Later roadmap: outcomes → features → tech enablers|
 |3|Specify one feature|`braindump2prd`|`braindump_final.md` (interview record) → `prd.md` + `spec.md`, handed to the tracker project|
 |4|Cut into issues — run in the product repo|`prd2issues`|1–3 issues per result, each one reviewable PR, with files, pattern to follow, check command, `Blocked by` and `Parallel`|
-|5a|Build one issue|`engineering-standards`|`/branch` (or `/sandbox <type>/<name>` to build inside a Docker Sandbox) → short plan on the issue → code → checks, cheapest first → `docs/` update → PR|
+|5a|Build one issue|`engineering-standards`|`/branch` (or `/sbx <type>/<name>` to build inside a Docker Sandbox) → short plan on the issue → code → checks, cheapest first → `docs/` update → PR|
 |5b|Build several issues at once|`agent-team`|Independent issues: one agent each in its own worktree. "Sync before merge" pairs: shared contract first|
 |6|Review|`code-review` from `claude-plugins-official`, `/security-review`, `design-parity`|Confidence-filtered findings on the PR (incl. CLAUDE.md compliance); security review; design-vs-implementation diff for UI|
 

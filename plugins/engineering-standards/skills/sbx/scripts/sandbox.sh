@@ -216,7 +216,7 @@ harness_status() {
   case $rc in
     0) ok "harness kit $HARNESS_KIT matches your Claude Code config and selection" ;;
     1) warn "harness kit $HARNESS_KIT is stale (your ~/.claude config or the selection changed). Run: sandbox.sh harness" ;;
-    2) info "no Claude Code harness kit at $HARNESS_KIT: the sandbox gets a bare Claude Code. Run: sandbox.sh harness (/sandbox harness)" ;;
+    2) info "no Claude Code harness kit at $HARNESS_KIT: the sandbox gets a bare Claude Code. Run: sandbox.sh harness (/sbx harness)" ;;
     5) warn "harness: new since the last selection: ${res#NEW }. Review with: sandbox.sh harness" ;;
     *) warn "harness: could not check $HARNESS_KIT" ;;
   esac

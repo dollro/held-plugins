@@ -1,10 +1,12 @@
 ---
-name: sandbox
-description: "Moves Claude Code work into a Docker Sandbox (sbx): by default on the current checkout and branch, or on a new worktree branch or a private clone; the sandbox with the repo's kit and git push over SSH, checks it and prints the line to attach; can carry the user's Claude Code harness; tears it down after the merge. Invoke as /sandbox, /sandbox <type>/<name>, /sandbox --clone, /sandbox harness, /sandbox --done <name>. Background: engineering-standards references/agent-sandbox.md."
+name: sbx
+description: "Moves Claude Code work into a Docker Sandbox (sbx): by default on the current checkout and branch, or on a new worktree branch or a private clone; the sandbox with the repo's kit and git push over SSH, checks it and prints the line to attach; can carry the user's Claude Code harness; tears it down after the merge. Invoke as /sbx, /sbx <type>/<name>, /sbx --clone, /sbx harness, /sbx --done <name>. Background: engineering-standards references/agent-sandbox.md."
 disable-model-invocation: true
 ---
 
-# Sandbox
+# Sandbox (`/sbx`)
+
+Named `sbx`, not `sandbox`: Claude Code's built-in `/sandbox` (the native sandbox settings) wins over a plugin skill of the same name, so `/sandbox --stack` fails with `Unknown subcommand`. Always tell the user to type `/sbx …`.
 
 Set up a Docker Sandbox (`sbx`) so the user can run Claude Code inside it on a branch of this repo. Claude prepares and checks everything; the user only types the final `sbx run --name …` line in a terminal, because that opens an interactive session Claude cannot drive.
 
@@ -63,7 +65,7 @@ Argument `$ARGUMENTS`, one of:
    - Where it runs: branch and folder; commits made inside land on that branch on the host at once.
    - The split, briefly. Without `--stack`: inside the sandbox the agent edits, lints, type-checks and runs unit tests; the Docker stack, migrations and end-to-end tests run on the host, and a stack started from a worktree uses the same compose project and database as the main checkout unless started with its own `-p` and ports. With `--stack`: the agent builds, starts and tests the stack inside the sandbox with the overlay (the commands from the repo's CLAUDE.md); the first build takes minutes, later test rounds are fast, and the host stack is untouched.
    - Git: with the git setup `OK`, the agent pushes and pulls inside with plain `git`; first test inside: `ssh -T git@<host>` (SSH) or `git ls-remote origin`. Otherwise `git push` runs on the host.
-   - Back later: the same `sbx run --name …` line. Done: `/sandbox --done <name>`.
+   - Back later: the same `sbx run --name …` line. Done: `/sbx --done <name>`.
    - For an unattended task: Hand over an autonomous task, below.
 
 ## Hand over an autonomous task

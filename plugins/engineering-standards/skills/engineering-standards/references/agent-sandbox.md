@@ -35,7 +35,7 @@ For letting the agent run unattended in a sandbox (who decides where it runs, `/
 
 Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.47, 16 CPUs): cold build of 7 images 162 s, `up --wait` 34–54 s, backend suite of 428 tests ~40 s. Images took ~13 GB of Docker disk, the running stack ~4 GB RAM.
 
-- **Size the sandbox at creation.** The Docker disk defaults to 10 GB, too small for such a stack. `DOCKER_SANDBOXES_DOCKER_SIZE=40g DOCKER_SANDBOXES_ROOT_SIZE=30g sbx create … -m 12g …` (sizes cannot change later; `/sandbox --stack` does this).
+- **Size the sandbox at creation.** The Docker disk defaults to 10 GB, too small for such a stack. `DOCKER_SANDBOXES_DOCKER_SIZE=40g DOCKER_SANDBOXES_ROOT_SIZE=30g sbx create … -m 12g …` (sizes cannot change later; `/sbx --stack` does this).
 - **Images are per sandbox.** Sandboxes do not share images or layers; each new sandbox builds once, then keeps its images until `sbx rm`.
 - **Containers do not inherit the sandbox's proxy or CA.** Image builds went through in the test, but running containers could not reach external services, not even DNS (`No address associated with hostname`). Add a compose overlay used only inside the sandbox:
 
@@ -169,7 +169,7 @@ Repair is the fallback. Fix the compose file or the kit that produced the files,
 
 ### A git worktree in a sandbox
 
-The `/sandbox` skill does all of this (worktree, mounts, kit, checks) and prints the line to attach; what follows is what it does and why.
+The `/sbx` skill does all of this (worktree, mounts, kit, checks) and prints the line to attach; what follows is what it does and why.
 
 A linked worktree has no repository of its own: its `.git` is a one-line file (`gitdir: <main repo>/.git/worktrees/<name>`). Mount the main repo's `.git` as a second, writable workspace; sbx mounts every workspace at its host path, so the pointer resolves. Run it from the main checkout so the kit is the current one, not an older copy on the worktree's branch:
 
@@ -196,7 +196,7 @@ Proxy-based allowlists decide on the hostname. In `sbx` the default is the Balan
 
 ## Git hosts: push and pull from the sandbox (`sbx`)
 
-The agent should commit, push and pull inside the sandbox with plain `git` against the repo's existing remote. No private key enters the sandbox: SSH goes through the host's ssh-agent, which sbx forwards when you attach (`ssh.agentForwardingEnabled`, on by default), and HTTPS tokens stay at the proxy. What blocks out of the box is SSH host-key verification (no TTY to accept a new key, so `Host key verification failed`) and, for HTTPS, the auth scheme. `/sandbox` sets this up from the `origin` push URL; this is what it does and why.
+The agent should commit, push and pull inside the sandbox with plain `git` against the repo's existing remote. No private key enters the sandbox: SSH goes through the host's ssh-agent, which sbx forwards when you attach (`ssh.agentForwardingEnabled`, on by default), and HTTPS tokens stay at the proxy. What blocks out of the box is SSH host-key verification (no TTY to accept a new key, so `Host key verification failed`) and, for HTTPS, the auth scheme. `/sbx` sets this up from the `origin` push URL; this is what it does and why.
 
 | Remote | Route | Setup |
 |-|-|-|
@@ -293,9 +293,9 @@ permissions:
 
 ## Claude Code harness in the sandbox (`sbx`)
 
-The built-in `claude` agent starts bare: no plugins or marketplaces, no user `CLAUDE.md`, default settings. The user's harness belongs in a **personal** kit, not in the repo's kit: it differs per person and holds their instructions. `/sandbox harness` (`sandbox.sh harness`) builds it from the host's user-level setup at `${XDG_CONFIG_HOME:-~/.config}/sbx-kits/claude-harness/` and `/sandbox` adds it to every sandbox it creates.
+The built-in `claude` agent starts bare: no plugins or marketplaces, no user `CLAUDE.md`, default settings. The user's harness belongs in a **personal** kit, not in the repo's kit: it differs per person and holds their instructions. `/sbx harness` (`sandbox.sh harness`) builds it from the host's user-level setup at `${XDG_CONFIG_HOME:-~/.config}/sbx-kits/claude-harness/` and `/sbx` adds it to every sandbox it creates.
 
-**Build it before the first sandbox.** Order on a new machine: `/sandbox harness` (personal kit, once, refreshed when the host setup changes), then `/sandbox` on the current branch, or `/sandbox <type>/<name>` for a new worktree branch (the repo's kit plus the harness). A sandbox created without it stays bare until `sbx kit add <name> <kit-dir>`, which recreates the container.
+**Build it before the first sandbox.** Order on a new machine: `/sbx harness` (personal kit, once, refreshed when the host setup changes), then `/sbx` on the current branch, or `/sbx <type>/<name>` for a new worktree branch (the repo's kit plus the harness). A sandbox created without it stays bare until `sbx kit add <name> <kit-dir>`, which recreates the container.
 
 **The user picks what goes in.** `harness.selection.json` next to the kit lists every candidate with `"enabled": true|false`; the first run, and every run that finds something new, stops after printing it (exit 5) until the user has decided and reruns with `--yes`. Decisions are kept; only new items are asked about. Defaults: what is enabled on the host is on, except plugins that drive a browser or the desktop, marketplaces no enabled plugin comes from, MCP servers that are not registered with sbx (host services, credentials), and files that look like they hold a secret.
 
@@ -355,7 +355,7 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | Files show UID 1000 on a host whose user is not 1000 | `${UID:-1000}` fell back because `UID`/`GID` were not exported | Export from the Taskfile or `.env` |
 | Dependencies behave differently on host and in sandbox | Shared `.venv` or `node_modules` built on the other side | Separate environments per side |
 | A container inside the sandbox fails with `No address associated with hostname` or cannot reach an external API | Containers do not inherit the sandbox's proxy or CA | Compose overlay with the proxy, `NO_PROXY` and CA bundle (Stack inside the sandbox) |
-| `no space left on device` while building images in the sandbox | Docker disk default 10 GB | Recreate with `DOCKER_SANDBOXES_DOCKER_SIZE=40g` (`/sandbox --stack`) |
+| `no space left on device` while building images in the sandbox | Docker disk default 10 GB | Recreate with `DOCKER_SANDBOXES_DOCKER_SIZE=40g` (`/sbx --stack`) |
 | `sbx daemon start` stays in the foreground ("not daemonized") | Foreground is the default | `sbx daemon start -d` |
 | `sbx ls` or `run`: not authenticated | Docker login expired | `sbx login` |
 | `git push` inside: `Host key verification failed` | No known_hosts entry for the git host in the sandbox, no TTY to accept one | Host-key kit (Git hosts); existing sandbox: `sbx kit add` |
@@ -365,6 +365,6 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | `docker compose run --no-deps <svc>` never returns | The entrypoint waits for a database that `--no-deps` did not start | `exec` into the running service, or start its dependencies |
 | A container exits with 137 after the agent removed it | Killed by the removal (SIGKILL), not a failure | Nothing to fix |
 | `sbx kit add` refuses an older sandbox | Created before sbx could recreate sandboxes | Recreate the sandbox |
-| Claude Code inside has none of your plugins or your CLAUDE.md | No harness kit, or the sandbox predates it | `/sandbox harness`, then `sbx kit add <name> <kit-dir>` |
+| Claude Code inside has none of your plugins or your CLAUDE.md | No harness kit, or the sandbox predates it | `/sbx harness`, then `sbx kit add <name> <kit-dir>` |
 | Harness log: marketplace failed with `SSH host key is not in your known_hosts` | Claude Code fell back from HTTPS to SSH after the HTTPS clone failed: submodules on a host the kit does not allow, or a very large clone | `sbx policy log <name>` for the host, add it to `networkAllow` in `harness.selection.json`; or leave that marketplace off |
 | Harness log: plugin install failed, marketplace fine | The plugin installs through a marketplace-declared command that needs confirmation, or its download host is not allowed | Install it by hand inside (`claude plugin install …`), or allow the host |

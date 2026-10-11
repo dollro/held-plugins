@@ -39,7 +39,7 @@ Structure as in `claude-md.md`. Every repo has a root CLAUDE.md, a component CLA
 
 ## E4. Agent sandbox
 
-Method in `agent-sandbox.md`. Default sandbox: Docker Sandboxes (`sbx`) with a v2 kit in the repo under `.sbx/<name>/`, or none where the repo's CLAUDE.md says so. Code in the sandbox; for agent work the Docker stack runs inside the sandbox too (`/sandbox --stack`), so the agent runs integration tests itself; a host stack stays for browser work and for sandbox kinds that cannot run Docker. Workspace UID/GID: the host user's (`id -u`, `id -g`), exported from the Taskfile. Unattended agent runs (`/goal`, skipped permissions, `claude -p` loops): in an `sbx` sandbox on a worktree branch, once the human has chosen that at launch (`autonomous-runs.md`).
+Method in `agent-sandbox.md`. Default sandbox: Docker Sandboxes (`sbx`) with a v2 kit in the repo under `.sbx/<name>/`, or none where the repo's CLAUDE.md says so. Code in the sandbox; for agent work the Docker stack runs inside the sandbox too (`/sbx --stack`), so the agent runs integration tests itself; a host stack stays for browser work and for sandbox kinds that cannot run Docker. Workspace UID/GID: the host user's (`id -u`, `id -g`), exported from the Taskfile. Unattended agent runs (`/goal`, skipped permissions, `claude -p` loops): in an `sbx` sandbox on a worktree branch, once the human has chosen that at launch (`autonomous-runs.md`).
 
 ## E5. Not yet covered
 
