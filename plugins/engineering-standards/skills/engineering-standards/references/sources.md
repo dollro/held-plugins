@@ -45,6 +45,29 @@ Official pages behind `agent-sandbox.md`, checked October 2026 (sbx 0.47, MCP sp
 - MCP configuration and `${VAR}` expansion, `headersHelper`: https://code.claude.com/docs/en/mcp
 - Settings `env`, environment variables: https://code.claude.com/docs/en/settings-reference and https://code.claude.com/docs/en/env-vars
 
+## Claude Code practices behind `claude-md.md` and `autonomous-runs.md` (read 2026-10-11)
+
+- Best practices (verification, explore-plan-code, CLAUDE.md pruning test, hooks vs CLAUDE.md, writer/reviewer, fan-out, adversarial review): https://code.claude.com/docs/en/best-practices
+- Skills (frontmatter, `disable-model-invocation`, description cap and listing budget): https://code.claude.com/docs/en/skills
+- Hooks (Stop event, exit codes, `stop_hook_active`, block cap): https://code.claude.com/docs/en/hooks and https://code.claude.com/docs/en/hooks-guide
+- Memory (CLAUDE.md size, `@path` imports, `.claude/rules/`): https://code.claude.com/docs/en/memory
+- `/goal`: https://code.claude.com/docs/en/goal
+- Permission modes (auto, `dontAsk`, `bypassPermissions`): https://code.claude.com/docs/en/permission-modes
+- Non-interactive mode (`-p`, `--bare`, `--permission-prompts`): https://code.claude.com/docs/en/headless
+- CLI flags (`--max-turns`, `--max-budget-usd`, `-w`): https://code.claude.com/docs/en/cli-reference
+- Checkpointing: https://code.claude.com/docs/en/checkpointing
+- Sandboxing: https://code.claude.com/docs/en/sandboxing
+- Docker Sandboxes, Claude Code agent (default `--dangerously-skip-permissions`, `--` argument rules): https://docs.docker.com/ai/sandboxes/agents/claude-code/
+
+### Version notes as of 2026-10-11 (docs as read that day)
+
+- Skill listing: each entry's `description` + `when_to_use` is capped at 1,536 characters; the whole listing has a budget of 1% of the context window (`skillListingBudgetFraction`, `SLASH_COMMAND_TOOL_CHAR_BUDGET`). On overflow, descriptions of the least-used skills are dropped first, names stay. `disable-model-invocation: true` removes the description from context entirely.
+- Stop hook: exit 0 allows the stop, exit 2 blocks with stderr as reason, other codes are non-blocking errors; JSON `{"decision":"block","reason":…}`; 8 consecutive blocks cap (`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`), reset when Claude calls a tool.
+- `/goal`: condition up to 4,000 characters; evaluator is the small fast model (`ANTHROPIC_DEFAULT_HAIKU_MODEL` changes it everywhere); check-in interval 30 min (`CLAUDE_CODE_GOAL_CHECKIN_MINUTES`); restored on every resume route since v2.1.239; idle check-ins capped at three since v2.1.246.
+- Auto mode is the built-in starting mode for interactive terminal and VS Code sessions since v2.1.283; `auto` and `bypassPermissions` set in project settings files don't take effect. `--permission-prompts none` needs v2.1.259.
+- `--bare` will become the default for `-p` in a future release; it needs `ANTHROPIC_API_KEY` (no subscription login).
+- Not verified here: that `$SANDBOX_NAME` is set inside every `sbx` sandbox, and the headless `sbx run --name <name> -- -p "/goal …"` form.
+
 ## MCP
 
 - Authorization (OAuth 2.1, client ID metadata documents): https://modelcontextprotocol.io/specification/latest/basic/authorization

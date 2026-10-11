@@ -1,6 +1,6 @@
 ---
 name: design-parity
-description: Close the gap between a Claude Design spec and its implementation. Use when the user has exported screens from Claude Design (HTML or PNG) and wants Claude Code to compare them against a running frontend, produce a ranked delta report, and iteratively apply fixes until they match. Driven by a committed parity.config.yaml and a runtime adapter that detects Playwright MCP, Chrome DevTools MCP, or a bundled Node runtime. Triggers include "compare to the design", "match the spec", "design parity", "fix the differences from Claude Design", "why does my implementation not match the mockup", or when Claude Design HTML exports are present alongside a running dev server URL.
+description: "Compares Claude Design exports (HTML or PNG) against a running frontend, produces a ranked delta report and applies fixes until they match, driven by a committed parity.config.yaml and Playwright MCP, Chrome DevTools MCP or a bundled Node runtime. Use for \"compare to the design\", \"match the spec\", \"design parity\", \"why doesn't my implementation match the mockup\", or when Claude Design exports sit next to a running dev server."
 ---
 
 # Design Parity

@@ -1,5 +1,5 @@
 {
   "name": "uiux-design-tailwindv4",
   "description": "Production-ready Tailwind CSS v4 design systems with CSS-first configuration, semantic tokens, OKLCH colors, component patterns (CVA), responsive layouts, dark mode, and accessibility. Includes optional shadcn/ui depth for rapid component development. Adds a /uiux-design-tailwindv4 skill.",
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

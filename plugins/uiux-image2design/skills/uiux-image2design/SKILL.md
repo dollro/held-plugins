@@ -1,13 +1,6 @@
 ---
 name: uiux-image2design
-description: >
-  Analyze UI screenshots, extract a full design system, and generate it in Penpot or Figma.
-  ALWAYS use this skill when: (1) The user provides UI screenshots or images and wants
-  a design system built from them, (2) The user wants to reverse-engineer a visual style
-  into design tool components and tokens, (3) The user says "create a design from these images",
-  "extract the style", "build a design system from these screenshots", or similar.
-  Trigger keywords: image to design, screenshot to design system, extract design, reverse
-  engineer UI, visual reference to Penpot, visual reference to Figma, design from images, image2design.
+description: "Analyses UI screenshots, extracts a full design system (colours, type, spacing, components, tokens) and builds it in Penpot or Figma. Use when the user provides screenshots or images and wants a design system from them, or says \"create a design from these images\", \"extract the style\", \"screenshot to design system\", \"reverse engineer this UI\", \"image2design\"."
 ---
 
 # Image to Design System
@@ -176,7 +169,7 @@ output is available — but never make it a required step.
    - `icon/*` — mirrors text tokens (icons next to text share the same color)
    - `surface/*` — page, default, action, action-hover, action-hover-light, disabled, success/warning/error/info
    - `border/*` — default, action, action-hover, focus, disabled, success/warning/error/info
-   Include both Light and Dark mode values. See `uiux-design-system/SKILL.md` § "Mapped Token Tables" for the complete reference.
+   Include both Light and Dark mode values. See `uiux-design-system/references/mapped-tokens.md` for the complete reference.
 
 5. **Output token files** — as defined by `uiux-design-system`:
    `tokens.json` (W3C DTCG), `design-tokens.css` (CSS custom properties),

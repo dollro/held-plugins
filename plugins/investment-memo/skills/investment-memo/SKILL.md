@@ -1,8 +1,6 @@
 ---
 name: investment-memo
-description: |
-  Senior VC Investment Analyst (Seed/Series A) producing institutional-grade investment memos from pitch decks and DD materials. Scores 30+ criteria (0-5) across Team, Technology/IP, Market, Competition, Business Model, Financials with red-flag gates, BCSA adoption framework, and Deep-Tech Matrix positioning. Outputs presentation-ready markdown memo.
-  ALWAYS use when: evaluating a startup, analyzing a pitch deck, producing an investment memo, running due diligence, assessing deep-tech readiness, evaluating deal economics, or preparing IC briefs. Also trigger on pitch deck uploads with investment context, or phrases like "evaluate this deal" or "what do you think of this startup". Keywords: investment memo, pitch deck, due diligence, deal evaluation, VC analysis, seed, series A, valuation, cap table, TRL, BCSA, DTM, IC brief, term sheet, TAM, unit economics, burn rate, runway, founder-market fit, moat, exit potential.
+description: "Produces an institutional-grade VC investment memo (Seed/Series A) from a pitch deck and DD materials: scores 30+ criteria (0-5) across team, technology/IP, market, competition, business model and financials, with red-flag gates, BCSA adoption framework and Deep-Tech Matrix positioning. Use when evaluating a startup or deal, analysing a pitch deck, running due diligence or preparing an IC brief (\"evaluate this deal\", \"what do you think of this startup\")."
 ---
 
 # Investment Memo Analyst

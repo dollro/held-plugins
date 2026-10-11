@@ -1,6 +1,7 @@
 ---
 name: fullstack-scaffold
-description: "Generates a new web app repo on the reference stack, verified with its own CI: Django (users, admin, REST API, allauth login for internal staff via company SSO (OpenID Connect, e.g. Entra ID), external users with MFA, or both; API keys; Celery), optional FastAPI realtime service (SSE), Vue 3 + TypeScript via create-vue and django-vite, PostgreSQL, Redis, a local proxy routing like production, Docker Compose, staging and production deploys of the same images, Task, SOPS env files, MkDocs docs, GitHub and/or GitLab CI with SHA-pinned actions, CLAUDE.md files. Dependencies resolve to current releases at generation time. Use when someone starts a new web app, internal tool, portal or dashboard, or says 'scaffold', 'new project', 'neues Projekt aufsetzen', 'bootstrap a repo'. Guideline: fullstack-engineering."
+description: "Generates a new web app repo on the fullstack-engineering reference stack, verified by its own CI: Django with REST API and login (company SSO, external accounts with MFA, or both), optional FastAPI realtime service, Vue 3 + TypeScript, PostgreSQL, Redis, Celery, Docker Compose, Task, SOPS, MkDocs, GitHub/GitLab CI, CLAUDE.md files. Invoke as /fullstack-scaffold when starting a new web app, internal tool or portal (\"scaffold\", \"new project\", \"neues Projekt aufsetzen\")."
+disable-model-invocation: true
 ---
 
 # Fullstack Scaffold

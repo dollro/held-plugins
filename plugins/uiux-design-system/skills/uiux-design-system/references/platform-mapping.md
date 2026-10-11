@@ -2,6 +2,72 @@
 
 How to transform design tokens from the abstract DTCG format into platform-specific code. The token layer is the single source of truth — platform outputs are generated transforms.
 
+## Design-to-Code Pipeline
+
+```
+Figma Variables / Penpot Tokens
+        ↓ (export JSON)
+  tokens.json (W3C DTCG format)
+        ↓ (Style Dictionary / Token Transformer)
+  design-tokens.css  (CSS Custom Properties)
+  main.css           (Tailwind v4 @theme)
+  tokens.ts          (TypeScript constants, optional)
+```
+
+### Three Layers in CSS
+
+```css
+/* Tier 1: Primitives */
+:root {
+  --color-purple-500: #6C5CE7;
+  --color-purple-600: #5A4BD6;
+  --color-gray-700: #374151;
+  --spacing-400: 1rem;
+  --radius-md: 0.5rem;
+}
+
+/* Tier 2: Semantic — this is the layer you swap for theming */
+:root {
+  --color-primary-default: var(--color-purple-500);
+  --color-primary-hover: var(--color-purple-600);
+  --color-neutral-text: var(--color-gray-700);
+}
+
+/* Tier 3: Mapped — references semantics, auto-resolves on theme change */
+:root {
+  --surface-action: var(--color-primary-default);
+  --surface-action-hover: var(--color-primary-hover);
+  --text-body: var(--color-neutral-text);
+  --text-on-action: #FFFFFF;
+  --border-focus: var(--color-primary-default);
+}
+
+/* Dark mode — remap Tier 2, Tier 3 auto-resolves */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary-default: var(--color-purple-400);
+    --color-neutral-text: var(--color-gray-200);
+  }
+}
+```
+
+### Mapped Tier into Tailwind v4
+
+```css
+@import "tailwindcss";
+@import "./design-tokens.css";
+
+@theme {
+  --color-primary: var(--surface-action);
+  --color-primary-hover: var(--surface-action-hover);
+  --color-text-body: var(--text-body);
+  --color-text-on-action: var(--text-on-action);
+  --radius-md: var(--radius-md);
+}
+```
+
+Then in templates: `<button class="bg-primary hover:bg-primary-hover text-text-on-action rounded-md px-4">`. The sections below cover each platform in detail.
+
 ## CSS Custom Properties
 
 ### Naming Transform

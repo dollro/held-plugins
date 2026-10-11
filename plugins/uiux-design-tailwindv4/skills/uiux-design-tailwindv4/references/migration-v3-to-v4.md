@@ -12,6 +12,7 @@
 - [ ] Remove `forwardRef` (React 19 passes ref as prop)
 - [ ] Consider OKLCH colors for better color perception
 - [ ] Replace custom plugins with `@utility` directives
+- [ ] Replace hardcoded colors with semantic tokens
 - [ ] Use `@tailwindcss/vite` plugin instead of PostCSS (for Vite projects)
 - [ ] Set `components.json` `"config": ""` (if using shadcn)
 - [ ] Delete `tailwind.config.ts` and `postcss.config.js` (if using Vite plugin)

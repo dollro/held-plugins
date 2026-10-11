@@ -1,6 +1,6 @@
 ---
 name: uiux-design-vue3-options-api
-description: "Vue 3 Options API style (data(), methods, this context). BROWNFIELD ONLY — use only when working in an existing Options API codebase where the user has confirmed they want to continue with Options API. For greenfield projects, always use Composition API via uiux-design-vue3-best-practices instead."
+description: "Vue 3 Options API style (data(), methods, the this context). Use only in an existing Options API codebase where the user has confirmed they want to keep it; new code uses the Composition API (uiux-design-vue3-best-practices)."
 version: 2.1.0
 license: MIT
 author: github.com/vuejs-ai

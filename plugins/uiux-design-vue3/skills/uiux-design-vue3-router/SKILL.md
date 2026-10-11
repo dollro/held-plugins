@@ -1,6 +1,6 @@
 ---
 name: uiux-design-vue3-router
-description: "Vue Router 4 patterns, navigation guards, route params, and route-component lifecycle interactions."
+description: "Vue Router 4: setup, route params, navigation guards and how route changes interact with the component lifecycle. Use when adding routes or guards, or fixing navigation and stale-data bugs on param changes."
 version: 1.0.0
 license: MIT
 author: github.com/vuejs-ai

@@ -1,5 +1,5 @@
 {
   "name": "pencil-pen-generator",
   "description": "Generate and convert Pencil .pen design files — the JSON-based format used by pencil.dev for describing UI designs. Adds a /pencil-pen-generator skill.",
-  "version": "1.0.0"
+  "version": "1.0.1"
 }

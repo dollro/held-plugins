@@ -39,6 +39,8 @@
 
 **Investment Attractiveness Score:** [X] / 100 → **[Verdict]**
 
+**Pricing Verdict:** [OVERPRICED / UNDERPRICED / FAIRLY PRICED / GROWTH-PRICED] — [one line from the Investor Lens Consensus]
+
 **One-sentence thesis:** [The single-sentence version of why to buy/hold/sell this stock.]
 
 **Key Financial Snapshot:**
@@ -175,6 +177,32 @@
 | 6.3 | Concentration Risk | [X] | [1-line evidence] |
 | 6.4 | ESG & Tail Risk | [X] | [1-line evidence] |
 | | **Chapter 6 Average** | **[X.X]** | |
+
+---
+
+## Investor Lens Consensus
+
+### Overpriced or Underpriced?
+
+[2–3 paragraphs: Buffett margin of safety, Wood growth assessment, 6-month price action, Chapter 2 valuation scores, and a clear conclusion. See synthesis.md.]
+
+### Multi-Lens Signals
+
+| Lens | Signal | Confidence | Key Reasoning |
+|-|-|-|-|
+| Scorecard (IAS) | ... | ... | ... |
+| Buffett Value | ... | ... | ... |
+| Wood Innovation | ... | ... | ... |
+| 6mo Price Action | ... | ... | ... |
+
+**Pricing Verdict: [OVERPRICED / UNDERPRICED / FAIRLY PRICED / GROWTH-PRICED]**
+
+### Buffett Assessment Summary
+[Buffett Value Lens quality scorecard table and key findings]
+
+### Wood Assessment Summary
+[Wood Innovation Lens scorecard table and key findings]
+```
 
 ---
 

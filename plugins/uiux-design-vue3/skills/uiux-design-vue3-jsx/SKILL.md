@@ -1,6 +1,6 @@
 ---
 name: uiux-design-vue3-jsx
-description: JSX syntax in Vue (e.g., class vs className, JSX plugin config).
+description: "JSX in Vue 3 and how it differs from React JSX (class vs className, attribute typing, JSX plugin config). Use when writing Vue components in JSX/TSX, migrating React JSX to Vue, or fixing JSX attribute type errors."
 version: 2.0.0
 license: MIT
 author: github.com/vuejs-ai

@@ -1,5 +1,5 @@
 {
   "name": "agentic-engineering",
   "description": "Architecture standards and guardrails for production agentic AI: LangGraph orchestration, Pydantic AI single agents, CrewAI teams, Pydantic contracts, Langfuse/OTel observability, security, dependencies, testing and evals. Adds the /agentic-engineering skill and the agentic-engineer agent.",
-  "version": "2.0.0"
+  "version": "2.0.1"
 }

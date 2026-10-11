@@ -1,19 +1,6 @@
 ---
 name: prd2issues
-description: >-
-  Cuts a Ready PRD (a tracker project with PRD and spec) into a few readable
-  tracker issues, grounded in the actual codebase: it reads the repo first,
-  reuses what exists, and every issue names real files, the pattern to follow
-  and a real check command. Results become milestones, issues are vertical
-  slices, and each issue is one pull request a reviewer can read in one
-  sitting, because coding agents break issues down further themselves. A
-  person understands every issue from its title and "What gets built";
-  references and code pointers sit in a footer. Shows the cut as a table first
-  and writes to the tracker only after confirmation. Use whenever a PRD or tracker
-  project should be broken down into issues, tickets or milestones, or someone
-  says "cut this into issues", "break down the PRD", "Issues für das Projekt
-  anlegen", "PRD in Tickets schneiden". Comes after braindump2prd. Not for
-  writing the PRD, and not for the detailed plan of one issue.
+description: "Cuts a Ready PRD (tracker project with PRD and spec) into a few tracker issues grounded in the codebase: milestones per result, vertical slices, one pull request per issue, each naming real files, the pattern to follow and a check command. Shows the cut as a table and writes to the tracker only after confirmation. Use for \"cut this into issues\", \"break down the PRD\", \"Issues für das Projekt anlegen\". Comes after braindump2prd; not for writing the PRD or planning one issue."
 argument-hint: "<tracker project, or folder with prd.md and spec.md>"
 ---
 
@@ -103,7 +90,7 @@ Show the cut as a table before writing any issue:
 |-|-|-|-|-|-|
 | Result 1: Analyst sees all open deals of a company | 1 | Deal list shows all open deals of one customer | Deal list 1–2, edge case "No deals" | – | independent of 3; sync with 2 on the deal filter |
 
-Below it, in a few lines: coverage (e.g. "12/12 core rules, 5/5 edge cases"), rules already in code, cut rules without an issue, spec–code conflicts, assumptions carried, whether you cut everything or just the first milestone, and which issues can start in parallel right away. Ask: "Does this cut work for you? Once it's right, I'll write the issues." Adjust the table until the user confirms.
+Below it, in a few lines: coverage (e.g. "12/12 core rules, 5/5 edge cases"), rules already in code, cut rules without an issue, spec–code conflicts, assumptions carried, whether you cut everything or just the first milestone, and which issues can start in parallel right away. Ask: "Does this cut work for you? Once it's right, I'll write the issues." Adjust the table until the user confirms. Inside an autonomous run (`/goal`, `claude -p`), don't ask and don't write to the tracker: put the cut in the final report for the user to confirm.
 
 ## Step 5: Write the issues
 

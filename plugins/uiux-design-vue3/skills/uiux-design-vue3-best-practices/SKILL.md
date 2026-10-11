@@ -1,6 +1,6 @@
 ---
 name: uiux-design-vue3-best-practices
-description: MUST be used for Vue.js tasks. Composition API with `<script setup>` and TypeScript is the mandatory default for all greenfield work. For brownfield Options API codebases, ASK the user before deciding. Covers Vue 3, SSR, Volar, vue-tsc. Load for any Vue, .vue files, Vue Router, Pinia, or Vite with Vue work.
+description: "Vue 3 best practices: Composition API with <script setup> and TypeScript as the default for new code, SSR, Volar and vue-tsc; in an existing Options API codebase, ask before choosing a style. Use for Vue work in general: .vue files, components, reactivity, Vue Router, Pinia, or Vite with Vue. Narrower siblings: uiux-design-vue3-testing, -debug, -router, -pinia, -composable, -jsx."
 license: MIT
 metadata:
   author: github.com/vuejs-ai

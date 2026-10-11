@@ -1,5 +1,5 @@
 {
   "name": "prd2issues",
   "description": "Cuts a Ready PRD (tracker project, e.g. Linear) into milestones and a small set of readable issues, one vertical slice each",
-  "version": "1.1.1"
+  "version": "1.1.2"
 }

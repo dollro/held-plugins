@@ -1,5 +1,5 @@
 {
   "name": "product-roadmap-3-layers",
   "description": "Builds a 3-layer product roadmap (Business Outcomes, Product & Features, Tech Enabler) in Now/Next/Later as one markdown document, from an interview or deterministically from a Notion roadmap database",
-  "version": "1.0.1"
+  "version": "1.0.2"
 }

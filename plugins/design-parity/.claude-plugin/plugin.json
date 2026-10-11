@@ -1,5 +1,5 @@
 {
   "name": "design-parity",
   "description": "Close the gap between a Claude Design spec and its implementation. Config-driven (parity.config.yaml) with runtime adapters for Playwright MCP, Chrome DevTools MCP, and a bundled Node runtime. Produces ranked delta reports and operable fix plans. Adds a /design-parity skill.",
-  "version": "2.0.0"
+  "version": "2.0.1"
 }

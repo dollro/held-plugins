@@ -1,7 +1,6 @@
 ---
 name: prfaq-vision-builder
-description: |
-  Build a future-state product vision using Amazon's "Working Backwards" PR/FAQ method — a press release written as if the product already shipped, plus a tight embedded FAQ. Produces ONE PR-heavy document (not a split PR + multi-page FAQ) meant to be drafted, circulated, debated, and iterated until a team rallies behind a shared vision. Handles two scopes: INTERNAL tools (built for the team's own use) and EXTERNAL products (for customers) — detects or asks which. Runs fully guided: walks the user through the five Working Backwards questions and each section, surfacing assumptions and pressure-testing the idea before writing. Use whenever the user wants to draft a product vision, write a future press release, run a "working backwards" or "PR/FAQ" exercise, align a team on what to build, pressure-test an idea before building, or says "write the press release for this", "draft a vision for X", "let's work backwards on this", "vision doc", "PRFAQ", "Produktvision". German/English mirroring.
+description: "Builds a future-state product vision with the Working Backwards PR/FAQ method: one press-release-led document with a tight FAQ, for internal tools or external products, written through a guided interview that surfaces assumptions and pressure-tests the idea. Use for \"draft a vision for X\", \"write the press release\", \"working backwards\", \"PRFAQ\", \"vision doc\", \"Produktvision\", or aligning a team on what to build. Not for a feature PRD (braindump2prd)."
 ---
 
 # PR/FAQ Vision Builder (Working Backwards)

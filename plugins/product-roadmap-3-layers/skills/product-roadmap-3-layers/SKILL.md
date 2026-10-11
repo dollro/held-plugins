@@ -1,6 +1,6 @@
 ---
 name: "product-roadmap-3-layers"
-description: "Builds or rebuilds a product roadmap in the 3-layer format (Business Outcomes, Product & Features, Tech Enabler) across five positions in Now/Next/Later as one English markdown document with its own rendering instruction; triages any input via a guided interview, generates it deterministically from a Notion roadmap database, or builds that database from a roadmap markdown. Use whenever someone wants to build, restructure, review or present a product roadmap, mentions Now/Next/Later, roadmap layers, tech enablers, outcome roadmap or a roadmap slide, or hands over material (strategy papers, PRDs, backlogs, notes, braindumps) and asks what to make of it. Not for a single feature's PRD (braindump2prd) or a product vision (prfaq-vision-builder)."
+description: "Builds or rebuilds a product roadmap in the 3-layer format (Business Outcomes, Product & Features, Tech Enabler) across Now/Next/Later as one markdown document; triages any input through an interview, or generates from and builds a Notion roadmap database. Use when building, restructuring, reviewing or presenting a roadmap, or for Now/Next/Later, outcome roadmaps, tech enablers or a roadmap slide. Not for a feature PRD (braindump2prd) or a vision (prfaq-vision-builder)."
 ---
 
 # Roadmap in the 3-Layer Format

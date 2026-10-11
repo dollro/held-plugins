@@ -350,16 +350,16 @@ Always test in:
 
 ## Quick Diagnosis
 
-| Symptom | Likely Cause |
-|-|-|
-| `bg-primary` doesn't work | Missing `@theme inline` mapping |
-| Colors all black/white | Double `hsl()` wrapping |
-| Dark mode not switching | Missing ThemeProvider |
-| Build fails | `tailwind.config.ts` exists with theme config |
-| Text invisible | Wrong contrast colors |
-| `@/` imports fail | Missing path aliases in tsconfig |
-| `@apply` fails | Using `@layer components` instead of `@utility` |
-| Animation errors | Using deprecated `tailwindcss-animate` |
+| Symptom | Likely Cause | Fix |
+|-|-|-|
+| `bg-primary` doesn't work | Missing `@theme inline` mapping | Add `@theme inline` block |
+| Colors all black/white | Double `hsl()` wrapping | Use `var(--color)` not `hsl(var(--color))` |
+| Dark mode not switching | Missing ThemeProvider | Wrap app in `<ThemeProvider>` |
+| Build fails | `tailwind.config.ts` exists with theme config | Delete the file |
+| Text invisible | Wrong contrast colors | Pair background with its foreground token; check contrast |
+| `@/` imports fail | Missing path aliases in tsconfig | Add paths to `tsconfig.app.json` |
+| `@apply` fails on custom class | Using `@layer components` instead of `@utility` (v4 breaking change) | Use `@utility` |
+| Animation errors | Using deprecated `tailwindcss-animate` | Use native CSS animations or `tw-animate-css` |
 
 ## Prevention Checklist
 

@@ -1,6 +1,6 @@
 ---
 name: uiux-design-penpot
-description: 'Comprehensive guide for creating professional UI/UX designs in Penpot using MCP tools. Use this skill when: (1) Creating new UI/UX designs for web, mobile, or desktop applications, (2) Building design systems with components and tokens, (3) Designing dashboards, forms, navigation, or landing pages, (4) Applying accessibility standards and best practices, (5) Following platform guidelines (iOS, Android, Material Design), (6) Reviewing or improving existing Penpot designs for usability. Triggers: "design a UI", "create interface", "build layout", "design dashboard", "create form", "design landing page", "make it accessible", "design system", "component library".'
+description: "Creates and reviews UI/UX designs in Penpot through its MCP tools: screens for web, mobile and desktop, design systems with components and tokens, dashboards, forms, navigation and landing pages, with accessibility and platform guidelines (iOS, Android, Material). Use for \"design a UI\", \"create interface\", \"design dashboard\", \"design landing page\" in Penpot or when no design tool is named. For Figma use uiux-design-figma."
 ---
 
 # Penpot UI/UX Design Guide
@@ -102,9 +102,9 @@ The MCP plugin communicates via WebSocket (port 4402). There is **no automatic r
 | Penpot design system implementation (pages, frames, naming, assets) | [penpot-design-system-guide.md](references/penpot-design-system-guide.md) |
 | Component specs (buttons, forms, nav) | `uiux-design-system/references/component-patterns.md` |
 | Accessibility (contrast, touch targets) | `uiux-design-system/references/accessibility.md` |
-| Mapped token categories (text/icon/surface/border) | `uiux-design-system/SKILL.md` § "Mapped Token Tables" |
+| Mapped token categories (text/icon/surface/border) | `uiux-design-system/references/mapped-tokens.md` |
 | Design system template & checklist | `uiux-design-system/references/design-system-template.md` |
-| Multi-brand & dark mode strategy | `uiux-design-system/SKILL.md` § "Multi-Brand Strategies" |
+| Multi-brand & dark mode strategy | `uiux-design-system/references/theming-multi-brand.md` |
 | Screen sizes & platform specs | `uiux-design-system/references/platform-guidelines.md` |
 | Full Penpot Plugin API reference | [penpot-api-reference.md](references/penpot-api-reference.md) |
 | Color conversion utilities (OKLCH→hex, HSL→hex) | `uiux-design-system/references/color-utilities.md` |
@@ -199,7 +199,7 @@ When setting up Penpot token sets, structure the mapped/component tier into four
 
 Each category should include state variants (default, hover, focus, disabled, error, success). Add Light/Dark theme sets and remap semantic values per theme.
 
-For the complete token tables with light/dark mode values, read `uiux-design-system/SKILL.md` § "Mapped Token Tables".
+For the complete token tables with light/dark mode values, read `uiux-design-system/references/mapped-tokens.md`.
 
 **Internal components:** Prefix private building blocks with a dot (`.menu-item`, `.tab-item`) so they don't appear in the assets panel for end users. Only composed components (`Menu`, `Tab Bar`) should be registered as library components.
 

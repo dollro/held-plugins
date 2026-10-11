@@ -13,7 +13,7 @@
       "name": "agentic-engineering",
       "source": "./plugins/agentic-engineering",
       "description": "Architecture standards and guardrails for production agentic AI on LangGraph, Pydantic AI, CrewAI and Langfuse: framework roles, state, model tiers, validation, human-in-the-loop, persistence, security, dependencies, testing and evals. Includes /agentic-engineering skill and agentic-engineer agent.",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "category": "ai-agent-dev-tools",
       "tags": ["agentic-ai", "langgraph", "pydantic-ai", "crewai", "langfuse", "standards"],
       "keywords": ["agents", "agentic engineering", "langgraph", "pydantic-ai", "crewai", "langfuse", "opentelemetry", "multi-agent", "human-in-the-loop", "evals", "mcp", "a2a"]
@@ -31,7 +31,7 @@
       "name": "agent-team",
       "source": "./plugins/agent-team",
       "description": "Orchestrate parallel coding agents — Agent Teams, worktree-isolated agents or parallel sessions — with mechanism choice, parallel-safety classification, contract-first interfaces and quality gates. Picks up prd2issues issue cuts. Adds a /agent-team skill.",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "category": "workflows",
       "tags": ["agent-teams", "orchestration", "parallel-build", "contracts", "coordination"],
       "keywords": ["agent-team", "parallel", "swarm", "coordination", "delegate", "worktree", "issues"]
@@ -39,8 +39,8 @@
     {
       "name": "brainstorming",
       "source": "./plugins/brainstorming",
-      "description": "Structured exploration of user intent, requirements, and design before any creative or implementation work. Adds a /brainstorming skill.",
-      "version": "1.0.0",
+      "description": "Design-first exploration of intent, requirements and design for work too big to describe in one sentence; hands off to plan mode, braindump2prd/prd2issues or agent-team. Adds the /design-first skill.",
+      "version": "1.1.0",
       "category": "workflows",
       "tags": ["design", "planning", "ideation", "requirements"],
       "keywords": ["brainstorm", "design", "ideation", "planning"]
@@ -49,7 +49,7 @@
       "name": "engineering-standards",
       "source": "./plugins/engineering-standards",
       "description": "Small reviewable pull requests, CLAUDE.md structure and where documentation and plans live, and how agents work in a sandbox (code in the sandbox, Docker stack on the host), with a swappable organisation profile. Includes /engineering-standards, /branch and /sandbox (Claude in a Docker Sandbox on a new worktree, optionally with the full stack inside for self-run tests) skills.",
-      "version": "1.7.0",
+      "version": "1.8.0",
       "category": "workflows",
       "tags": ["engineering", "pull-requests", "documentation", "sandbox"],
       "keywords": ["pull request", "pr size", "code review", "claude.md", "documentation", "docs", "plans", "coding standards", "branch", "sandbox", "sbx", "docker sandboxes", "worktree"]
@@ -58,7 +58,7 @@
       "name": "braindump2prd",
       "source": "./plugins/braindump2prd",
       "description": "Interviews a PM thoroughly and turns a vague feature idea into a plain-language PRD and spec via a reviewed interview record (braindump_final); hands them over to the issue tracker (e.g. Linear). Adds a /braindump2prd skill.",
-      "version": "1.1.3",
+      "version": "1.1.4",
       "category": "product-management",
       "tags": ["prd", "spec", "requirements"],
       "keywords": ["braindump", "prd", "spec", "requirements", "interview", "linear"]
@@ -67,7 +67,7 @@
       "name": "prd2issues",
       "source": "./plugins/prd2issues",
       "description": "Cuts a Ready PRD into milestones and a small set of readable, codebase-grounded issues in the tracker (e.g. Linear), one vertical slice and one reviewable pull request each. Adds a /prd2issues skill.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "category": "product-management",
       "tags": ["issues", "linear", "planning"],
       "keywords": ["prd", "issues", "milestones", "linear", "vertical slice", "breakdown"]
@@ -76,7 +76,7 @@
       "name": "electron-dev",
       "source": "./plugins/electron-dev",
       "description": "Standards and guardrails for secure, fast cross-platform desktop apps with Electron: Forge + Vite + TypeScript, sandboxed renderers, typed IPC, utilityProcess, fuses and ASAR integrity, code signing and notarization, auto-updates, app lifecycle, local data, store distribution, accessibility and localisation, Playwright/Vitest tests. Includes /electron-development skill and electron-developer agent.",
-      "version": "3.1.0",
+      "version": "3.1.1",
       "category": "development",
       "tags": ["electron", "desktop", "cross-platform", "native", "electron-forge", "vite", "typescript"],
       "keywords": ["electron", "desktop", "app", "cross-platform", "ipc", "code-signing", "notarization", "auto-update"]
@@ -85,7 +85,7 @@
       "name": "fullstack-engineering",
       "source": "./plugins/fullstack-engineering",
       "description": "Guideline and reference implementation for web apps: Django system of record, optional FastAPI realtime service, Vue 3 + Vite + TypeScript, PostgreSQL, Redis, Celery, company SSO over OpenID Connect and/or external accounts with MFA, Docker, Task, SOPS, platform-neutral CI, staging and production from the same images. Includes /fullstack-engineering, /fullstack-scaffold and the fullstack-engineer agent.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "category": "development",
       "tags": ["fullstack", "django", "fastapi", "vue", "scaffold", "sso", "docker", "ci-cd"],
       "keywords": ["fullstack", "full-stack", "django", "fastapi", "vue", "oidc", "scaffold"]
@@ -94,7 +94,7 @@
       "name": "equity-research",
       "source": "./plugins/equity-research",
       "description": "Institutional-grade equity research with chance/risk reports, DCF valuation, and investment recommendations for US-listed stocks. Adds a /equity-research skill.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "analysis",
       "tags": ["stocks", "valuation", "dcf", "investment", "finance"],
       "keywords": ["equity", "stocks", "research", "valuation", "finance"]
@@ -103,7 +103,7 @@
       "name": "pencil-pen-generator",
       "source": "./plugins/pencil-pen-generator",
       "description": "Generate and convert Pencil .pen design files — the JSON-based format used by pencil.dev for describing UI designs. Adds a /pencil-pen-generator skill.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "category": "development",
       "tags": ["pencil", "design", "pen-format", "ui", "design-as-code"],
       "keywords": ["pencil", "pen", "design", "ui", "component", "design-file"]
@@ -112,7 +112,7 @@
       "name": "uiux-design-penpot",
       "source": "./plugins/uiux-design-penpot",
       "description": "Professional UI/UX design in Penpot using MCP tools. Covers Plugin API, design tokens with inline binding, generation recipes, prototyping, and known issues. References shared design knowledge from uiux-design-system. Adds a /uiux-design-penpot skill.",
-      "version": "2.7.0",
+      "version": "2.7.1",
       "category": "development",
       "tags": ["penpot", "design", "ui-ux", "accessibility", "component-patterns", "mcp", "token-binding"],
       "keywords": ["penpot", "design", "ui", "ux", "interface", "layout", "accessibility", "design-system"]
@@ -121,7 +121,7 @@
       "name": "uiux-design-tailwindv4",
       "source": "./plugins/uiux-design-tailwindv4",
       "description": "Production-ready Tailwind CSS v4 design systems with CSS-first configuration, semantic tokens, OKLCH colors, component patterns (CVA), responsive layouts, dark mode, and accessibility. Includes optional shadcn/ui depth for rapid component development. Adds a /uiux-design-tailwindv4 skill.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "development",
       "tags": ["tailwindcss", "design-system", "css", "components", "dark-mode", "shadcn", "oklch"],
       "keywords": ["tailwind", "tailwindcss", "v4", "design-system", "css", "shadcn", "CVA", "theme"]
@@ -130,7 +130,7 @@
       "name": "uiux-design-vue3",
       "source": "./plugins/uiux-design-vue3",
       "description": "Vue 3 development skills prioritizing Composition API with <script setup> for all greenfield work. Covers best practices, routing (Vue Router 4), Pinia state management, testing (Vitest/Playwright), debugging, JSX, Options API (brownfield only), and adaptable composables.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "category": "development",
       "tags": ["vue3", "composition-api", "vue-router", "pinia", "vitest", "composables", "typescript"],
       "keywords": ["vue", "vue3", "vuejs", "composition-api", "options-api", "pinia", "vue-router", "composables"]
@@ -139,7 +139,7 @@
       "name": "uiux-design-system",
       "source": "./plugins/uiux-design-system",
       "description": "Comprehensive design system architecture guide: component hierarchy (atoms/molecules/organisms/patterns/screens), 3-tier token system with mapped categories (text/icon/surface/border), W3C DTCG format, multi-brand theming, typography & type scale, 4px number scale, design-to-code pipeline, naming conventions, UX decision patterns, layout decisions, content voice, responsive rules, accessibility standards (WCAG 2.2 + EAA), and visual reference structuring. Adds a /uiux-design-system skill.",
-      "version": "4.0.0",
+      "version": "4.1.0",
       "category": "development",
       "tags": ["design-system", "tokens", "css", "theming", "ui", "component-architecture", "ux-patterns", "token-binding", "atomic-design", "multi-brand", "typography", "design-to-code"],
       "keywords": ["design system", "design tokens", "DTCG", "W3C", "CSS variables", "theme", "token naming", "style dictionary", "component naming", "UX patterns", "design architecture", "atomic design", "visual reference", "screenshot naming", "type scale", "multi-brand", "mapped tokens", "dark mode", "EAA"]
@@ -148,7 +148,7 @@
       "name": "uiux-image2design",
       "source": "./plugins/uiux-image2design",
       "description": "Analyze UI screenshots with vision, extract a design system, confirm with the user, then generate tokens, component boards, and sample screens in Penpot or Figma via MCP. Detects available tool and delegates to the corresponding plugin. Adds a /uiux-image2design skill.",
-      "version": "3.0.1",
+      "version": "3.0.2",
       "category": "development",
       "tags": ["penpot", "figma", "screenshots", "design-system", "vision", "mcp", "tokens", "components", "token-binding"],
       "keywords": ["screenshots", "image to design", "reverse-engineer UI", "extract design", "design from images", "penpot", "figma", "design system"]
@@ -157,7 +157,7 @@
       "name": "uiux-design-figma",
       "source": "./plugins/uiux-design-figma",
       "description": "Professional UI/UX design in Figma using figma-console-mcp. Covers 57+ tools, variable/collection tokens, auto-layout, component variants, variable binding, and design system implementation. Adds a /uiux-design-figma skill.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "development",
       "tags": ["figma", "design", "ui-ux", "accessibility", "component-patterns", "mcp", "variables", "token-binding"],
       "keywords": ["figma", "design", "ui", "ux", "interface", "layout", "accessibility", "design-system", "variables"]
@@ -166,7 +166,7 @@
       "name": "design-parity",
       "source": "./plugins/design-parity",
       "description": "Close the gap between a Claude Design spec and its implementation. Config-driven (parity.config.yaml) with runtime adapters for Playwright MCP, Chrome DevTools MCP, and a bundled Node runtime. Supports canvas-with-selector targets, non-interactive auth (form/cookie/storage-state), regex/region masks, fixtures, auto-matched viewports for PNG baselines, and operable fix_plan.json output. Adds a /design-parity skill.",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "category": "development",
       "tags": ["design-parity", "visual-diff", "claude-design", "playwright", "playwright-mcp", "chrome-devtools-mcp", "odiff", "screenshot", "vision", "config-driven"],
       "keywords": ["design-parity", "visual-regression", "pixel-diff", "claude-design", "design-spec", "match-design", "mockup-parity", "playwright-mcp", "chrome-devtools-mcp", "fix-plan"]
@@ -175,7 +175,7 @@
       "name": "investment-memo",
       "source": "./plugins/investment-memo",
       "description": "Senior VC Investment Analyst (Seed/Series A) producing institutional-grade investment memos from pitch decks and DD materials. Scores 30+ criteria across Team, Technology/IP, Market, Competition, Business Model, Financials with red-flag gates, BCSA adoption framework, and Deep-Tech Matrix positioning. Adds a /investment-memo skill.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "category": "analysis",
       "tags": ["venture-capital", "investment-memo", "due-diligence", "startup", "seed", "series-a", "BCSA", "DTM"],
       "keywords": ["investment", "memo", "pitch-deck", "due-diligence", "vc", "startup", "valuation", "deal-flow"]
@@ -184,7 +184,7 @@
       "name": "prfaq-vision-builder",
       "source": "./plugins/prfaq-vision-builder",
       "description": "Guided Amazon Working Backwards PR/FAQ: one future-state vision document (press release plus lean FAQ) for internal tools or external products. Adds a /prfaq-vision-builder skill.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "category": "product-management",
       "tags": ["vision", "prfaq", "working-backwards"],
       "keywords": ["prfaq", "press release", "vision", "working backwards", "produktvision"]
@@ -193,7 +193,7 @@
       "name": "product-roadmap-3-layers",
       "source": "./plugins/product-roadmap-3-layers",
       "description": "3-layer product roadmap (Business Outcomes, Product & Features, Tech Enabler) in Now/Next/Later as one markdown document, from an interview or from a Notion roadmap database. Adds a /product-roadmap-3-layers skill.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "category": "product-management",
       "tags": ["roadmap", "planning", "notion"],
       "keywords": ["roadmap", "now next later", "outcomes", "tech enabler", "notion", "roadmap slide"]

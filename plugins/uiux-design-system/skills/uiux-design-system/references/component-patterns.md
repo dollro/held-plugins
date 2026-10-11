@@ -36,6 +36,8 @@ Token-driven build recipes for every core component. Each recipe specifies struc
 | Focus | same as default + absolute-positioned rectangle with `border/focus` 2px | `border/focus` | unchanged |
 | Disabled | `surface/disabled` | `border/disabled` | `text/disabled`, `icon/disabled` |
 
+Always add the stroke even when it has the same color as the fill — it keeps dimensions consistent across type variants.
+
 **Specs:** Min touch target 44x44px. Padding 12-16px horizontal, 8-12px vertical. Border radius 4-8px. Font weight semibold.
 
 **Label patterns:** Use action verbs, 2-4 words (Save Changes, Add to Cart, Create Account).
@@ -109,7 +111,7 @@ Same as Input molecule but the field is multiline. No left icon (awkward with mu
 
 Hover: stroke `border/action-hover`. Focus: additional `border/focus` ring. Disabled: `surface/disabled`, `border/disabled`.
 
-**Checkbox Label molecule:** Horizontal auto layout → Checkbox + Label text, 8px gap.
+**Checkbox Label molecule:** Horizontal auto layout → Checkbox + Label text, 8px gap. Expose the nested instances so the checkbox properties are editable from the molecule. Radio and Switch label molecules follow the same pattern.
 
 ### Radio Button
 
@@ -188,6 +190,8 @@ One item is selected at a time. A full-width 1px border bottom `border/default` 
 | Selected | `surface/action-hover-light` | `text/action` | `icon/action` |
 | Disabled | `surface/disabled` | `text/disabled` | `icon/disabled` |
 
+Stronger selected variant (when selection must read at a glance, e.g. a single-select list): fill `surface/action`, text `text/on-action`, icon `icon/on-action`.
+
 ### Menu
 
 **Structure:** Vertical auto layout → multiple .menu-item instances + optional scrollbar. Border radius 8px, fill `surface/default`, stroke `border/default`.
@@ -227,7 +231,7 @@ Link > Link > Link > Current Page
 - **Image** — clipped image fills frame.
 - **Initials** — 2-character text centered, `text/body`.
 
-**Sizes:** Large 64x64, Medium 48x48, Small 32x32.
+**Sizes:** Large 64x64, Medium 48x48, Small 32x32 — set with scale constraints so the content scales with the frame.
 
 **Avatar Group:** Horizontal auto layout with negative gap (-4px) for overlap. Avatars stack with z-index. Ends with a count badge showing "+N" remaining.
 
@@ -270,7 +274,7 @@ The most complex component. Built in three layers:
 
 **2. Column:** Vertical auto layout → header cell + data cells stacked. Header cell: fill `surface/action-hover-light`, text `text/heading` semibold. Data cells: fill `surface/default`, text `text/body`. Bottom border `border/default` on each cell as row separator.
 
-**3. Table:** Horizontal auto layout → multiple Column instances. Use gap-adjustment trick for resizable columns (each column set to fill width). Outer stroke `border/default`.
+**3. Table:** Horizontal auto layout → multiple Column instances. Use gap-adjustment trick for resizable columns (each column set to fill width). Outer stroke `border/default`. Expose nested instances so cell content is customizable from the table level.
 
 ---
 

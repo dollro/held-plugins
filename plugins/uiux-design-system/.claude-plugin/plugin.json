@@ -1,5 +1,5 @@
 {
   "name": "uiux-design-system",
   "description": "Comprehensive design system architecture guide: component hierarchy (atoms/molecules/organisms/patterns/screens), 3-tier token system with mapped categories (text/icon/surface/border), W3C DTCG format, multi-brand theming, typography & type scale, 4px number scale, design-to-code pipeline, naming conventions, UX decision patterns, layout decisions, content voice, responsive rules, accessibility standards (WCAG 2.2 + EAA), and visual reference structuring. Adds a /uiux-design-system skill.",
-  "version": "4.0.0"
+  "version": "4.1.0"
 }

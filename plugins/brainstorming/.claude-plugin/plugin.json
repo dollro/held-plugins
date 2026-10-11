@@ -1,5 +1,5 @@
 {
   "name": "brainstorming",
-  "description": "Structured exploration of user intent, requirements, and design before any creative or implementation work. Adds a /brainstorming skill.",
-  "version": "1.0.0"
+  "description": "Design-first exploration of intent, requirements and design for work too big to describe in one sentence; hands off to plan mode, braindump2prd/prd2issues or agent-team. Adds the /design-first skill.",
+  "version": "1.1.0"
 }

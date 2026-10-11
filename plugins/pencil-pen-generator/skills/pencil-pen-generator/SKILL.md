@@ -1,12 +1,6 @@
 ---
 name: pencil-pen-generator
-description: >
-  Generate and convert Pencil .pen design files — the JSON-based format used by pencil.dev for describing UI designs.
-  ALWAYS use this skill when the user mentions .pen files, Pencil designs, pencil.dev, or asks to create/edit/convert
-  design files in the .pen format. Also trigger when the user wants to convert Vue/HTML/Figma designs into .pen format,
-  generate UI component designs as .pen, create design systems or tokens for Pencil, or build page layouts as .pen files.
-  Trigger keywords: .pen, pen file, pencil design, pencil.dev, design file, design-as-code, pen format, generate design,
-  convert to pen, design tokens, UI kit pen, component design file.
+description: "Generates and converts Pencil .pen design files, the JSON format of pencil.dev: UI components, page layouts, design tokens and systems, and conversions from Vue, HTML or Figma designs into .pen. Use when the user mentions .pen files, Pencil or pencil.dev, or asks to create, edit or convert a design as .pen (\"pen file\", \"pencil design\", \"convert to pen\", \"design-as-code\")."
 ---
 
 # Pencil .pen File Generator

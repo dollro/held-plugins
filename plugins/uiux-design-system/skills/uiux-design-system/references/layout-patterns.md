@@ -17,6 +17,13 @@ apply it with tool-specific APIs.
 
 **Rule of thumb:** If you're setting properties on *children* to fix layout problems, you probably want Grid (which controls layout from the *parent*).
 
+## Auto Layout Best Practices (design tools)
+
+- Use "Hug" (both directions) for components that resize to content.
+- Use "Fill" for elements that should stretch (input text fields).
+- Consistent padding in multiples of 4 (8px, 12px, 16px).
+- Consistent gap: 4px, 8px, 12px between elements.
+
 ## Pattern 1: Equal-Size Card Grid
 
 ### The problem with Flex

@@ -1,15 +1,6 @@
 ---
 name: uiux-design-figma
-description: >
-  Professional UI/UX design in Figma using figma-console-mcp MCP tools.
-  Use this skill when: (1) Creating new UI/UX designs for web, mobile, or desktop
-  applications in Figma, (2) Building design systems with components and variables,
-  (3) Designing dashboards, forms, navigation, or landing pages in Figma,
-  (4) Applying accessibility standards and best practices,
-  (5) Following platform guidelines (iOS, Android, Material Design),
-  (6) Reviewing or improving existing Figma designs for usability.
-  Triggers: "design in figma", "figma design", "create figma interface",
-  "figma design system", "figma component library", "figma variables".
+description: "Creates and reviews UI/UX designs in Figma through figma-console-mcp tools: screens for web, mobile and desktop, design systems with components and variables, dashboards, forms, navigation and landing pages, with accessibility and platform guidelines (iOS, Android, Material). Use for \"design in figma\", \"figma design system\", \"figma component library\", \"figma variables\". For Penpot use uiux-design-penpot."
 ---
 
 # Figma UI/UX Design Guide
@@ -97,9 +88,9 @@ Create professional, user-centered designs in Figma using the `figma-console-mcp
 | Screen sizes & platform specs | `uiux-design-system/references/platform-guidelines.md` |
 | Color conversion utilities | `uiux-design-system/references/color-utilities.md` |
 | Token binding strategy | `uiux-design-system/references/token-binding-strategy.md` |
-| Mapped token categories (text/icon/surface/border) | `uiux-design-system/SKILL.md` § "Mapped Token Tables" |
+| Mapped token categories (text/icon/surface/border) | `uiux-design-system/references/mapped-tokens.md` |
 | Design system template & checklist | `uiux-design-system/references/design-system-template.md` |
-| Multi-brand & dark mode strategy | `uiux-design-system/SKILL.md` § "Multi-Brand Strategies" |
+| Multi-brand & dark mode strategy | `uiux-design-system/references/theming-multi-brand.md` |
 | Figma MCP tool catalog | [figma-api-reference.md](references/figma-api-reference.md) |
 | Figma design system guide | [figma-design-system-guide.md](references/figma-design-system-guide.md) |
 | Layout decision guide (**read before step 5**) | [generation-recipes.md § Layout Selection Guide](references/generation-recipes.md) + `uiux-design-system/references/layout-patterns.md` |
@@ -175,7 +166,7 @@ When setting up Figma variable collections, structure the mapped/component tier 
 
 Each category should include state variants (default, hover, focus, disabled, error, success). Add Light/Dark modes to the collection and remap semantic values per mode.
 
-For the complete token tables with light/dark mode values, read `uiux-design-system/SKILL.md` § "Mapped Token Tables".
+For the complete token tables with light/dark mode values, read `uiux-design-system/references/mapped-tokens.md`.
 
 **Internal components:** Prefix private building blocks with a dot (`.menu-item`, `.tab-item`) — Figma won't publish them to the library. Only composed components (`Menu`, `Tab Bar`) should be published.
 

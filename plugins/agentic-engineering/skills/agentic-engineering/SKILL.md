@@ -1,6 +1,6 @@
 ---
 name: agentic-engineering
-description: "Architecture standards and guardrails for building production agentic AI systems on a reference stack: LangGraph as orchestrator, Pydantic AI for single agents, CrewAI for multi-agent teams, Pydantic for contracts, Langfuse/OpenTelemetry for observability. Covers framework roles, state, model tiers, validation loops, human-in-the-loop, persistence, security, observability, dependencies, testing and evals. Principles stay stable across releases; version-specific APIs are checked against the official docs at build time. Use whenever someone designs, builds, reviews or debugs an agent, a multi-agent system, a LangGraph graph, a Pydantic AI agent, a CrewAI crew, agent tracing or agent evals, wraps agents as graph nodes, resolves dependency conflicts between these frameworks, or asks how the team builds agents, even if no framework is named. Not for pull request size and CLAUDE.md structure (engineering-standards)."
+description: "Architecture standards for production agentic AI systems on a reference stack: LangGraph orchestration, Pydantic AI single agents, CrewAI teams, Pydantic contracts, Langfuse/OpenTelemetry tracing. Covers state, model tiers, validation loops, human-in-the-loop, persistence, security, testing and evals. Use when someone designs, builds, reviews or debugs an agent, multi-agent system, graph, crew, agent tracing or evals, even if no framework is named. Not for PR size or CLAUDE.md (engineering-standards)."
 ---
 
 # Agentic Engineering

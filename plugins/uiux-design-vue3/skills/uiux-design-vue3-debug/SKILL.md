@@ -1,6 +1,6 @@
 ---
 name: uiux-design-vue3-debug
-description: Vue 3 debugging and error handling for runtime errors, warnings, async failures, and SSR/hydration issues. Use when diagnosing or fixing Vue issues.
+description: "Debugging and error handling in Vue 3: runtime errors and warnings, reactivity, computed and watcher surprises, props/emits, slots, lifecycle, async failures and SSR/hydration mismatches. Use when diagnosing or fixing a Vue bug, a console warning or a hydration error."
 ---
 
 Vue 3 debugging and error handling for runtime issues, warnings, async failures, and hydration bugs.

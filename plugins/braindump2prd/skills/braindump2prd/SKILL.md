@@ -1,20 +1,6 @@
 ---
 name: braindump2prd
-description: >-
-  Interviews a product manager thoroughly, one question at a time, and turns a
-  vague feature idea, request or filled braindump template into a PRD:
-  first braindump_final.md (the interview record, reviewed by the PM), then
-  prd.md (one page: outcome, results, non-goals) and spec.md (rules, edge cases,
-  constraints), written in plain language that people and agents both read.
-  Hands the PRD over as the tracker project description and the other two as
-  project documents. Three modes: interview from scratch, harvest a feature
-  already discussed in this conversation, or add a spec to a finished PRD. Use
-  whenever someone wants to write a PRD, spec or feature brief, scope or flesh
-  out a feature idea, gather requirements, or says "I have an idea for a
-  feature", "write this up as a PRD", "turn our discussion into a spec", "PRD
-  für X", "Anforderungen aufnehmen". Not for a product vision or future press
-  release (prfaq-vision-builder) and not for cutting a PRD into issues
-  (prd2issues).
+description: "Interviews a product manager one question at a time and turns a feature idea, request or braindump into braindump_final.md, a one-page prd.md (outcome, results, non-goals) and spec.md (rules, edge cases), handed to the tracker project. Also harvests a feature discussed in this conversation, or adds a spec to a PRD. Use for \"write a PRD/spec\", \"I have an idea for a feature\", \"turn our discussion into a spec\", \"PRD für X\". Not for a vision (prfaq-vision-builder) or issues (prd2issues)."
 argument-hint: "<feature idea, request or tracker project>"
 ---
 

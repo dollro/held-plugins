@@ -69,3 +69,7 @@ Branches: `main` ← `feat/*`, `fix/*`, `chore/*`. Commits: `<type>(<scope>): <s
 ## Planning
 
 Plans and decisions go on the tracker issue. `./plans/<branch-name>/` is for temporary files only — not authoritative.
+
+## Agent practices
+
+Recommended reading: https://code.claude.com/docs/en/best-practices (live; this file and the repo's standards take precedence; raise real conflicts with the team).

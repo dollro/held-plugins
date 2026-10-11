@@ -276,7 +276,7 @@ Don't: Don't use for simple confirmations ("Are you sure you want to save?") —
 | mono/sm | JetBrains Mono | 12px | 16px | 400 | Inline code |
 | overline/default | Inter | 11px | 16px | 600 | Uppercase, letter-spacing 0.05em |
 
-**Responsive typography rule:** Body text stays 16px on all breakpoints. Only headings scale down on mobile. See the responsive table in the main SKILL.md for desktop→mobile mappings.
+**Responsive typography rule:** Body text stays 16px on all breakpoints. Only headings scale down on mobile. See the responsive table in `typography.md` for desktop→mobile mappings.
 
 ---
 
@@ -405,7 +405,7 @@ patterns/state/offline              ← Offline icon + reconnect message
 
 **Placeholder text** is NOT a substitute for labels. Use for example values only (e.g., "jane@example.com").
 
-**Required fields:** Mark with red asterisk (*) after label. If most fields are required, instead mark optional fields with "(optional)".
+**Required fields:** Mark with red asterisk (*), absolute-positioned to the left of the label so it doesn't push labels out of alignment. If most fields are required, instead mark optional fields with "(optional)".
 
 **Validation timing:** Validate on blur (when user leaves the field), not on every keystroke. Show inline error below field using `molecules/form-field/error`. Error text uses danger color and starts with what's wrong:
 - Good: "Email address is not valid"

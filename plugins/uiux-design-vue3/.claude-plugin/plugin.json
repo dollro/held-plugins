@@ -1,5 +1,5 @@
 {
   "name": "uiux-design-vue3",
   "description": "Vue 3 development skills collection prioritizing Composition API with <script setup> for all greenfield work. Covers best practices, routing, state management, testing, debugging, JSX, Options API (brownfield only), and composables. Based on vuejs-ai/skills.",
-  "version": "1.0.0"
+  "version": "1.0.1"
 }

@@ -1,6 +1,6 @@
 ---
 name: fullstack-engineering
-description: "Guideline and guardrails for web apps: Django as system of record, FastAPI for realtime, streaming and agent work, Vue 3 + Vite + TypeScript served by Django, PostgreSQL, Redis, Celery, Docker with Task, SOPS secrets, platform-neutral CI, staging and production from the same image. Covers service contracts, app shape, login audiences (internal company SSO over OpenID Connect, external accounts with MFA, mixed), environments and configuration flow, data ownership, async work, frontend integration, local dev, docs, deployment, observability, testing and CLAUDE.md conventions; versions are checked against official docs. Use when someone designs, builds, reviews or debugs a web app, backend, API, frontend, Docker, CI or deployment, even if no framework is named. Not for agent internals (agentic-engineering), PR size and CLAUDE.md structure (engineering-standards) or visual design (uiux-*). New repos: fullstack-scaffold."
+description: "Guideline for web apps on a reference stack: Django as system of record, FastAPI for realtime and agent work, Vue 3 + Vite + TypeScript, PostgreSQL, Redis, Celery, Docker with Task, SOPS secrets, platform-neutral CI. Covers service contracts, login (company SSO over OIDC, external accounts with MFA), environments, async work, deployment, observability and testing. Use when designing, building, reviewing or debugging a web app, API, frontend, Docker, CI or deploy. New repos: /fullstack-scaffold."
 ---
 
 # Fullstack Engineering
@@ -186,7 +186,7 @@ repo/
 └── pyproject.toml, uv.lock, .pre-commit-config.yaml, .mcp.json, CLAUDE.md
 ```
 
-`fullstack-scaffold` generates this layout and verifies it with the repo's own `task ci`.
+`/fullstack-scaffold` (user-invoked) generates this layout and verifies it with the repo's own `task ci`.
 
 ## Review checklist (top mistakes)
 

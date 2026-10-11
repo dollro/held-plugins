@@ -1,5 +1,5 @@
 {
   "name": "uiux-image2design",
   "description": "Analyze UI screenshots with vision, extract a design system, confirm with the user, then generate tokens, component boards, and sample screens in Penpot or Figma via MCP. Detects available tool and delegates to the corresponding plugin. Adds a /uiux-image2design skill.",
-  "version": "3.0.1"
+  "version": "3.0.2"
 }

@@ -1,6 +1,6 @@
 ---
 name: uiux-design-vue3-pinia
-description: "Pinia stores, state management patterns, store setup, and reactivity with stores."
+description: "Pinia in Vue 3: store setup, state management patterns, and keeping reactivity when reading from stores. Use when creating, structuring or debugging a Pinia store."
 version: 1.0.0
 license: MIT
 author: github.com/vuejs-ai

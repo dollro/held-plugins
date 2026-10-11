@@ -48,7 +48,7 @@ the fullstack-engineer build …").
 |---|---|
 | `engineering-standards` | Small reviewable pull requests, CLAUDE.md structure, where docs and plans live, how to implement an issue, agent sandbox practice (code in the sandbox, stack on the host); `/branch` starts a branch with its `plans/` folder; `/sandbox <type>/<name>` creates a worktree and a Docker Sandbox for it, checks both and prints the one line to attach Claude; `--stack` sizes it so the agent runs the Docker stack and integration tests inside the sandbox itself. Swappable organisation profile |
 | `agent-team` | Runs several issues (or one large one) with parallel coding agents: mechanism choice (worktrees or Agent Teams), parallel-safety check, contracts first, quality gates, one PR at a time |
-| `brainstorming` | Structured exploration of intent, requirements and design before any implementation |
+| `brainstorming` | `/design-first`: explore intent, requirements and design before larger changes; skipped for one-sentence diffs |
 
 For review, use Anthropic's `code-review` plugin from `claude-plugins-official`
 (parallel reviewers, CLAUDE.md compliance, confidence-filtered findings) and the
@@ -139,7 +139,7 @@ merged without your confirmation.
 
 **Variants**
 
-- Small feature: start at `braindump2prd`; if the idea is still fuzzy, run `brainstorming` first.
+- Small feature: start at `braindump2prd`; if the idea is still fuzzy, run `/design-first` (brainstorming plugin) first.
 - Feature already discussed in the chat: `braindump2prd` harvests the conversation instead of re-interviewing.
 - PRD already written: `braindump2prd` in "Harvest PRD" mode adds only the spec.
 - No tracker connected: everything works with files (`prd.md`, `spec.md`, `issues.md`); plans go to `plans/<branch>/`.

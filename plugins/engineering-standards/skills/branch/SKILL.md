@@ -1,6 +1,7 @@
 ---
 name: branch
 description: "Creates a new git branch and its directory for temporary files plans/<branch-name>/ (slashes become dashes), following the branch naming of engineering-standards. Use when someone starts work on an issue or change and says /branch <type>/<name>, \"new branch\", \"start a branch for this\", \"Branch anlegen\"."
+disable-model-invocation: true
 ---
 
 # Branch

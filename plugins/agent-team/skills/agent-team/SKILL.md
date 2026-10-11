@@ -1,6 +1,6 @@
 ---
 name: agent-team
-description: Orchestrate parallel coding agents in Claude Code — Agent Teams, worktree-isolated agents or parallel sessions — with the right mechanism per job, contract-first interfaces, file ownership and quality gates. Picks up a cut of tracker issues (prd2issues) or a feature plan and runs the parallel part. Use when the user wants multiple agents collaborating on a build, mentions "agent team", "parallel build", "swarm", "run these issues in parallel", or asks to split work across agents; also when a set of issues or a plan has 3+ independent parts. Adds structure Claude Code doesn't provide natively — mechanism choice, parallel-safety classification, interface contracts, teammate specialisation and quality gates.
+description: "Orchestrates parallel coding agents in Claude Code (Agent Teams, worktree-isolated subagents or parallel sessions): picks the mechanism, classifies parallel safety, writes interface contracts first, assigns file ownership and runs quality gates. Use when the user wants several agents on one build, says \"agent team\", \"parallel build\", \"swarm\", \"run these issues in parallel\", or when a set of issues (prd2issues) or a plan has 3+ independent parts."
 ---
 
 # Agent Team Orchestration
@@ -99,6 +99,8 @@ For risky or unclear items, require the worker to plan first (plan mode) and rev
 
 ## Phase 6: Spawn and orchestrate
 
+**Before workers run unattended** (worktree agents or sessions in auto mode or skipped permissions, `/goal`, headless loops), ask the user once where they run, per engineering-standards `references/autonomous-runs.md` (sandbox per worktree recommended); never decide alone. Workers inside such a run don't ask: they decide within their contract and report open questions.
+
 - **Agent Team:** create the tasks in the shared task list with their dependencies (sequential items as blocked-by), then spawn named teammates with the prompts from Phase 5. Teammates claim tasks; message them by name. One team per session.
 - **Worktree agents / sessions:** one per issue, each on its own branch (`/branch <type>/<name>` naming), each ending in a pull request that links its issue. Never push to the default branch.
 
@@ -114,7 +116,7 @@ While they run:
 
 1. **Contract diff** — ask each worker what interfaces it actually implemented; compare both sides; flag mismatches.
 2. **Checks** — each item's check commands pass; the system builds and starts.
-3. **Fresh-eyes review** — before merge, a reviewer subagent that sees only the diff (not the worker's reasoning) checks each pull request; "sync before merge" pairs are reviewed together.
+3. **Fresh-eyes review** — before merge, a reviewer subagent that sees only the diff (not the worker's reasoning) checks each pull request against its issue, spec and contracts; "sync before merge" pairs are reviewed together. The reviewer reports only correctness gaps: bugs, missing requirements, broken contracts, security issues. No style preferences, no speculative hardening or extra abstraction: a reviewer asked for gaps always finds some, and chasing them over-engineers. Fix correctness gaps; anything else is optional and goes to the user, not back to the worker.
 4. **Merge one at a time** — rebase on the default branch, let CI run, then the next. This catches what parallel branches could not see.
 5. **Happy path and edge cases** from the issues' "Done when" lists.
 
@@ -169,4 +171,4 @@ The hook input arrives as JSON on stdin; check the hooks docs for its fields.
 
 **Research → implement** — read-only subagents or a team explore first; findings feed the worker prompts.
 
-**Review swarm** — several reviewers (security, performance, architecture) examine the same diff in parallel and report to the lead.
+**Review swarm** — several reviewers (security, performance, architecture) examine the same diff in parallel and report to the lead; each reports only gaps against the spec or contract in its area, not style.

@@ -29,6 +29,8 @@ Two places, chosen by who needs the stack:
 
 Anthropic's core advice for agents is a check they can run themselves, so the loop closes without a human in it. With the stack on the host, every integration test goes through the human. Prefer the stack inside the sandbox for agent work; keep a host stack for browser work. The Claude Code native sandbox cannot run Docker at all (its escape hatch `sandbox.excludedCommands` runs commands without any limit); there the host stack is the only choice.
 
+For letting the agent run unattended in a sandbox (who decides where it runs, `/goal`, Stop hooks, headless runs, review before merge), see `autonomous-runs.md`. `sbx run claude` starts Claude with permissions skipped by default, so the sandbox boundary is the safety net.
+
 ### Stack inside the sandbox
 
 Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.47, 16 CPUs): cold build of 7 images 162 s, `up --wait` 34–54 s, backend suite of 428 tests ~40 s. Images took ~13 GB of Docker disk, the running stack ~4 GB RAM.

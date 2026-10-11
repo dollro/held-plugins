@@ -13,7 +13,7 @@ Organisation profile for the skill `engineering-standards`. These are neutral de
 Guide values for a reviewable pull request. Generated files, lock files and pure snapshot or fixture data are not counted.
 
 | | Guide | Above it |
-|---|---|---|
+|-|-|-|
 | Changed lines | about 400 | Propose a split |
 | Changed files | about 20 | Soft warning: the pull request description says why it touches that many places |
 
@@ -22,7 +22,7 @@ The same guide bounds an issue: an issue is cut so that its pull request stays w
 ## E2b. File and function length
 
 | | Maximum |
-|---|---|
+|-|-|
 | Lines per file | 800 |
 | Lines per function | 100 |
 
@@ -39,7 +39,7 @@ Structure as in `claude-md.md`. Every repo has a root CLAUDE.md, a component CLA
 
 ## E4. Agent sandbox
 
-Method in `agent-sandbox.md`. Default sandbox: Docker Sandboxes (`sbx`) with a v2 kit in the repo under `.sbx/<name>/`, or none where the repo's CLAUDE.md says so. Code in the sandbox, Docker stack on the host. Workspace UID/GID: the host user's (`id -u`, `id -g`), exported from the Taskfile.
+Method in `agent-sandbox.md`. Default sandbox: Docker Sandboxes (`sbx`) with a v2 kit in the repo under `.sbx/<name>/`, or none where the repo's CLAUDE.md says so. Code in the sandbox; for agent work the Docker stack runs inside the sandbox too (`/sandbox --stack`), so the agent runs integration tests itself; a host stack stays for browser work and for sandbox kinds that cannot run Docker. Workspace UID/GID: the host user's (`id -u`, `id -g`), exported from the Taskfile. Unattended agent runs (`/goal`, skipped permissions, `claude -p` loops): in an `sbx` sandbox on a worktree branch, once the human has chosen that at launch (`autonomous-runs.md`).
 
 ## E5. Not yet covered
 

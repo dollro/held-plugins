@@ -1,5 +1,5 @@
 {
   "name": "uiux-design-figma",
   "description": "Professional UI/UX design in Figma using figma-console-mcp. Covers 57+ tools, variable/collection tokens, auto-layout, component variants, and design system implementation. Adds a /uiux-design-figma skill.",
-  "version": "1.1.0"
+  "version": "1.1.1"
 }

@@ -1,6 +1,7 @@
 ---
 name: sandbox
-description: "Starts Claude Code in a Docker Sandbox (sbx) for a repo: creates a git worktree on a new branch (or uses the current checkout, or a private clone), creates the sandbox with the repo's kit, the right mounts and git push over SSH (GitHub, GitLab, self-hosted), checks it from outside (git, kit environment, host services) and hands over one line to attach. Gives the sandbox the user's own Claude Code harness (marketplaces, plugins, skills, CLAUDE.md, settings, MCP servers) from a personal kit the user reviews item by item. Also tears it down after the merge. Use when someone says /sandbox <type>/<name>, /sandbox, /sandbox --clone, /sandbox --done <name>, /sandbox harness, \"same plugins in the sandbox\", \"run Claude in a sandbox\", \"sandbox for this branch/worktree\", \"start a sandboxed agent\", \"git push fails in the sandbox\", \"Sandbox starten\". Background and troubleshooting: engineering-standards references/agent-sandbox.md."
+description: "Starts Claude Code in a Docker Sandbox (sbx) on a branch: creates the worktree (or uses the checkout or a private clone), the sandbox with the repo's kit and git push over SSH, checks it and prints the line to attach; can carry the user's Claude Code harness; tears it down after the merge. Invoke as /sandbox <type>/<name>, /sandbox, /sandbox --clone, /sandbox harness, /sandbox --done <name>. Background: engineering-standards references/agent-sandbox.md."
+disable-model-invocation: true
 ---
 
 # Sandbox
@@ -63,6 +64,37 @@ Argument `$ARGUMENTS`, one of:
    - The split, briefly. Without `--stack`: inside the sandbox the agent edits, lints, type-checks and runs unit tests; the Docker stack, migrations and end-to-end tests run on the host, and a stack started from a worktree uses the same compose project and database as the main checkout unless started with its own `-p` and ports. With `--stack`: the agent builds, starts and tests the stack inside the sandbox with the overlay (the commands from the repo's CLAUDE.md); the first build takes minutes, later test rounds are fast, and the host stack is untouched.
    - Git: with the git setup `OK`, the agent pushes and pulls inside with plain `git`; first test inside: `ssh -T git@<host>` (SSH) or `git ls-remote origin`. Otherwise `git push` runs on the host.
    - Back later: the same `sbx run --name …` line. Done: `/sandbox --done <name>`.
+   - For an unattended task: Hand over an autonomous task, below.
+
+## Hand over an autonomous task
+
+`sbx run claude` starts Claude Code with `--dangerously-skip-permissions` (Docker's default for the `claude` agent; passing a bare word after `--` drops it). The sandbox is the main place for unattended coding: permissions are open, the boundary is the sandbox. Depth: engineering-standards `references/autonomous-runs.md`.
+
+**Ask first, once.** Before handing over an autonomous task, ask the human with AskUserQuestion where it runs: this sandbox on its worktree branch (recommended), a supervised host session, unattended on the host in auto mode (only on explicit acceptance: real host files, credentials, network), or not autonomously. Never decide alone. Ask at launch only; inside the sandbox session launched for the task, an active `/goal` or a goal text carrying the approval line, the agent does not ask again and does not call AskUserQuestion at all: it decides within the spec, notes it, reports open questions, and stops cleanly when blocked.
+
+**Use it** for a task with a verifiable end state, a written spec or issue, in a worktree sandbox. **Don't** for exploratory work, a task without a runnable check, or anything that needs production access.
+
+**The goal line** to fill in:
+
+```text
+/goal <outcome> is done per <spec path or issue>. Autonomous run approved by <human> on <date>: sandbox <name>, branch <branch>. Proof: `<check command>` exits 0 and its output is shown; `git status` is clean after a commit per finished step. Constraints: only files under <paths> change; no new dependencies without noting them; no edits to tests to make them pass. Do not ask questions; decide within these constraints and note the decision. Stop after <N> turns or when blocked, and report what is done, the evidence, and open questions.
+```
+
+- **Proof:** the evaluator reads only the transcript and runs nothing, so the check's output must be printed. Use the repo's real check command (CLAUDE.md, Taskfile); with `--stack`, the integration tests.
+- **Approval line:** the recorded decision from the question above, so the run never asks again.
+- **Constraints:** what must not change on the way; they stop the agent from passing by weakening the check.
+- **Stop after N turns / when blocked:** bounds the loop; the final report is what the human reads.
+
+**Start it.** In the attached session, paste the line. Headless (derived from the docs, not tested here): `sbx run --name <name> -- -p "/goal …" --output-format stream-json --verbose > goal.log` (arguments starting with a flag are appended after the default flags). `/goal` shows status, `/goal clear` stops it; it survives `claude --continue`.
+
+**Guardrails, because permissions are open:**
+
+- The workspace is a bind mount of real host files: use a worktree branch, never the main checkout, and commit per finished step. Checkpoints don't capture Bash changes; commits are the rollback points.
+- Network allowlist from the repo's kit, no production secrets in the sandbox (engineering-standards `references/agent-sandbox.md`).
+- `/goal` is a Stop hook: it needs hooks enabled (not with `disableAllHooks`) and a trusted workspace.
+- Optional: before the final report, a reviewer subagent checks the diff against the spec and reports only correctness gaps (bugs, missing requirements, broken contracts, security).
+
+**Review afterwards:** read the final report and its evidence; `git log` and `git diff <base>...` of the branch; run the check once on the host (or in a fresh sandbox); then open the pull request, split per the size guide. The human reviews the diff before merge.
 
 ## Harness (`harness`)
 

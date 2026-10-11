@@ -311,6 +311,35 @@ Gate all animation behind `prefers-reduced-motion`. When reduced motion is activ
 
 ---
 
+## Accessibility Tokens
+
+Embed accessibility at the token level — WCAG 2.2 requirements + European Accessibility Act (EAA, effective June 2025). Token-path equivalents of the `a11y/*` tokens above:
+
+**Focus ring** — every interactive element needs a visible focus indicator:
+- `color.border.focus-ring` / `border/focus` — 3:1 contrast ratio (WCAG 2.4.7/2.4.13)
+- `border.width.focus-ring` — minimum 2px
+- `space.focus-ring.offset` — 2px typical
+- Style: solid
+
+**Touch target size** — WCAG 2.5.8:
+- `size.touch-target.min` — 24px (Level AA minimum per WCAG 2.5.8)
+- `size.touch-target.comfortable` — 44px (Apple HIG / AAA recommended; the default this guide uses)
+- `size.touch-target.spacious` — 48px (Android Material)
+
+**Reduced motion** — `motion.reduce` gates all animation. When `prefers-reduced-motion: reduce` is active, all `motion.duration.*` resolve to `0ms`. Implement via CSS custom property at the media query boundary.
+
+**Contrast pairs** — document every semantic color pair (bg + fg) with its contrast ratio:
+
+| Text Size | Minimum Ratio (AA) | Enhanced Ratio (AAA) |
+|-|-|-|
+| Normal text (< 18px) | 4.5:1 | 7:1 |
+| Large text (≥ 18px bold, ≥ 24px regular) | 3:1 | 4.5:1 |
+| Non-text UI elements (icons, borders) | 3:1 | — |
+
+**Test every token pairing:** every text token and its expected surface token must meet these ratios. This prevents regressions when updating primitives.
+
+---
+
 ## Testing Accessibility
 
 ### Manual Testing Checklist
