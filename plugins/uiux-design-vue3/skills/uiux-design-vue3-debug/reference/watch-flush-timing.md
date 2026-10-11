@@ -119,7 +119,7 @@ watchSyncEffect(callback)  // Shorthand
 ## When to Use Each Flush Timing
 
 | Timing | Use Case |
-|--------|----------|
+|-|-|
 | `'pre'` (default) | Logic that doesn't need DOM access |
 | `'post'` | Reading or measuring updated DOM |
 | `'sync'` | Debug logging, simple boolean flags only |

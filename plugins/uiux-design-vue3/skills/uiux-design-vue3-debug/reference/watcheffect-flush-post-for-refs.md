@@ -165,7 +165,7 @@ watchSyncEffect(() => { ... }) // Shorthand
 ## When to Use Each Flush Mode
 
 | Scenario | Recommended Flush |
-|----------|-------------------|
+|-|-|
 | Accessing template refs | `post` |
 | Reading updated DOM | `post` |
 | Triggering before render | `pre` (default) |

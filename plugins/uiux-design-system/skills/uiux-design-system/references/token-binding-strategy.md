@@ -188,7 +188,7 @@ After binding, generate a per-page coverage report:
 
 ```
 Page            | Shapes | Bound | Coverage
-----------------|--------|-------|--------
+-|-|-|-
 foundations     |     64 |    62 |   96.9%
 atoms           |     38 |    35 |   92.1%
 molecules       |     27 |    22 |   81.5%

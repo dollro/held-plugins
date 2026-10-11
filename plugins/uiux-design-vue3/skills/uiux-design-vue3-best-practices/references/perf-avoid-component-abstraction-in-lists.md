@@ -151,7 +151,7 @@ onMounted(() => {
 ## Impact Calculation
 
 | List Size | Components per Item | Total Instances | Memory Impact |
-|-----------|---------------------|-----------------|---------------|
+|-|-|-|-|
 | 100 items | 1 (flat) | 100 | Baseline |
 | 100 items | 3 (nested) | 300 | ~3x memory |
 | 100 items | 5 (deeply nested) | 500 | ~5x memory |

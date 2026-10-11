@@ -23,7 +23,7 @@ Universal/isomorphic code must guard platform-specific API access or use librari
 ## Common Browser APIs That Break SSR
 
 | API | Node.js Behavior |
-|-----|-----------------|
+|-|-|
 | `window` | `ReferenceError: window is not defined` |
 | `document` | `ReferenceError: document is not defined` |
 | `localStorage` / `sessionStorage` | `ReferenceError` |
@@ -176,7 +176,7 @@ const token = useCookie('auth-token')
 ## Common Node.js APIs That Break in Browser
 
 | API | Browser Behavior |
-|-----|-----------------|
+|-|-|
 | `fs` | Module not found |
 | `path` | Module not found |
 | `process` (full) | Undefined or limited |

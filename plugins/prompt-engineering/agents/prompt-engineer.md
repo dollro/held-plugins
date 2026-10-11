@@ -24,7 +24,7 @@ Read /home/rodo/.claude/skills/prompt-engineering/SKILL.md
 
 ## Prompt Pattern Selection
 | Task Type | Recommended Pattern |
-|-----------|---------------------|
+|-|-|
 | Simple classification | Zero-shot |
 | Format-sensitive output | Few-shot |
 | Complex reasoning | Chain-of-thought |

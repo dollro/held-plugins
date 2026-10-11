@@ -19,7 +19,7 @@ The frontend tooling is whatever **create-vue** currently generates with TypeScr
 ## Two entry points
 
 | Entry | Pattern | Used for |
-|---|---|---|
+|-|-|-|
 | `main.ts` | Styles for Django-rendered pages (home, allauth's login and account pages) plus islands: small Vue apps mounted into elements of those pages; `data-*` attributes become props | Widgets in server-rendered pages |
 | `app-main.ts` | One SPA with Vue Router, history base `/app/`; Django routes `/app/*` to the shell template | The authenticated application |
 

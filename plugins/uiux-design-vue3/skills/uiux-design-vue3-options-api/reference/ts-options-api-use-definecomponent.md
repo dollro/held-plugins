@@ -119,7 +119,7 @@ This means there's zero runtime cost to using `defineComponent`.
 ## When to Use defineComponent vs script setup
 
 | Approach | Use Case |
-|----------|----------|
+|-|-|
 | `defineComponent` | Options API, Class-based migration, JSX/TSX components |
 | `<script setup>` | New components, better type inference, less boilerplate |
 

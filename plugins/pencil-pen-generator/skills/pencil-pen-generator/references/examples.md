@@ -447,7 +447,7 @@ All examples use version `"2.8"`, 5-char random alphanumeric IDs, `--` prefix va
 When converting from Vue3 + Tailwind, map these common patterns:
 
 | Tailwind Class | .pen Equivalent |
-|---|---|
+|-|-|
 | `flex flex-col` | `layout: "vertical"` |
 | `flex flex-row` | `layout: "horizontal"` |
 | `gap-4` | `gap: 16` |

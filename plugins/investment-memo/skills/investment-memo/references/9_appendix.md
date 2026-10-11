@@ -32,7 +32,7 @@ The BCSA framework assesses whether a product achieves adoption readiness across
 ### The Four Dimensions
 
 | Dimension | Axis | Core Question | Assessment Focus |
-|-----------|:---:|---|---|
+|-|:-:|-|-|
 | **B — Better** | Business Case (B+C) | Does the product deliver measurable, quantifiable value for the **decision-maker** (not the engineer)? | Value and impact for customers, ESG factors, quality/uptime/performance, ease of use, design/brand |
 | **C — Cheaper** | Business Case (B+C) | Is the product cheaper from the perspective of the **relevant decision-maker** — CAPEX, OPEX, TCO, or NOI? | Initial CAPEX, fees (initial + recurring), total installation cost, total lifetime costs. Critical: Which cost metric matters to the decision-maker at this stage of the value chain? |
 | **S — Simpler** | Ease of Adoption (S+A) | Is the product at least as easy to understand, integrate, and operate as the existing solution? | Comprehensibility, simulation/forecasting capability pre-purchase, installation and integration effort, required changes at the customer, operating/service complexity, compatibility with existing and future systems |
@@ -59,7 +59,7 @@ Microshade produces automated shading systems for buildings to reduce energy con
 ### BCSA Benchmarks
 
 | Metric | Strong BCSA Signal | Weak BCSA Signal |
-|--------|:---:|:---:|
+|-|:-:|:-:|
 | Customer conversion rate | >65% | <30% |
 | Gross Profit / Cost of Engagement ratio | Above-average | Below-average |
 | Sales cycle length | Shorter than competitors | Longer than competitors |
@@ -98,7 +98,7 @@ Technology Readiness Level (Y-axis)
 ### Y-Axis: Technology Readiness Level (TRL 1–9)
 
 | TRL Cluster | TRL | Description |
-|-------------|:---:|-------------|
+|-|:-:|-|
 | Scientific Breakthrough | 1–2 | Basic research, observed principles |
 | Proof of Concept | 3–4 | Technology concept validated, laboratory validation |
 | Demonstration | 5–6 | Validation in relevant / operational environment |
@@ -108,7 +108,7 @@ Technology Readiness Level (Y-axis)
 ### X-Axis: Market Certainty for a Huge Market (1–6)
 
 | Level | Label | Description |
-|:---:|---|---|
+|:-:|-|-|
 | 1 | Unclear if there is a market at all | No identifiable market application |
 | 2 | Niche market | Small, limited market identified |
 | 3 | Established niche, first indications of scaling | Niche established, early scaling signals |
@@ -119,7 +119,7 @@ Technology Readiness Level (Y-axis)
 ### Matrix Zones and Investability
 
 | Zone | TRL Range | Market Range | Characteristics | Investability |
-|------|:---:|:---:|---|:---:|
+|-|:-:|:-:|-|:-:|
 | **No Money Land** | TRL 1–3 at Market 1–2 | Low × Low | "Double Bet" — both technology AND market unproven. Also: TRL >6 without identifiable market | Not VC-fundable |
 | **Pre-Seed** | TRL 3–5 | Market 2–4 | Use-case hypothesis with initial technical feasibility and IP | €1–5M rounds |
 | **Seed** | TRL 4–6 | Market 3–5 | Customer validation through LOIs, pilots, PoC. Prototype functional | €3–10M rounds |
@@ -131,7 +131,7 @@ Technology Readiness Level (Y-axis)
 ### Stage Expectations (Benchmark Table)
 
 | Dimension | Pre-Seed | Seed | Series A | Series B |
-|-----------|----------|------|----------|----------|
+|-|-|-|-|-|
 | **Tech** | TRL 4, unique science, IP initiated | TRL 5, small-scale demo, first IP granted | TRL 5/6, MVP ready, science proven, additional IP | TRL 8/9, product ready for scaling |
 | **Market & Product** | Application hypothesis, potential disruption | Disruptive target application identified, huge market | Application & pain confirmed incl. quantified value | Data-based GTM defined, expansion strategy |
 | **Commercial** | — | Business case discussed with customers, buying center understood | PMF understood and quantified, paid PoCs >€100K | PMF proven, USP & value proven, pipeline >€10M |
@@ -152,7 +152,7 @@ The 6-point verdict scale replaces the previous dual system (Conviction Level + 
 ### Verdict Scale
 
 | Verdict | Definition |
-|---------|-----------|
+|-|-|
 | **STRONG PASS** | Fundamental problems — broken unit economics, unfixable market issues, team red flags, or the opportunity simply isn't venture-scale. Don't waste IC time. |
 | **PASS** | Decent team or idea but significant concerns unlikely to be resolved. Missing PMF signals at a stage where expected. Competitive dynamics unfavorable. |
 | **LEAN PASS** | Interesting but not compelling enough. Market may be real but the team is B+, or the product is good but the moat is thin. Worth tracking but not investing today. |
@@ -219,7 +219,7 @@ The 6-point verdict scale replaces the previous dual system (Conviction Level + 
 What instrument is used? Priced equity round, convertible note, SAFE, or subordinated shareholder loan? Assess the liquidation preference structure and its interaction with existing investor preferences (if any prior round).
 
 | Term | Market Standard (Seed DACH, 2025) | Proposed | ☐ Standard |
-|------|---|---|:---:|
+|-|-|-|:-:|
 | Instrument | Equity or convertible loan | [___] | ☐ |
 | Liquidation preference | 1x non-participating | [___] | ☐ |
 | Anti-dilution | Weighted average broad-based | [___] | ☐ |
@@ -234,7 +234,7 @@ What instrument is used? Priced equity round, convertible note, SAFE, or subordi
 Board representation, protective provisions (consent catalog), information and reporting commitments, and operational governance structure.
 
 | Term | Market Standard | Proposed | ☐ Standard |
-|------|---|---|:---:|
+|-|-|-|:-:|
 | Board seat(s) | 1 investor seat (Seed) / 2 (Series A) | [___] | ☐ |
 | Protective provisions | Standard catalog (>€100K transactions, new equity, M&A) | [___] | ☐ |
 | Information rights | Quarterly financials + annual audit | [___] | ☐ |

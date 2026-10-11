@@ -5,7 +5,7 @@ Use this file as the review checklist for agentic code. Each row names the mista
 ## Architecture and state
 
 | Anti-pattern | Problem | Fix |
-|---|---|---|
+|-|-|-|
 | Two engines owning the same concern (Pydantic AI graph or CrewAI Flow inside a LangGraph node, two durable engines) | They disagree after a crash or retry | One owner per concern (`architecture.md`) |
 | Framework objects in state (agents, results, clients) | Not serializable, breaks checkpoints | Adapter nodes deflate to JSON |
 | `TypedDict` for complex values | No runtime validation | Pydantic payloads in a TypedDict envelope |
@@ -23,7 +23,7 @@ Use this file as the review checklist for agentic code. Each row names the mista
 ## Models and agents
 
 | Anti-pattern | Problem | Fix |
-|---|---|---|
+|-|-|-|
 | Model ID literal in `Agent(...)` or `LLM(...)` | Can't swap per environment, test or retirement date | Model factory with tiers from configuration |
 | Prefix-less or wrong-prefix model strings | Errors, or the wrong API (e.g. Responses vs Chat Completions) | Provider-qualified strings from the factory |
 | CrewAI model with a wrong provider prefix | Silent LiteLLM fallback, then an ImportError | Native provider prefix or explicit gateway configuration |
@@ -40,7 +40,7 @@ Use this file as the review checklist for agentic code. Each row names the mista
 ## Validation and control flow
 
 | Anti-pattern | Problem | Fix |
-|---|---|---|
+|-|-|-|
 | Validating inside the generator node | Mixed concerns, unreadable traces | Validator node, then fixer node |
 | Trusting structured output | Guarantees syntax, not meaning | Client-side Pydantic validation and business rules |
 | Prompt-only constraints | LLMs break them regularly | Soft (prompt) plus hard (code) |
@@ -54,7 +54,7 @@ Use this file as the review checklist for agentic code. Each row names the mista
 ## Human-in-the-loop and persistence
 
 | Anti-pattern | Problem | Fix |
-|---|---|---|
+|-|-|-|
 | `while True` around `interrupt()` | Every resume replays all earlier passes | One interrupt per node, loop via an edge |
 | try/except around `interrupt()` | Swallows the pause mechanism | Validate the answer, not the call |
 | Non-deterministic interrupt order | Resume values land in the wrong place | Fixed order |
@@ -70,7 +70,7 @@ Use this file as the review checklist for agentic code. Each row names the mista
 ## Observability
 
 | Anti-pattern | Problem | Fix |
-|---|---|---|
+|-|-|-|
 | Shared callback handler across requests or threads | Cross-contaminated traces | One handler per invocation |
 | Handler created outside `propagate_attributes` | Spans without a session | Create it inside the context |
 | No flush in short-lived processes | Lost spans | `flush()` before exit or acknowledgement |
@@ -83,7 +83,7 @@ Use this file as the review checklist for agentic code. Each row names the mista
 ## Dependencies and operations
 
 | Anti-pattern | Problem | Fix |
-|---|---|---|
+|-|-|-|
 | Relying on install order | Non-reproducible, silently wrong versions | `uv.lock` and `uv sync --frozen` |
 | No floor pins | The resolver silently downgrades a framework | Floors plus a CI drift check |
 | Full `pydantic-ai` next to Langfuse | Pulls logfire, downgrades Langfuse | `pydantic-ai-slim[<provider>]` |
@@ -96,7 +96,7 @@ Use this file as the review checklist for agentic code. Each row names the mista
 ## Testing
 
 | Anti-pattern | Problem | Fix |
-|---|---|---|
+|-|-|-|
 | Unit tests that call real models | Cost, flakiness, leaks | Block real requests; test models |
 | Asserting on LLM wording | Flaky | Assert structure, contracts, routing |
 | `TestModel(custom_output_text=...)` for structured agents | Fails for the wrong reason | `FunctionModel` returning invalid output |

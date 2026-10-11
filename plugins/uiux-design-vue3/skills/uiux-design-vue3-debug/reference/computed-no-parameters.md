@@ -122,7 +122,7 @@ const getItemsByStatus = computed(() => {
 ## When to Use Each Approach
 
 | Scenario | Approach | Caching |
-|----------|----------|---------|
+|-|-|-|
 | Fixed filter based on reactive state | Computed | Yes |
 | Dynamic filter passed as argument | Method | No |
 | Filter options from user selection | Computed + reactive param | Yes |

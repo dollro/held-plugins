@@ -25,7 +25,7 @@
 - Track PMF progression signals by stage:
 
 | Stage | Early PMF Signals | Strong PMF Signals |
-|-------|------------------|-------------------|
+|-|-|-|
 | Pre-Seed | ICP articulates pain in their words, requests product features | ICP offers co-development resources, commits engineering time |
 | Seed | Paid pilots with defined success criteria, organic inbound interest | Pilot-to-production conversion, customer willing to be reference |
 | Series A | Production deployments, expansion within accounts | Multi-year contracts, customer-funded feature development, word-of-mouth referrals |
@@ -42,7 +42,7 @@
 - Classify the value proposition:
 
 | Value Type | Description | Validation Method | VC Attractiveness |
-|-----------|-------------|-------------------|-------------------|
+|-|-|-|-|
 | **Painkiller (critical)** | Solves urgent, high-consequence problem | Customer can quantify cost of inaction | Highest |
 | **Painkiller (operational)** | Removes friction, reduces cost/time | Before/after metrics available | High |
 | **Gain Creator (strategic)** | Enables new capability or market access | Customer can describe opportunity unlocked | Medium-High |
@@ -75,7 +75,7 @@
 - Request the written ICP definition. Evaluate specificity across dimensions:
 
 | ICP Dimension | Weak Definition | Strong Definition |
-|--------------|-----------------|-------------------|
+|-|-|-|
 | **Industry/Vertical** | "Manufacturing" | "Automotive Tier 1 suppliers, metal stamping, €100M-500M revenue" |
 | **Pain Intensity** | "They want to improve quality" | "They face €2M+ annual scrap cost, have failed prior solutions, face OEM audit pressure" |
 | **Buying Behavior** | "They buy software" | "VP Ops controls budget, CapEx threshold €200K, 9-month procurement cycle, require on-site pilot" |
@@ -90,7 +90,7 @@
 - Map the GTM strategy to the ICP:
 
 | GTM Element | Assessment Question | ICP Alignment Test |
-|------------|---------------------|-------------------|
+|-|-|-|
 | **Channel** | Direct sales, partners, PLG, hybrid? | Does the channel match how the ICP buys? |
 | **Messaging** | What's the lead message? | Does it address the ICP's specific pain in their language? |
 | **Pricing** | What's the pricing model? | Is it aligned with ICP budget cycles and procurement preferences? |
@@ -133,7 +133,7 @@
 - Assess the "lab-to-fab" gap: Where is the technology on the industrialization spectrum?
 
 | Industrialization Stage | Evidence | Key Risks |
-|------------------------|----------|-----------|
+|-|-|-|
 | **Lab prototype** | Works in controlled conditions with manual intervention | Yield, reproducibility, environmental sensitivity |
 | **Engineering prototype** | Repeatable performance, documented process | Manufacturing cost, cycle time, component availability |
 | **Pilot production** | Small batch manufacturing, process documented | Yield at scale, supplier qualification, quality consistency |
@@ -149,7 +149,7 @@
 - For deep-tech: Apply manufacturing readiness level (MRL) framework:
 
 | MRL | Description | Series A Expectation |
-|-----|-------------|---------------------|
+|-|-|-|
 | 1-3 | Manufacturing concepts identified | Pre-Seed |
 | 4-5 | Production process validated in lab | Seed |
 | 6-7 | Production demonstrated in pilot environment | Series A minimum |
@@ -164,7 +164,7 @@
 - Identify the manufacturing model: In-house, contract manufacturing (CM), hybrid? Assess the fit:
 
 | Model | Appropriate When | Risks |
-|-------|-----------------|-------|
+|-|-|-|
 | **In-house** | Core differentiation in manufacturing process, low volume/high mix | Capital intensity, operational distraction |
 | **Contract manufacturing** | Standardized processes, need to scale quickly | Quality control, IP exposure, margin compression |
 | **Hybrid** | Core process in-house, commodity assembly outsourced | Coordination complexity, supply chain fragility |
@@ -194,7 +194,7 @@
 - Map all strategic relationships by type:
 
 | Partnership Type | Value Contribution | Key Assessment Questions |
-|-----------------|-------------------|-------------------------|
+|-|-|-|
 | **Customer partners** | Revenue, market validation, co-development | Does the customer commit resources, not just interest? |
 | **Supplier partners** | Component access, manufacturing capacity, cost advantage | Is access secured contractually? Is there pricing commitment? |
 | **Technology partners** | Complementary capabilities, IP access, R&D leverage | Is the partnership exclusive? What IP sharing arrangements exist? |
@@ -208,7 +208,7 @@
 - Assess supplier partnership depth:
 
 | Supplier Relationship Level | Characteristics |
-|---------------------------|-----------------|
+|-|-|
 | **Transactional** | Standard terms, no volume commitment, commodity pricing |
 | **Preferred** | Volume commitment, priority allocation, negotiated pricing |
 | **Strategic** | Joint development, custom specifications, capacity reservation |
@@ -259,7 +259,7 @@
 - Classify the revenue model and assess its recurring quality:
 
 | Model Component | Recurring Quality | VC Attractiveness |
-|---|---|---|
+|-|-|-|
 | SaaS subscription (platform access) | High | Highest |
 | Usage-based (per-unit, per-scan, per-analysis) | Medium-High | High (if usage grows with customer) |
 | Maintenance/support contracts | Medium | Medium-High |
@@ -290,7 +290,7 @@
 - Request the founders' unit economics calculation. For deep-tech, ensure full cost loading:
 
 | Cost Component | Often Underestimated | Full Loading Includes |
-|---------------|---------------------|----------------------|
+|-|-|-|
 | **COGS - Hardware** | BOM cost only | + Manufacturing overhead, yield loss, quality assurance, packaging, logistics |
 | **COGS - Software** | Marginal cost = ~zero | + Cloud infrastructure, data storage, support tools |
 | **Customer Acquisition** | Marketing + sales only | + Pre-sales engineering, pilot hardware/deployment, technical support during evaluation |
@@ -307,7 +307,7 @@
 - Map the cost-down roadmap. For hardware deep-tech, costs typically improve through:
 
 | Cost-Down Lever | Typical Impact | Timing |
-|----------------|----------------|--------|
+|-|-|-|
 | **Manufacturing learning curve** | 10-20% per doubling of cumulative volume | Ongoing with production |
 | **BOM optimization** | 15-30% through component redesign | 12-24 months post-production |
 | **Volume discounts from suppliers** | 10-25% at scale commitments | Negotiated with growth |
@@ -321,7 +321,7 @@
 - Ask: "If you 10x revenue, what happens to your cost structure?" Evaluate each cost category:
 
 | Cost Category | Scales with Revenue? | Operating Leverage |
-|--------------|---------------------|-------------------|
+|-|-|-|
 | **Cloud/infrastructure** | Partially (efficiency gains possible) | Medium |
 | **Manufacturing/COGS** | Yes, but learning curves help | Medium |
 | **R&D** | Less than linearly if product stabilizes | High |
@@ -340,7 +340,7 @@
 - Identify which elements of the business scale with capital vs. headcount:
 
 | Scales with Capital | Scales with Headcount |
-|--------------------|----------------------|
+|-|-|
 | Manufacturing capacity | Field deployment/installation |
 | Cloud infrastructure | Customer success management |
 | Software deployment | Pre-sales engineering (early stage) |
@@ -367,7 +367,7 @@
 > Concentration risk is assessed across all three DVF dimensions as a cross-cutting vulnerability overlay. Rather than scoring independently, critical concentration risks trigger Red Flag assessment and inform the scoring of the criteria above. Any single-point-of-failure exceeding 30% exposure in any dimension warrants explicit documentation and mitigation assessment.
 
 | Dependency Type | DVF Dimension | Key Question | Red Flag Threshold |
-|---|---|---|---|
+|-|-|-|-|
 | **Customer** | Desirability | Would losing the top customer eliminate >30% of revenue/pipeline? | >50% revenue from single customer |
 | **ICP segment** | Desirability | Is the entire value proposition tied to a single industry vertical? | 100% ICP concentration with no diversification path |
 | **Manufacturing partner** | Feasibility | Is there a single contract manufacturer with no backup? | Single EMS/foundry with no alternative qualified |
@@ -403,7 +403,7 @@
 ### Chapter 6 — Scoring Summary
 
 | # | Criterion | DVF Dimension | Red Flag | Score [0–5] |
-|---|---|---|---|---|
+|-|-|-|-|-|
 | 6.1 | Customer Demand & Market Traction | Desirability | 🚩 | ___ |
 | 6.2 | ICP & GTM Strategy | Desirability | 🚩 | ___ |
 | 6.3 | Business Model Execution | Feasibility | 🚩 | ___ |

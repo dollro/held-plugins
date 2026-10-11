@@ -74,7 +74,7 @@ else:
 ## 3. Validation in three layers
 
 | Layer | Where | Mechanism | Budget |
-|---|---|---|---|
+|-|-|-|-|
 | 1. Self-correction | Inside the agent | Pydantic AI output validator raising `ModelRetry`; CrewAI guardrail | Agent output retries, guardrail retries |
 | 2. Validator node | Graph | Pydantic validation of the deflated payload, plus business rules | — |
 | 3. Fixer node | Graph | Precise errors turned into a correction prompt, routed back to the source | `max_retries` in state |

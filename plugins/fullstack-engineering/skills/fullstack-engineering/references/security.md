@@ -5,7 +5,7 @@ Baseline for web apps, internal or external. Sources: OWASP cheat sheets (sessio
 ## Auth flows
 
 | Caller | Credential | Checked by |
-|---|---|---|
+|-|-|-|
 | Browser → Django | Session cookie (HttpOnly, SameSite=Lax, Secure in production; `__Host-` name prefix in production) + `X-CSRFToken` on unsafe methods | Django session + CSRF middleware, DRF `SessionAuthentication` |
 | Browser login | Per audience (`identity.md`): company SSO over OpenID Connect via allauth (restricted to the company's tenant or realm), app accounts with verified email and MFA, local password in dev/test. Always through allauth's flows | allauth (rate limits, verification, MFA stages) |
 | Browser → realtime | Same session cookie, same origin | Realtime refuses cross-site signals, then asks Django `validate-session` |

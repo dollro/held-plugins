@@ -156,7 +156,7 @@ const user = route.meta.user
 ## Comparison of Navigation Guards
 
 | Guard | Has `this`/component? | Can delay navigation? | Use case |
-|-------|----------------------|----------------------|----------|
+|-|-|-|-|
 | beforeRouteEnter | NO (use next callback) | YES | Pre-fetch, redirect if data missing |
 | beforeRouteUpdate | YES | YES | React to param changes |
 | beforeRouteLeave | YES | YES | Unsaved changes warning |

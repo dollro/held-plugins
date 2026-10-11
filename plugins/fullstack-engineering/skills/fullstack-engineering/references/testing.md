@@ -3,7 +3,7 @@
 ## Layers
 
 | Layer | Tooling | Runs in CI | What it proves |
-|---|---|---|---|
+|-|-|-|-|
 | Lint and format | pre-commit (Ruff, hygiene, secrets guards), Oxlint + ESLint, vue-tsc | yes | Style, types, no plaintext secrets |
 | Backend unit/integration | pytest, pytest-django, pytest-asyncio, against real PostgreSQL and Redis in the dev containers | yes | Models, views, permissions, internal API, Celery tasks (eager), realtime auth |
 | Migration check | `makemigrations --check --dry-run` | yes | No model change without a migration |

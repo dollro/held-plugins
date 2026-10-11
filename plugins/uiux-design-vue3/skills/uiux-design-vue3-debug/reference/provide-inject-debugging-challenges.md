@@ -185,7 +185,7 @@ if (import.meta.env.DEV) {
 If you find yourself needing extensive debugging for state:
 
 | Use Provide/Inject | Use Pinia |
-|-------------------|-----------|
+|-|-|
 | Component library internals | Application-wide state |
 | Theme/locale configuration | User session data |
 | Form context | Shopping cart |

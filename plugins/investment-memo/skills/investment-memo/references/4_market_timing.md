@@ -57,7 +57,7 @@ Categories of timing drivers:
 Market demand is validated through strong, stage-appropriate signals as assessed per the Deep-Tech Matrix (cf. HTGF DTM, Berger/Joeressen/Fiebig 2025). Evidence goes beyond founder conviction, with demand confirmed through LOIs, paid pilots, early revenue, or competitor traction. Score based on the strength of demand signals:
 
 | Signal Strength | Evidence | Typical Score |
-|----------------|----------|:---:|
+|-|-|:-:|
 | Hypothetical | Founder conviction only | 1 |
 | Researched | Third-party reports, expert interviews | 2 |
 | Validated | Customer interviews confirm willingness to pay | 3 |
@@ -103,7 +103,7 @@ The regulatory environment creates a net positive force for the company, with re
 **Consolidated Assessment Tables:**
 
 | Regulatory Dimension | Assessment |
-|---|---|
+|-|-|
 | Market tailwind strength | [Strong / Moderate / Weak / None] — What regulation forces customers to buy? |
 | Market headwind exposure | [None / Low / Medium / High] — What regulation could suppress demand? |
 | Certification requirements | [List: CE, FDA, UL, AI Act, etc.] — Timeline and cost to obtain? |
@@ -113,7 +113,7 @@ The regulatory environment creates a net positive force for the company, with re
 | GDPR compliance status | [Compliant / In progress / Not assessed / N/A] — DPA conducted? |
 
 | ESG Dimension | Risk Level | Opportunity Level | Notes |
-|---|:---:|:---:|---|
+|-|:-:|:-:|-|
 | Environmental impact / compliance | [None / Low / Medium / High] | [None / Moderate / Strong] | [Describe] |
 | Social (labor, ethics, DEI) | [None / Low / Medium / High] | [None / Moderate / Strong] | [Describe] |
 | Governance | [None / Low / Medium / High] | N/A | [Describe] |
@@ -151,7 +151,7 @@ The company has minimal exposure to macro-economic shocks, geopolitical disrupti
 - **Geopolitical scenario planning:** Identify the 2–3 most plausible geopolitical scenarios that could impact the business (e.g., Taiwan conflict disrupting semiconductor supply, US-EU trade tensions, energy crisis). For each: What is the probability? What is the impact magnitude? What is the mitigation plan?
 
 | Risk Dimension | Exposure Level | Specific Risk | Mitigation |
-|---|:---:|---|---|
+|-|:-:|-|-|
 | Supply chain geographic concentration | [None / Low / Medium / High] | [Describe] | [Describe] |
 | Energy / materials price sensitivity | [None / Low / Medium / High] | [Describe] | [Describe] |
 | Trade policy / sanctions / export control | [None / Low / Medium / High] | [Describe] | [Describe] |

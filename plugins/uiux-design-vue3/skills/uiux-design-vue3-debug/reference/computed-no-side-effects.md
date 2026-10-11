@@ -95,7 +95,7 @@ function increment() {
 ## What Counts as a Side Effect
 
 | Side Effect Type | Example | Alternative |
-|-----------------|---------|-------------|
+|-|-|-|
 | State mutation | `otherRef.value = x` | Use watcher |
 | API calls | `fetch()`, `axios()` | Use watcher or lifecycle hook |
 | DOM manipulation | `document.title = x` | Use watcher |

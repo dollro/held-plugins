@@ -176,7 +176,7 @@ const currentComponent = computed(() => componentRegistry[currentView.value])
 ## When to Use Each Approach
 
 | Scenario | Solution |
-|----------|----------|
+|-|-|
 | Single dynamic component reference | `shallowRef` |
 | Component in reactive array/object | `markRaw` on component |
 | Component map/registry | `markRaw` each component |

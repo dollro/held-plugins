@@ -22,7 +22,7 @@ Understanding these differences is crucial when working with numeric forms, espe
 **Key Differences:**
 
 | Scenario | `.number` modifier | Native `valueAsNumber` |
-|----------|-------------------|----------------------|
+|-|-|-|
 | Empty input | `''` (empty string) | `NaN` |
 | `"123"` | `123` | `123` |
 | `"123.45"` | `123.45` | `123.45` |

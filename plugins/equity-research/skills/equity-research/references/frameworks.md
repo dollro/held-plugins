@@ -23,7 +23,7 @@
 Before any financial benchmarking, classify the company into a sector group. This determines which benchmark corridors, growth expectations, and valuation parameters to use throughout the analysis.
 
 | Sector Group | Examples | Primary Valuation | Key Metrics |
-|---|---|---|---|
+|-|-|-|-|
 | **High-Growth Tech** | Cloud SaaS, semiconductors, platform tech | EV/Revenue, EV/EBITDA, P/E | Revenue growth, NRR, Rule of 40, gross margin |
 | **Mature Tech** | Legacy software, hardware, IT services | P/E, EV/EBITDA, FCF yield | Margin stability, FCF conversion, capital returns |
 | **Consumer Discretionary** | Retail, restaurants, travel, luxury | P/E, EV/EBITDA | Same-store growth, margin trend, brand strength |
@@ -47,7 +47,7 @@ These corridors define "good," "adequate," and "concerning" ranges for key finan
 #### High-Growth Tech (Revenue Growth > 20%)
 
 | Metric | Strong [5] | Adequate [3] | Weak [1] |
-|---|---|---|---|
+|-|-|-|-|
 | Revenue Growth (YoY) | > 30% | 15–30% | < 15% |
 | Gross Margin | > 75% | 60–75% | < 60% |
 | Rule of 40 (Growth + FCF Margin) | > 50 | 30–50 | < 30 |
@@ -58,7 +58,7 @@ These corridors define "good," "adequate," and "concerning" ranges for key finan
 #### Mature Tech / Software
 
 | Metric | Strong [5] | Adequate [3] | Weak [1] |
-|---|---|---|---|
+|-|-|-|-|
 | Revenue Growth (YoY) | > 10% | 5–10% | < 5% |
 | Operating Margin | > 30% | 20–30% | < 20% |
 | FCF Conversion (FCF/Net Income) | > 100% | 80–100% | < 80% |
@@ -68,7 +68,7 @@ These corridors define "good," "adequate," and "concerning" ranges for key finan
 #### Consumer Staples / Defensives
 
 | Metric | Strong [5] | Adequate [3] | Weak [1] |
-|---|---|---|---|
+|-|-|-|-|
 | Organic Revenue Growth | > 5% | 2–5% | < 2% |
 | Operating Margin | > 20% | 12–20% | < 12% |
 | FCF Conversion | > 90% | 70–90% | < 70% |
@@ -78,7 +78,7 @@ These corridors define "good," "adequate," and "concerning" ranges for key finan
 #### Industrials / Cyclicals
 
 | Metric | Strong [5] | Adequate [3] | Weak [1] |
-|---|---|---|---|
+|-|-|-|-|
 | Revenue Growth (through-cycle avg) | > 8% | 3–8% | < 3% |
 | EBITDA Margin | > 20% | 12–20% | < 12% |
 | ROIC (through-cycle) | > 15% | 8–15% | < 8% |
@@ -89,7 +89,7 @@ These corridors define "good," "adequate," and "concerning" ranges for key finan
 #### Financials — Banks
 
 | Metric | Strong [5] | Adequate [3] | Weak [1] |
-|---|---|---|---|
+|-|-|-|-|
 | ROE | > 15% | 10–15% | < 10% |
 | CET1 Ratio | > 13% | 10.5–13% | < 10.5% |
 | Net Interest Margin | > 3.5% | 2.5–3.5% | < 2.5% |
@@ -100,7 +100,7 @@ These corridors define "good," "adequate," and "concerning" ranges for key finan
 #### Healthcare / Pharma
 
 | Metric | Strong [5] | Adequate [3] | Weak [1] |
-|---|---|---|---|
+|-|-|-|-|
 | Revenue Growth | > 8% | 3–8% | < 3% |
 | Gross Margin | > 70% | 55–70% | < 55% |
 | R&D as % of Revenue | 15–25% (balanced) | 10–15% or 25–35% | < 10% or > 35% |
@@ -110,7 +110,7 @@ These corridors define "good," "adequate," and "concerning" ranges for key finan
 #### Energy
 
 | Metric | Strong [5] | Adequate [3] | Weak [1] |
-|---|---|---|---|
+|-|-|-|-|
 | FCF Yield | > 10% | 5–10% | < 5% |
 | Net Debt / EBITDA | < 1x | 1–2x | > 2x |
 | Breakeven Price (oil) | < $40/bbl | $40–55/bbl | > $55/bbl |
@@ -120,7 +120,7 @@ These corridors define "good," "adequate," and "concerning" ranges for key finan
 #### REITs
 
 | Metric | Strong [5] | Adequate [3] | Weak [1] |
-|---|---|---|---|
+|-|-|-|-|
 | AFFO Growth | > 5% | 2–5% | < 2% |
 | Occupancy Rate | > 95% | 90–95% | < 90% |
 | Same-Property NOI Growth | > 4% | 1–4% | < 1% |
@@ -135,7 +135,7 @@ These corridors define "good," "adequate," and "concerning" ranges for key finan
 ### 25 Criteria, 6 Chapters
 
 | Chapter | Weight | Criteria Count | Focus |
-|---|---|---|---|
+|-|-|-|-|
 | 1. Fundamental Quality | 35% | 6 | Financial health, growth, profitability, cash flow |
 | 2. Valuation | 20% | 4 | Absolute, relative, historical, intrinsic value |
 | 3. Competitive Position & Moat | 15% | 4 | Moat durability, market share, pricing power |
@@ -146,7 +146,7 @@ These corridors define "good," "adequate," and "concerning" ranges for key finan
 ### Scoring Scale [1–5]
 
 | Score | Meaning |
-|:---:|---|
+|:-:|-|
 | 5 | Exceptional — top decile quality for this metric/dimension. Structural advantage. |
 | 4 | Strong — clearly above average, no material concerns. Well-positioned. |
 | 3 | Adequate — meets expectations for the sector and stage. Minor gaps. |
@@ -183,7 +183,7 @@ Where `ChN_avg` = arithmetic mean of all criteria scores in Chapter N.
 ### Verdict Scale
 
 | IAS Range | Verdict | Definition |
-|---|---|---|
+|-|-|-|
 | 85–100 | **Strong Buy** | Exceptional — significantly undervalued with structural tailwinds and durable moat. Rare. |
 | 70–84 | **Buy** | Compelling risk/reward — solid fundamentals, reasonable valuation, identifiable catalysts. |
 | 55–69 | **Hold** | Fair value or mixed picture — fundamentals adequate but no clear catalyst or margin of safety. |
@@ -199,7 +199,7 @@ Chance/Risk Ratio = (Bull upside % × bull probability + Base upside % × base p
 ```
 
 | Ratio | Interpretation |
-|---|---|
+|-|-|
 | > 3.0 | Highly favorable skew — asymmetric upside |
 | 2.0–3.0 | Favorable — reward clearly exceeds risk |
 | 1.0–2.0 | Balanced — roughly symmetrical |
@@ -215,7 +215,7 @@ Chance/Risk Ratio = (Bull upside % × bull probability + Base upside % × base p
 Every analysis must include three explicit scenarios with probability weights that sum to 100%.
 
 | Scenario | Typical Probability | What It Assumes | Price Target Basis |
-|---|---|---|---|
+|-|-|-|-|
 | **Bull** | 15–30% | Everything goes right. Beat-and-raise quarters. Multiple expansion. Catalysts hit. | Highest reasonable valuation on optimistic earnings |
 | **Base** | 45–60% | Consensus path. Current trajectory continues. No major surprises. | Fair value on normalized earnings |
 | **Bear** | 15–30% | Key risks materialize. Miss estimates. Multiple compression. | Trough valuation on stressed earnings |
@@ -239,7 +239,7 @@ This produces the expected value price target. Compare to current price for upsi
 Map expected catalysts on a timeline:
 
 | Timeframe | Catalyst Type | Examples |
-|---|---|---|
+|-|-|-|
 | 0–3 months | Earnings/guidance | Next quarter report, guidance update |
 | 3–6 months | Product/operational | Product launch, FDA decision, contract win |
 | 6–12 months | Strategic | M&A, restructuring, new market entry |
@@ -253,7 +253,7 @@ Map expected catalysts on a timeline:
 Based on the composite Chapter 1 (Fundamental Quality) score, companies fall into quality tiers that affect valuation expectations:
 
 | Quality Tier | Ch1 Avg Score | Characteristics | Valuation Implications |
-|---|---|---|---|
+|-|-|-|-|
 | **Compounder** | 4.5–5.0 | High ROIC, durable margins, consistent growth, fortress balance sheet, excellent FCF conversion. These compound intrinsic value year after year. | Deserves premium multiple. Fair value on upper-quartile historical range. Rarely cheap — focus on entry timing. |
 | **Quality** | 3.5–4.4 | Above-average fundamentals with minor gaps. Good but not exceptional. Some cyclicality or competitive pressure. | Deserves sector-average to modest premium. Look for entry points during temporary dislocation. |
 | **Average** | 2.5–3.4 | Meets basic expectations. Mixed signals — some strong metrics, some weak. Thesis depends on improvement story. | Should trade at or below sector average multiples. Requires clear catalyst for upgrade. |

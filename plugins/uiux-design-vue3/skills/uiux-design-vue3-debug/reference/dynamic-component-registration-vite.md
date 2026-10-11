@@ -136,7 +136,7 @@ app.mount('#app')
 ## Migration Checklist (Webpack to Vite)
 
 | Webpack | Vite |
-|---------|------|
+|-|-|
 | `require.context(dir, recursive, regex)` | `import.meta.glob(pattern, options)` |
 | Synchronous by default | Use `{ eager: true }` for sync |
 | `.keys()` returns array | Returns object with paths as keys |

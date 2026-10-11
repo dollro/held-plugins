@@ -177,7 +177,7 @@ It does NOT affect:
 ## Quick Reference
 
 | Pattern | Safe? | Notes |
-|---------|-------|-------|
+|-|-|-|
 | `@click="store.method()"` | Yes | Explicit call preserves context |
 | `@click="store.method"` | No* | Context may be lost |
 | `@click="() => store.method()"` | Yes | Arrow wrapper preserves context |

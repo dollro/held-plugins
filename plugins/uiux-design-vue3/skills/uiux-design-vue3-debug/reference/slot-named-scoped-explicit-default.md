@@ -85,7 +85,7 @@ import MyComponent from './MyComponent.vue'
 When you have **any** named slots (`<template #name>`), always use explicit templates for **all** slots, including the default slot. This makes scope boundaries clear and prevents compilation errors.
 
 | Pattern | Valid? | Notes |
-|---------|--------|-------|
+|-|-|-|
 | `v-slot` on component only | Yes | Single default scoped slot |
 | Named templates only | Yes | Multiple named slots |
 | `v-slot` on component + named templates | No | Ambiguous scope |

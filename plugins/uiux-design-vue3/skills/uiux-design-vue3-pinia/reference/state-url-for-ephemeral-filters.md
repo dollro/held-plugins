@@ -194,7 +194,7 @@ export const useProductFiltersStore = defineStore('productFilters', () => {
 ## What Goes in URL vs Store
 
 | State Type | URL | Store | Notes |
-|------------|-----|-------|-------|
+|-|-|-|-|
 | Filters | Yes | Optional | Shareable, bookmarkable |
 | Search query | Yes | Optional | SEO benefit |
 | Pagination | Yes | Optional | Deep linking |

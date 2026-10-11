@@ -106,7 +106,7 @@ export default defineConfig({
 ## Other Attribute Differences
 
 | React JSX | Vue JSX | HTML |
-|-----------|---------|------|
+|-|-|-|
 | className | class | class |
 | htmlFor | for | for |
 | onChange | onInput (for live updates) | oninput |

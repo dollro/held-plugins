@@ -268,7 +268,7 @@ onMounted(() => {
 ## Common Error Messages
 
 | Error | Likely Cause |
-|-------|--------------|
+|-|-|
 | "Hydration text content mismatch" | Different text on server/client (dates, random) |
 | "Hydration children mismatch" | Invalid HTML nesting, conditional rendering |
 | "Hydration attribute mismatch" | Dynamic attributes with different values |

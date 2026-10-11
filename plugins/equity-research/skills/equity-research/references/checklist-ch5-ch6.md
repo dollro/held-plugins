@@ -59,7 +59,7 @@
 **Risk matrix output format:**
 
 | Risk Factor | Probability | Severity | Mitigation | Monitoring Trigger |
-|---|---|---|---|---|
+|-|-|-|-|-|
 | [Risk 1] | H/M/L | H/M/L | [Company mitigation] | [What to watch] |
 | [Risk 2] | H/M/L | H/M/L | [Company mitigation] | [What to watch] |
 | [Risk 3] | H/M/L | H/M/L | [Company mitigation] | [What to watch] |

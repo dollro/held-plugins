@@ -168,7 +168,7 @@ router.afterEach((to, from) => {
 ## Common Redirect Loop Patterns
 
 | Pattern | Problem | Fix |
-|---------|---------|-----|
+|-|-|-|
 | Auth check without exclusion | Login redirects to login | Exclude `/login` from check |
 | Role-based with circular deps | Admin -> User -> Admin | Use single source of truth for role requirements |
 | Onboarding flow | Step 1 -> Step 2 -> Step 1 | Track completion state properly |

@@ -7,7 +7,7 @@ Last reviewed: 2026-10-10. The stack choices were checked against these sources 
 ## Backend
 
 | Component | Docs | Changes |
-|---|---|---|
+|-|-|-|
 | Django | https://docs.djangoproject.com/ | https://docs.djangoproject.com/en/stable/releases/ · supported versions: https://www.djangoproject.com/download/ |
 | Django REST framework | https://www.django-rest-framework.org/ | https://www.django-rest-framework.org/community/release-notes/ |
 | django-allauth | https://docs.allauth.org/ | https://docs.allauth.org/en/latest/release-notes/ · Microsoft provider: https://docs.allauth.org/en/latest/socialaccount/providers/microsoft.html · MFA: https://docs.allauth.org/en/latest/mfa/configuration.html · admin: https://docs.allauth.org/en/latest/common/admin.html |
@@ -26,7 +26,7 @@ Last reviewed: 2026-10-10. The stack choices were checked against these sources 
 ## Frontend
 
 | Component | Docs | Changes |
-|---|---|---|
+|-|-|-|
 | Vue | https://vuejs.org/ | https://github.com/vuejs/core/releases |
 | create-vue | https://github.com/vuejs/create-vue | `pnpm dlx create-vue@latest --help` |
 | Vite | https://vite.dev/ | https://vite.dev/guide/migration · backend integration: https://vite.dev/guide/backend-integration · env variables: https://vite.dev/guide/env-and-mode |
@@ -43,7 +43,7 @@ Last reviewed: 2026-10-10. The stack choices were checked against these sources 
 ## Platform
 
 | Component | Docs |
-|---|---|
+|-|-|
 | uv | https://docs.astral.sh/uv/ · Docker guide: https://docs.astral.sh/uv/guides/integration/docker/ |
 | Ruff | https://docs.astral.sh/ruff/ · pre-commit hooks: https://github.com/astral-sh/ruff-pre-commit |
 | Docker Compose | https://docs.docker.com/compose/ · startup order: https://docs.docker.com/compose/how-tos/startup-order/ |
@@ -71,7 +71,7 @@ Last reviewed: 2026-10-10. The stack choices were checked against these sources 
 ## Security guidance
 
 | Topic | Source |
-|---|---|
+|-|-|
 | Authentication | https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html |
 | Multi-factor authentication | https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html |
 | Session management | https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html |

@@ -113,7 +113,7 @@ tags: [vue3, conditional-rendering, v-show, template, limitations]
 ## When to Choose Each
 
 | Need | Use |
-|------|-----|
+|-|-|
 | Toggle multiple elements with CSS | Wrap in real element + `v-show` |
 | Toggle multiple elements without wrapper | `<template v-if>` |
 | Need v-else branches | `v-if`/`v-else` |

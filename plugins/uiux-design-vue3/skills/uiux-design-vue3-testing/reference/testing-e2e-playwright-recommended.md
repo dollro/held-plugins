@@ -120,7 +120,7 @@ test.describe('User Authentication', () => {
 ## Playwright vs Cypress Comparison
 
 | Feature | Playwright | Cypress |
-|---------|------------|---------|
+|-|-|-|
 | Browsers | Chromium, Firefox, WebKit | Chromium, Firefox, Electron (WebKit experimental) |
 | Cross-browser | Full support | Limited |
 | Parallelization | Built-in | Requires Cypress Cloud |

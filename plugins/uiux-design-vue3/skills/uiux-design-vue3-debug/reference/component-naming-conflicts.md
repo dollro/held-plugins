@@ -148,7 +148,7 @@ import { Button as ElButton } from 'element-plus'
 ## Naming Convention Strategy
 
 | Component Type | Naming Pattern | Example |
-|----------------|---------------|---------|
+|-|-|-|
 | Base/Global | `Base*` or `App*` prefix | `BaseButton`, `AppHeader` |
 | Domain-specific | Domain prefix | `UserCard`, `ProductList` |
 | Page components | `*Page` or `*View` suffix | `HomePage`, `UserView` |

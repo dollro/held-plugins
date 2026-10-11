@@ -36,7 +36,7 @@ the fullstack-engineer build …").
 ### Product management: from idea to issues
 
 | Plugin | What it does |
-|---|---|
+|-|-|
 | `prfaq-vision-builder` | Guided Working Backwards PR/FAQ: a future-state press release plus lean FAQ, to align a team on a vision |
 | `product-roadmap-3-layers` | Roadmap in three layers (Business Outcomes, Product & Features, Tech Enablers) in Now/Next/Later, from an interview or a Notion roadmap database |
 | `braindump2prd` | Interviews a product manager and turns a feature idea into a plain-language PRD and spec, handed over to the issue tracker |
@@ -45,7 +45,7 @@ the fullstack-engineer build …").
 ### Delivery: how work gets built
 
 | Plugin | What it does |
-|---|---|
+|-|-|
 | `engineering-standards` | Small reviewable pull requests, CLAUDE.md structure, where docs and plans live, how to implement an issue, agent sandbox practice (code in the sandbox, stack on the host); `/branch` starts a branch with its `plans/` folder; `/sandbox <type>/<name>` creates a worktree and a Docker Sandbox for it, checks both and prints the one line to attach Claude; `--stack` sizes it so the agent runs the Docker stack and integration tests inside the sandbox itself. Swappable organisation profile |
 | `agent-team` | Runs several issues (or one large one) with parallel coding agents: mechanism choice (worktrees or Agent Teams), parallel-safety check, contracts first, quality gates, one PR at a time |
 | `brainstorming` | `/design-first`: explore intent, requirements and design before larger changes; skipped for one-sentence diffs |
@@ -57,7 +57,7 @@ built-in `/security-review`; this marketplace does not duplicate them.
 ### Engineering: reference stacks and agents
 
 | Plugin | What it does |
-|---|---|
+|-|-|
 | `fullstack-engineering` | Guideline and tested reference stack for web apps (Django + optional FastAPI realtime, Vue 3, PostgreSQL, Redis, Celery, Docker, Task, SOPS), login for internal staff (company SSO over OpenID Connect), external users (accounts with MFA) or both, staging and production from the same image; `/fullstack-scaffold` generates a new repo that passes its own CI, the `fullstack-engineer` agent builds features |
 | `agentic-engineering` | Standards for production agent systems: LangGraph, Pydantic AI, CrewAI, Langfuse; state, model tiers, validation, human-in-the-loop, evals; the `agentic-engineer` agent builds them |
 | `prompt-engineering` | Prompt design, evaluation frameworks and production prompt systems; the `prompt-engineer` agent |
@@ -66,7 +66,7 @@ built-in `/security-review`; this marketplace does not duplicate them.
 ### UI/UX design and frontend
 
 | Plugin | What it does |
-|---|---|
+|-|-|
 | `uiux-design-system` | Design system architecture: component hierarchy, three-tier tokens (DTCG), theming, typography, accessibility (WCAG 2.2) |
 | `uiux-design-tailwindv4` | Design systems in Tailwind CSS v4: CSS-first theme, semantic tokens, OKLCH colours, component variants, dark mode |
 | `uiux-design-vue3` | Vue 3 skills: Composition API, router, Pinia, composables, testing, debugging |
@@ -79,7 +79,7 @@ built-in `/security-review`; this marketplace does not duplicate them.
 ### Analysis
 
 | Plugin | What it does |
-|---|---|
+|-|-|
 | `equity-research` | Equity research with chance/risk reports, DCF valuation and a recommendation for US-listed stocks |
 | `investment-memo` | VC investment memos (seed, Series A) from pitch decks and DD material, scored across team, technology, market, competition, business model and financials |
 
@@ -198,7 +198,7 @@ also works with files.
 them and install the replacements by hand:
 
 | Retired | Replacement |
-|---|---|
+|-|-|
 | `ai-dev` | `agentic-engineering` |
 | `branch` | `engineering-standards` (includes `/branch`) |
 | `braindump2spec` | `braindump2prd` |

@@ -5,7 +5,7 @@
 `Taskfile.yml` is the interface for people, agents and CI. Typical targets:
 
 | Target | Does |
-|---|---|
+|-|-|
 | `setup` | Env file (decrypt or copy example), build images, install frontend deps |
 | `dev:up` / `dev:ps` / `dev:logs` / `dev:restart` / `dev:down` / `dev:reset` | Local stack: start in the background (`up -d --wait`), state, logs, recreate after env changes, stop, delete local data (with a prompt) |
 | `dev:manage -- <cmd>` | Django management commands in the container |

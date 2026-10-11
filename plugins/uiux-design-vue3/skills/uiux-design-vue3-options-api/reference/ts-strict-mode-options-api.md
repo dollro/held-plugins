@@ -85,7 +85,7 @@ All of the above errors compile successfully without strict mode because `this` 
 The `strict` flag is a shorthand for enabling multiple type-checking options:
 
 | Option | Effect |
-|--------|--------|
+|-|-|
 | `noImplicitThis` | Errors on `this` with implicit `any` type |
 | `noImplicitAny` | Errors on expressions with implicit `any` type |
 | `strictNullChecks` | null and undefined are distinct types |

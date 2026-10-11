@@ -110,7 +110,7 @@ Another error occurs when you have multiple v-slot directives - only the first i
 ## Valid v-slot Locations
 
 | Element Type | v-slot Allowed? | Example |
-|--------------|-----------------|---------|
+|-|-|-|
 | Component | Yes | `<MyComponent v-slot="props">` |
 | `<template>` | Yes | `<template #header>` |
 | `<div>` | No | Compilation error |

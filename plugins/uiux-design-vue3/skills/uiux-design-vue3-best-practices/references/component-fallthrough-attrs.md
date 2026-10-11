@@ -56,7 +56,7 @@ console.log(attrs.onMouseEnter)
 ### Naming Reference
 
 | Parent Usage | Access in `attrs` |
-|--------------|-------------------|
+|-|-|
 | `class="foo"` | `attrs.class` |
 | `data-id="123"` | `attrs['data-id']` |
 | `aria-label="..."` | `attrs['aria-label']` |

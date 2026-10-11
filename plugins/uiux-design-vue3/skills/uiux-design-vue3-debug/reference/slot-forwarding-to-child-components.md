@@ -132,7 +132,7 @@ If you only want to forward certain slots:
 ## Common Mistakes
 
 | Mistake | Problem | Solution |
-|---------|---------|----------|
+|-|-|-|
 | Not using `v-bind="slotProps"` | Scoped slot data lost | Always bind slotProps |
 | Forgetting `?? {}` or null check | Error when slotProps undefined | Add nullish coalescing |
 | Static slot names in loop | Only forwards one slot | Use `v-slot:[slotName]` dynamic syntax |

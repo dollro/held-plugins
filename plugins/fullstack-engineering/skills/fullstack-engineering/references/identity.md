@@ -5,7 +5,7 @@ Who logs in decides the auth setup more than any framework choice. Decide it per
 ## Choose the audience
 
 | Audience | Typical app | Login | Second factor |
-|---|---|---|---|
+|-|-|-|-|
 | **Internal** | Staff tools, dashboards, agent UIs for the team | Company identity provider over OpenID Connect, restricted to the company. Local password login only in development and end-to-end tests | The identity provider |
 | **External** | Customer portal, applicant portal, partner portal | Accounts in the app: email + password, verified email, invitation or open signup | In the app (authenticator app, passkey, recovery codes); required where the data is confidential |
 | **Mixed** | Portal for externals plus a back office for staff | Staff via the identity provider only; externals via app accounts | Staff: the identity provider. Externals: in the app |

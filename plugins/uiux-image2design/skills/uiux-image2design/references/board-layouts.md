@@ -34,7 +34,7 @@ see `uiux-design-penpot/SKILL.md` → "Positioning New Boards" and "Page, Viewpo
 ## Design System Board Dimensions
 
 | Board | Width | Height | Notes |
-|-------|-------|--------|-------|
+|-|-|-|-|
 | Colors | 600–900px | Dynamic | Based on number of colors; ~100px per row of 6 swatches |
 | Typography | 800px | Dynamic | ~60–80px per text style |
 | Spacing | 600px | Dynamic | ~48px per spacing value |
@@ -112,7 +112,7 @@ Board padding: 32px all sides
 ## Component Board Dimensions
 
 | Board | Width | Height | Notes |
-|-------|-------|--------|-------|
+|-|-|-|-|
 | Buttons | 800–1000px | Dynamic | 4 states × N variants; ~80px per variant row |
 | Form Inputs | 800px | Dynamic | 4 states × input types; ~120px per input type |
 | Cards | 800px | Dynamic | Based on card count and size |
@@ -191,7 +191,7 @@ focusRing.borderRadius = componentRadius + 2;
 ## Sample Screen Board Dimensions
 
 | Target | Board Size | Notes |
-|--------|-----------|-------|
+|-|-|-|
 | iPhone SE | 375 × 667 | Small mobile |
 | iPhone 14 | 390 × 844 | Standard mobile |
 | iPhone 14 Pro Max | 430 × 932 | Large mobile |

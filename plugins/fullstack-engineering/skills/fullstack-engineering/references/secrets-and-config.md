@@ -10,7 +10,7 @@
 ## SOPS + age
 
 | File | Committed | Purpose |
-|---|---|---|
+|-|-|-|
 | `.envs/<env>/app.env.enc` | yes | Encrypted source of truth |
 | `.envs/<env>/app.env` | no (gitignored, pre-commit blocks it) | Decrypted working copy |
 | `.envs/<env>/app.env.example` | yes | Generated: external credentials blanked, local infrastructure values kept so the stack boots without decryption |

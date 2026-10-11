@@ -97,7 +97,7 @@ describe('Counter', () => {
 ## Vitest vs Jest Comparison
 
 | Feature | Vitest | Jest |
-|---------|--------|------|
+|-|-|-|
 | Vite Integration | Native | Requires config |
 | Speed | Very fast (ESM native) | Slower with Vite |
 | Watch Mode | Excellent | Good |

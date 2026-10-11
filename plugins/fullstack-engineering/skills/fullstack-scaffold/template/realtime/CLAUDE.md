@@ -13,7 +13,7 @@ task dev:logs -- realtime
 ## Access Points
 
 | Endpoint | Purpose |
-|---|---|
+|-|-|
 | `GET /health`, `/health/ready` | liveness, readiness (DB + Redis) |
 | `GET /v1/events` | per-user event stream (SSE) |
 

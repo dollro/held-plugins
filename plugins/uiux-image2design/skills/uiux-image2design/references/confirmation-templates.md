@@ -19,7 +19,7 @@ DENSITY: [compact/comfortable/spacious]  COLOR MODE: [light/dark/mixed]
 ### 1. Color Palette
 
 | # | Color | Hex | Observed In | Suggested Token |
-|---|-------|-----|-------------|-----------------|
+|-|-|-|-|-|
 | 1 | [description] | #XXXXXX | [specific element] | color.[category].[name] |
 | 2 | ... | ... | ... | ... |
 
@@ -32,7 +32,7 @@ Organized by role:
 ### 2. Typography
 
 | # | Style | Family (confidence) | Size | Weight | Case | Tracking | Observed In |
-|---|-------|---------------------|------|--------|------|----------|-------------|
+|-|-|-|-|-|-|-|-|
 | 1 | Display | Inter (high) | ~32px | Bold (700) | Normal | Tight | Page titles |
 | 2 | Body | Inter (high) | ~16px | Regular (400) | Normal | Normal | Main content |
 | ... | ... | ... | ... | ... | ... | ... | ... |
@@ -42,7 +42,7 @@ Organized by role:
 Base unit: [N]px
 
 | Scale | Value | Multiplier | Used For |
-|-------|-------|-----------|----------|
+|-|-|-|-|
 | 2xs | [N]px | base × 0.5 | [context] |
 | xs | [N]px | base × 1 | [context] |
 | sm | [N]px | base × 2 | [context] |
@@ -69,7 +69,7 @@ Alignment: [left/center/mixed]
 ### 5. Border Radius
 
 | Value | Where | Suggested Token |
-|-------|-------|-----------------|
+|-|-|-|
 | [N]px | [elements] | radius.[name] |
 
 ### 6. Shadows & Depth
@@ -77,7 +77,7 @@ Alignment: [left/center/mixed]
 Depth strategy: [borders-only / subtle-shadows / layered-shadows / surface-shifts]
 
 | Level | Values (approx) | Used For |
-|-------|-----------------|----------|
+|-|-|-|
 | [N] | [offset blur spread color] | [context] |
 
 Border treatments: [descriptions]
@@ -87,7 +87,7 @@ Divider pattern: [description]
 ### 7. Component Inventory
 
 | # | Component | Variants Detected | States Visible | States Needed | Notes |
-|---|-----------|-------------------|----------------|---------------|-------|
+|-|-|-|-|-|-|
 | 1 | [name] | [list] | [list] | [list] | [characteristics] |
 
 ### 8. Iconography
@@ -188,17 +188,17 @@ Present this clean summary after all adjustments. Require explicit "go ahead" be
 
 ### Colors: [X colors]
 | Token | Hex | Role |
-|-------|-----|------|
+|-|-|-|
 | color.[...] | #XXXXXX | [usage] |
 
 ### Typography: [X styles]
 | Level | Family | Size | Weight | Notes |
-|-------|--------|------|--------|-------|
+|-|-|-|-|-|
 | [name] | [family] | [size] | [weight] | [case, tracking] |
 
 ### Spacing: [N]px base unit
 | Token | Value | Usage |
-|-------|-------|-------|
+|-|-|-|
 | space.[...] | [N]px | [context] |
 
 ### Layout: [platform], [W×H] target
@@ -209,12 +209,12 @@ Present this clean summary after all adjustments. Require explicit "go ahead" be
 
 ### Border Radius: [X values]
 | Token | Value |
-|-------|-------|
+|-|-|
 | radius.[...] | [N]px |
 
 ### Components to Generate: [X]
 | # | Component | Variants | States |
-|---|-----------|----------|--------|
+|-|-|-|-|
 | 1 | [name] | [list] | [list] |
 
 ### Resolved Gaps

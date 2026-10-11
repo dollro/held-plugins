@@ -67,7 +67,7 @@ const title = 'Welcome'
 ## What Gets Passed as Slot Props
 
 | Attribute on `<slot>` | Passed to Parent? |
-|----------------------|-------------------|
+|-|-|
 | `name` | No (reserved for slot identification) |
 | `:text="message"` | Yes, as `text` |
 | `:count="5"` | Yes, as `count` |

@@ -3,7 +3,7 @@
 ## Pipeline contract (platform-neutral)
 
 | Stage | Task target | Runs on |
-|---|---|---|
+|-|-|-|
 | Lint | `check:lint` (pre-commit on all files) | Merge requests / pull requests, main |
 | Docs | `check:docs` (strict MkDocs build) | same |
 | Frontend | `check:frontend` (type-check, lint, unit tests) | same |

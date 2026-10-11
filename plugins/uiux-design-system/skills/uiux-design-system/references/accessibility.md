@@ -24,7 +24,7 @@
 ### Contrast Ratios
 
 | Element | Minimum Ratio | Enhanced (AAA) |
-| ------- | ------------- | -------------- |
+|-|-|-|
 | Body text | 4.5:1 | 7:1 |
 | Large text (18px+) | 3:1 | 4.5:1 |
 | UI components | 3:1 | - |
@@ -51,7 +51,7 @@ Never use color as the only means of conveying information:
 **Safe text colors on backgrounds:**
 
 | Background | Text Color | Contrast |
-| ---------- | ---------- | -------- |
+|-|-|-|
 | White (#FFFFFF) | Dark gray (#1F2937) | 15.5:1 ✓ |
 | Light gray (#F3F4F6) | Dark gray (#374151) | 10.9:1 ✓ |
 | Primary blue (#2563EB) | White (#FFFFFF) | 4.6:1 ✓ |
@@ -98,7 +98,7 @@ Never use color as the only means of conveying information:
 ### Keyboard Shortcuts
 
 | Key | Expected Behavior |
-| --- | ----------------- |
+|-|-|
 | Tab | Move to next interactive element |
 | Shift+Tab | Move to previous element |
 | Enter | Activate button/link |
@@ -115,7 +115,7 @@ Never use color as the only means of conveying information:
 Use appropriate elements for their purpose:
 
 | Purpose | Element | Not This |
-| ------- | ------- | -------- |
+|-|-|-|
 | Navigation | `<nav>` | `<div class="nav">` |
 | Main content | `<main>` | `<div id="main">` |
 | Header | `<header>` | `<div class="header">` |
@@ -167,7 +167,7 @@ Complex: alt="Brief description" + detailed description nearby
 ### Touch Target Sizes
 
 | Platform | Minimum | Recommended |
-| -------- | ------- | ----------- |
+|-|-|-|
 | WCAG 2.1 | 44×44px | 48×48px |
 | iOS (Apple) | 44×44pt | - |
 | Android | 48×48dp | - |
@@ -375,7 +375,7 @@ Embed accessibility at the token level — WCAG 2.2 requirements + European Acce
 ### Roles
 
 | Role | Purpose |
-| ---- | ------- |
+|-|-|
 | `button` | Clickable button |
 | `link` | Navigation link |
 | `dialog` | Modal dialog |
@@ -388,7 +388,7 @@ Embed accessibility at the token level — WCAG 2.2 requirements + European Acce
 ### Properties
 
 | Property | Purpose |
-| -------- | ------- |
+|-|-|
 | `aria-label` | Accessible name |
 | `aria-labelledby` | Reference to labeling element |
 | `aria-describedby` | Reference to description |

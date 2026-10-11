@@ -132,7 +132,7 @@ test('shows error component on load failure', async () => {
 ## Utilities Reference
 
 | Utility | Purpose |
-|---------|---------|
+|-|-|
 | `await flushPromises()` | Resolves all pending promises |
 | `await nextTick()` | Waits for Vue's next DOM update cycle |
 | `await wrapper.trigger('click')` | Triggers event and waits for update |

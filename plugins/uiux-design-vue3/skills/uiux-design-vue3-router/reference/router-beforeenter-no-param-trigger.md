@@ -45,7 +45,7 @@ const routes = [
 ## What Triggers beforeEnter vs. What Doesn't
 
 | Navigation | beforeEnter fires? |
-|------------|-------------------|
+|-|-|
 | `/products` → `/orders/1` | YES |
 | `/orders/1` → `/orders/2` | NO |
 | `/orders/1` → `/orders/1?tab=details` | NO |

@@ -77,7 +77,7 @@ export default defineComponent({
 ## Common DOM Event Types
 
 | Event Type | Use For |
-|------------|---------|
+|-|-|
 | `Event` | Generic events, custom events |
 | `MouseEvent` | click, dblclick, mouseenter, mouseleave, etc. |
 | `KeyboardEvent` | keydown, keyup, keypress |

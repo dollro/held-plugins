@@ -198,7 +198,7 @@ def test_initial_state_shape():
 ### What to evaluate
 
 | Level | Question | Example evaluators |
-|---|---|---|
+|-|-|-|
 | Output | Is the final result correct, complete, faithful to sources? | Type checks, contract validation, reference comparison, LLM judge with rubric |
 | Trajectory | Did the agent take sensible steps? | Expected tool calls, routing path, number of retries, no forbidden tools |
 | Operational | Is it affordable and fast enough? | Tokens, cost, latency, validation failure rate |

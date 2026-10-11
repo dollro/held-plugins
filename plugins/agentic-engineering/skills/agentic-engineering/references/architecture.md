@@ -25,7 +25,7 @@ A deterministic harness around probabilistic engines. In this picture:
 ## Component responsibilities
 
 | Layer | Component | Responsibility | Failure handling |
-|---|---|---|---|
+|-|-|-|-|
 | Control flow | LangGraph | Sequence, loops, branches, cross-step state, persistence, interrupts | Routes to retry, fixer or end by edge logic; node retry/timeout/error-handler policies |
 | Data integrity | Pydantic | State payloads, contracts, validation, serialization | `ValidationError` feeds the validator/fixer loop |
 | Single-agent execution | Pydantic AI | Typed agent with dependency injection, tools, structured output | Output validators and an output retry budget inside the agent |
@@ -104,7 +104,7 @@ Alternatives inside a node, under the same adapter rules:
 ## What owns what when frameworks overlap
 
 | Overlap | Decision |
-|---|---|
+|-|-|
 | Pydantic AI graphs / durable execution vs LangGraph | Inside a LangGraph node, Pydantic AI runs the single-agent loop only. Its durable execution is for standalone agent services. |
 | CrewAI Flows vs LangGraph | Don't nest a Flow orchestrator in a node. Flows can replace LangGraph for small single-framework deployments without checkpointing or human approval steps (`operations.md`). |
 | CrewAI checkpointing vs LangGraph checkpointer | Leave CrewAI checkpointing off inside nodes. Use it only for long crews that must resume on their own. |

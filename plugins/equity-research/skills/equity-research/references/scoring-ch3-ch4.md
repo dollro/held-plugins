@@ -11,7 +11,7 @@
 **What it measures:** Sustainable competitive advantage and durability over 5–10 year horizon.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Multiple reinforcing moat sources (network effects + switching costs + brand). Moat widening. 5+ years and billions to replicate. |
 | 4 | Clear single durable moat source. Stable. Significant barrier to entry. |
 | 3 | Narrow moat — some advantage but not insurmountable. Cost advantage or moderate switching costs. |
@@ -21,7 +21,7 @@
 **Moat taxonomy:**
 
 | Moat Type | Description | Durability Signal |
-|---|---|---|
+|-|-|-|
 | Network Effects | Value increases with each user | User growth accelerating, multi-sided platform |
 | Switching Costs | Painful/expensive to leave | High retention, long contracts, deep integration |
 | Cost Advantages | Structural cost advantage | Scale-driven, proprietary process, resource access |
@@ -35,7 +35,7 @@
 **What it measures:** Current market share and trajectory.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Market leader (#1/#2), share gaining. Outgrowing market by 2x+. |
 | 4 | Top 3. Share stable/modestly gaining. At/slightly above market growth. |
 | 3 | Mid-tier. Share stable. Neither gaining nor losing material ground. |
@@ -49,7 +49,7 @@
 **What it measures:** Ability to raise prices without losing customers.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Consistent above-inflation increases with minimal churn. Price AND volume driving growth. |
 | 4 | Can pass through inflation plus modest real increases. Some elasticity but manageable. |
 | 3 | Can pass through inflation but limited real pricing power. |
@@ -63,7 +63,7 @@
 **What it measures:** Severity and imminence of competitive threats, disruption risk.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Threats minimal and distant. High barriers. No credible disruption on horizon. |
 | 4 | Landscape stable. Some emerging threats but manageable. Well-positioned to adapt. |
 | 3 | Active competition, company holding its own. Threats require response within 1–2 years. |
@@ -79,7 +79,7 @@
 **What it measures:** Specific events in next 12 months that could drive the stock.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Multiple concrete catalysts with clear timelines. Management under-promising. |
 | 4 | 1–2 solid catalysts with reasonable probability. Positive revision cycle beginning. |
 | 3 | No major catalysts but steady execution expected. Catalyst-neutral. |
@@ -93,7 +93,7 @@
 **What it measures:** Strategic growth initiatives for the next 1–3 years.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Multiple high-conviction growth vectors with clear execution plan and early evidence. TAM expanding. |
 | 4 | 1–2 well-articulated drivers with management credibility. Early execution evidence. |
 | 3 | Growth expected at current trajectory. No major acceleration/deceleration. |
@@ -107,7 +107,7 @@
 **What it measures:** Upside beyond base business — new markets, adjacencies, secular tailwinds.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Platform business with massive optionality. TAM expanding structurally. Multi-decade runway. |
 | 4 | Clear secular tailwinds. Some adjacency potential. TAM growing organically. |
 | 3 | Adequate outlook. Relevant for foreseeable future but limited optionality beyond core. |

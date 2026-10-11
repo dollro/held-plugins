@@ -15,7 +15,7 @@
 Before applying the financial stage corridors, classify the company into one of three technology categories. This classification determines which benchmark corridor to use throughout this chapter. The distinction matters because capital intensity, time-to-revenue, grant eligibility, and investor expectations differ fundamentally across categories.
 
 | Category | Definition | Examples | Key Financial Characteristics |
-|---|---|---|---|
+|-|-|-|-|
 | **Deep-Tech** | Novel science or engineering at the core; proprietary hardware, materials, or processes requiring significant R&D and industrialization. TRL journey typically starts ≤4. | Novel sensors, new materials, biotech, quantum, fusion, custom robotics, novel chip design | Highest capital intensity; longest time-to-revenue; highest grant eligibility; revenue often project-based before recurring; gross margins variable (40–70%) depending on HW/SW mix |
 | **Shallow-Tech (Applied-Tech)** | Software-driven innovation deployed on commercially available, off-the-shelf hardware. The core IP is in the software/algorithms/AI, not in the hardware itself. May include system integration. | AI control software on standard robots, IoT platforms on commercial sensors, computer vision on standard cameras, SaaS + commodity HW bundles | Moderate capital intensity; HW is pass-through cost (compresses gross margins vs. pure SW); faster to first revenue than deep-tech; moderate grant eligibility; path to recurring revenue via SaaS/usage-based models |
 | **Pure Software** | No hardware component; cloud-delivered or on-premise software. Value creation entirely in code, data, or algorithms. | Enterprise SaaS, developer tools, data analytics platforms, AI/ML services (API-delivered), marketplaces | Lowest capital intensity; fastest time-to-revenue; lowest grant eligibility (fewer R&D programs apply); highest gross margins (>70%); clearest path to recurring revenue |
@@ -40,7 +40,7 @@ The following corridors define stage-appropriate financial parameters differenti
 *(Source: Deep-Tech Matrix, cf. HTGF DTM, Berger/Joeressen/Fiebig, 2025. Based on analysis of >200 deep-tech investments and 15 late-stage investor interviews.)*
 
 | Financial Parameter | Pre-Seed | Seed | Series A | Series B |
-|---|---|---|---|---|
+|-|-|-|-|-|
 | **Round Volume** | €1–5M | €3–10M | >€10M | >€20M |
 | **Pre-Money Valuation** | €3–10M | €5–30M (1.2–2.0× post) | €12–80M (1.5–2.0× post) | >€100M |
 | **Revenue + Orders** | €0 | €0–0.5M | €0.1–2M | >€5M |
@@ -52,7 +52,7 @@ The following corridors define stage-appropriate financial parameters differenti
 *(Derived from EIF/Invest Europe data, Dealroom European benchmarks, and deep-tech portfolio analysis for SW+HW hybrid companies. These are directional estimates — less empirically anchored than the Deep-Tech Matrix.)*
 
 | Financial Parameter | Pre-Seed | Seed | Series A | Series B |
-|---|---|---|---|---|
+|-|-|-|-|-|
 | **Round Volume** | €0.5–3M | €2–7M | €5–15M | €10–30M |
 | **Pre-Money Valuation** | €2–8M | €5–20M (1.5–2.5× post) | €10–50M (2.0–3.0× post) | €40–150M |
 | **Revenue + Orders** | €0 | €0–0.3M | €0.3–3M | >€3M ARR |
@@ -64,7 +64,7 @@ The following corridors define stage-appropriate financial parameters differenti
 *(Derived from Crunchbase/Dealroom European SaaS benchmarks, Point Nine SaaS Napkin, and Balderton European funding data. Well-established empirical base for European SaaS.)*
 
 | Financial Parameter | Pre-Seed | Seed | Series A | Series B |
-|---|---|---|---|---|
+|-|-|-|-|-|
 | **Round Volume** | €0.5–2M | €1–5M | €5–15M | €15–40M |
 | **Pre-Money Valuation** | €2–8M | €4–15M (2.0–3.0× post) | €15–60M (2.5–4.0× post) | €50–200M |
 | **Revenue + Orders** | €0 | €0–0.3M MRR signals | €0.5–3M ARR | >€5M ARR |
@@ -99,7 +99,7 @@ At Pre-Seed and Seed, most companies (especially Deep-Tech and Shallow-Tech) hav
 Calculate the total capital consumed to date and map it against the milestones achieved. This reveals whether the team is deploying capital efficiently relative to comparable companies. Benchmark ranges vary significantly by technology category:
 
 | Milestone | Deep-Tech Benchmark | Shallow-Tech Benchmark | Pure SW Benchmark |
-|---|---|---|---|
+|-|-|-|-|
 | First working prototype / demo | €500K–2M | €200K–800K | €100K–400K |
 | First patent filed/granted | €50–150K (legal costs within R&D) | €30–100K (if applicable) | Rarely applicable |
 | First paid pilot / customer | €800K–2M total spend | €300K–1M total spend | €150K–500K total spend |
@@ -113,7 +113,7 @@ Ask founders: "How much total capital have you consumed to get to where you are 
 **(B) Revenue-Generating Companies: Burn Multiple (Primary once ARR > €100K)**
 
 | Burn Multiple | Rating | Notes |
-|:---:|---|---|
+|:-:|-|-|
 | <1.5x | Excellent | Rare at Seed; common signal of capital-efficient Pure SW |
 | 1.5–2.5x | Good | Target range for Shallow-Tech and Pure SW at Series A |
 | 2.5–5x | Acceptable | Normal for Deep-Tech at Series A; concerning for Pure SW |
@@ -132,7 +132,7 @@ Calculate: Total net cash burned in last 12 months ÷ net new ARR added in same 
 - Compare headcount efficiency: Revenue (or pipeline value) per employee vs. sector benchmarks.
 
 | Metric | Deep-Tech Benchmark | Shallow-Tech Benchmark | Pure SW Benchmark |
-|---|---|---|---|
+|-|-|-|-|
 | Revenue per employee (at scale) | €100–200K | €150–250K | €200–400K |
 | Typical team size at Seed | 10–25 | 8–18 | 5–12 |
 | Monthly burn at Seed | €80–250K | €50–150K | €30–100K |
@@ -162,7 +162,7 @@ The relevance and availability of non-dilutive funding varies significantly by t
 - Ask: "What non-dilutive funding have you received, applied for, or identified?" Document:
 
 | Non-Dilutive Source | Typical Category Fit | Status | Amount | Timeline | Notes |
-|---|---|:---:|:---:|:---:|---|
+|-|-|:-:|:-:|:-:|-|
 | EIC Accelerator (grants up to €2.5M + equity) | Deep-Tech, some Shallow-Tech | [Received / Applied / Identified / N/A] | [€ ___] | [Date] | |
 | EXIST Transfer / EXIST Startup Grant | All (university spinoffs) | [Received / Applied / Identified / N/A] | [€ ___] | [Date] | |
 | ZIM (Zentrales Innovationsprogramm Mittelstand) | Deep-Tech, Shallow-Tech | [Received / Applied / Identified / N/A] | [€ ___] | [Date] | |
@@ -181,13 +181,13 @@ The relevance and availability of non-dilutive funding varies significantly by t
 Calculate the company's public-to-total funding ratio and compare against the benchmark for its technology category and target stage.
 
 | Metric | Calculation | Result |
-|---|---|---|
+|-|-|-|
 | Total non-dilutive funding received to date | Sum of all grants, subsidies, tax credits, prizes | € ___ |
 | Total funding received to date (incl. this round) | Non-dilutive + all equity rounds + convertibles | € ___ |
 | **Public Funding Ratio** | **Non-dilutive ÷ Total funding × 100** | **____%** |
 
 | Stage | Deep-Tech Benchmark | Shallow-Tech Benchmark | Pure SW Benchmark |
-|---|---|---|---|
+|-|-|-|-|
 | Pre-Seed | 50% | 30–40% | 10–25% |
 | Seed | 50% | 25–40% | 10–20% |
 | Series A | 25% | 15–25% | 5–10% |
@@ -219,7 +219,7 @@ Revenue projections are grounded in bottom-up assumptions (named customers × AC
 - Benchmark growth rates against the company's technology category:
 
 | Growth Rate Benchmark | Deep-Tech | Shallow-Tech | Pure SW |
-|---|---|---|---|
+|-|-|-|-|
 | Typical YoY revenue growth (Seed → Series A) | 1.5–3× | 2–4× | 2.5–5× (T2D3 pattern) |
 | Typical YoY revenue growth (Series A → B) | 2–3× | 2–3× | 2–3× |
 | Time from first revenue to €1M ARR | 24–48 months | 18–30 months | 12–24 months |
@@ -230,7 +230,7 @@ Revenue projections are grounded in bottom-up assumptions (named customers × AC
 - Check cost realism: Are salaries benchmarked to market? Is office/infrastructure cost included? Are R&D costs realistic for the technology category?
 
 | Cost Realism Check | Deep-Tech | Shallow-Tech | Pure SW |
-|---|---|---|---|
+|-|-|-|-|
 | R&D as % of total spend (Seed) | 50–70% | 40–60% | 50–70% |
 | COGS / gross margin trajectory | Improving from 30–50% → >50% | Improving from 45–55% → >60% | >65% from early revenue, → >75% |
 | HW BOM / manufacturing costs | Significant, requires cost-down plan | Moderate (off-the-shelf), largely pass-through | None |
@@ -241,7 +241,7 @@ Revenue projections are grounded in bottom-up assumptions (named customers × AC
 This is a fast diagnostic to catch financial plans that are disconnected from stage-appropriate expectations. Map the company's projected annual revenue against the corridor for its technology category at each stage it expects to traverse:
 
 | Year | Projected Revenue | Implied Stage (by revenue, using category corridor) | Planned Stage (by round) | Alignment |
-|---|---|---|---|---|
+|-|-|-|-|-|
 | Year 0 (current) | € ___ | [Pre-Seed / Seed / Series A / Series B] | [___] | [✓ / ⚠ / ✗] |
 | Year 1 | € ___ | [___] | [___] | [✓ / ⚠ / ✗] |
 | Year 2 | € ___ | [___] | [___] | [✓ / ⚠ / ✗] |
@@ -264,7 +264,7 @@ How to interpret:
 Build (or request the founders to build) a 3-scenario model. This turns qualitative risks into quantified financial impact:
 
 | Scenario | Revenue Assumption | Cost Assumption | Cash-Out Date | Key Milestone Impact |
-|---|---|---|:---:|---|
+|-|-|-|:-:|-|
 | **Bull case** | 80% of founder target + 20% optimistic | Costs on plan | [Date] | [Milestones achieved ahead of schedule] |
 | **Base case** | Founder's base projection | Costs on plan + 10% buffer | [Date] | [Milestones achieved on time] |
 | **Bear case** | 75% of founder's worst case | Costs +20% over plan | [Date] | [Which milestones are at risk?] |
@@ -300,7 +300,7 @@ A credible bridge exists from this round to the next financing event: the milest
 Check whether the deal's financial parameters fall within the stage corridors for the company's technology category (reference tables at chapter opening). This determines whether the deal is appropriately "sized" for its stage.
 
 | Parameter | This Deal | Category Corridor (target stage) | Fit |
-|---|---|---|---|
+|-|-|-|-|
 | Round Volume | € ___ | [corridor for category + target stage] | [Within / Below / Above] |
 | Pre-Money Valuation | € ___ | [corridor for category + target stage] | [Within / Below / Above] |
 | Pre-Money as × of Post-Money | ___× | [see category table] | [Within / Below / Above] |
@@ -321,13 +321,13 @@ How to interpret:
 - Calculate the implied step-up from current round to next round. Use the category-appropriate corridor midpoints as a reference:
 
 | Variable | Calculation | Value |
-|---|---|---|
+|-|-|-|
 | Current post-money valuation | Pre-money + round size | € ___ |
 | Target next-round pre-money (category corridor midpoint) | [See category table] | € ___ |
 | **Required step-up multiple** | **Next pre-money ÷ Current post-money** | **___×** |
 
 | Typical step-up by category | Deep-Tech | Shallow-Tech | Pure SW |
-|---|---|---|---|
+|-|-|-|-|
 | Seed → Series A | 2–3× | 2–4× | 3–5× |
 | Series A → Series B | 2–3× | 2–3× | 2–4× |
 | Time between rounds | 18–36 months | 15–24 months | 12–18 months |
@@ -356,7 +356,7 @@ The exit thesis is credible: 3–5 plausible strategic acquirers can be named wi
 - Research comparable exits: Search Crunchbase, PitchBook, and press for M&A transactions and IPOs in the sector over the past 3–5 years. Document:
 
 | Company | Acquirer | Revenue at Exit | Exit Multiple | Exit Value | Year |
-|---|---|---|---|---|---|
+|-|-|-|-|-|-|
 | [___] | [___] | € ___ | ___× | € ___ | [___] |
 | [___] | [___] | € ___ | ___× | € ___ | [___] |
 | [___] | [___] | € ___ | ___× | € ___ | [___] |
@@ -364,7 +364,7 @@ The exit thesis is credible: 3–5 plausible strategic acquirers can be named wi
 - Run the 10x return math (see also 8.2 in Deal Structure):
 
 | Variable | Calculation | Value |
-|---|---|---|
+|-|-|-|
 | Our investment | [Ticket size] | € ___ |
 | Target return (10x) | Investment × 10 | € ___ |
 | Ownership at exit (est., post-dilution) | [Model from Backup Slide A] | ___% |
@@ -376,7 +376,7 @@ The exit thesis is credible: 3–5 plausible strategic acquirers can be named wi
 **Exit multiples and pathways by technology category:**
 
 | Parameter | Deep-Tech | Shallow-Tech | Pure SW |
-|---|---|---|---|
+|-|-|-|-|
 | Typical exit multiple (trade sale) | 3–8× revenue | 5–12× revenue | 8–20× ARR |
 | Typical exit multiple (IPO) | 5–15× revenue | 8–20× revenue | 10–30× ARR |
 | Most common exit pathway | Strategic M&A to industrial (Siemens, Bosch, ABB, Honeywell, Schneider) | Strategic M&A to tech/industrial hybrid (larger SW companies, industrial digitizers) | Strategic M&A to enterprise SW (Salesforce, SAP, ServiceNow) or PE/growth buyout |
@@ -389,7 +389,7 @@ The exit thesis is credible: 3–5 plausible strategic acquirers can be named wi
 - **Exit probability weighting:** Assign rough probabilities to each exit pathway and calculate the probability-weighted expected return. A single low-probability IPO scenario should not anchor the return thesis.
 
 | Route | Timeline | Plausibility | Probability | Named Acquirers / Notes |
-|---|:---:|:---:|:---:|---|
+|-|:-:|:-:|:-:|-|
 | Strategic M&A | [5–7y / 7–12y] | [High / Med / Low] | ___% | [Names] |
 | Secondary | [5–8y] | [High / Med / Low] | ___% | [Buyer type] |
 | IPO | [7–10y] | [High / Med / Low] | ___% | [Min. ARR required: €___] |
@@ -412,7 +412,7 @@ Financial reporting is professional and reliable: GAAP/HGB-compliant bookkeeping
 - Check for undisclosed liabilities: Ask explicitly: "Are there any outstanding loans, guarantees, contingent liabilities, or off-balance-sheet obligations?" Cross-reference with the balance sheet.
 
 | Hygiene Check | Status | Notes |
-|---|:---:|---|
+|-|:-:|-|
 | Professional bookkeeping (Steuerberater / external) | [✓ / ✗] | [___] |
 | HGB/GAAP-compliant accounting | [✓ / ✗] | [___] |
 | VAT filings current | [✓ / ✗] | [___] |

@@ -5,7 +5,7 @@ Patterns for the Langfuse SDK 4.x line. Version 4 is "observations-first" and re
 ## 1. Three paths into one trace
 
 | Framework | Mechanism | How spans reach Langfuse |
-|---|---|---|
+|-|-|-|
 | Pydantic AI | `Agent.instrument_all()` (or an instrumentation capability per agent) | OTel spans following the GenAI conventions |
 | CrewAI | OpenInference `CrewAIInstrumentor().instrument()` | OTel spans |
 | LangGraph | Langfuse LangChain `CallbackHandler`, passed in `config["callbacks"]` | Callback → Langfuse |
@@ -169,7 +169,7 @@ Record them as scores or metadata on the run's trace, so they can be filtered pe
 ## 9. Langfuse or LangSmith
 
 | Aspect | Langfuse | LangSmith |
-|---|---|---|
+|-|-|-|
 | Self-hosting | Yes (open-source core, MIT; enterprise features under a separate licence) | Enterprise add-on |
 | EU data residency | EU cloud or self-hosted | Check current regions |
 | CrewAI / Pydantic AI | Via OTel, no extra wrappers | Via OTel |

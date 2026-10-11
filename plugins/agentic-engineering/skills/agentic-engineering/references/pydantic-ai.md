@@ -5,7 +5,7 @@ Patterns for the Pydantic AI 2.x line. Version 2 moved many constructor argument
 ## 1. Division of labour with LangGraph
 
 | Pydantic AI owns | LangGraph owns |
-|---|---|
+|-|-|
 | The single-agent loop: instructions, tools, output type, output validation, retries inside one run | Cross-step state, checkpointing, routing, interrupts, fan-out |
 
 Inside a LangGraph node, do not use Pydantic AI's own graph, durable execution or step persistence: they duplicate the checkpointer. Use them only for standalone agent services.
@@ -157,7 +157,7 @@ async def analyzer_node(state: PipelineState) -> dict:
 Behaviour that used to be configured with constructor arguments is now added as capabilities (`capabilities=[...]`). Typical mapping (check the capabilities overview for current names):
 
 | Concern | v2 form |
-|---|---|
+|-|-|
 | Trimming or summarising message history | History-processing capability |
 | Tracing per agent | Instrumentation capability (with a content-capture switch for privacy); globally `Agent.instrument_all()` |
 | Filtering or preparing tools per step | Prepare-tools capability (return an empty list, never `None`) |

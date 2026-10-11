@@ -30,7 +30,7 @@ The current Technology Readiness Level (TRL) meets or exceeds the stage-appropri
 **TRL Assessment:**
 
 | TRL | Description | Typical Evidence |
-|-----|-------------|-----------------|
+|-|-|-|
 | 1–3 | Basic research / proof of concept | Academic papers, lab results |
 | 4 | Component validation in lab | Prototype with test data |
 | 5 | System validation in relevant environment | Integrated prototype testing |
@@ -49,7 +49,7 @@ The current Technology Readiness Level (TRL) meets or exceeds the stage-appropri
 **Y-Axis: Technology Readiness Level (TRL 1–9)**
 
 | TRL Cluster | TRL | Description |
-|-------------|:---:|-------------|
+|-|:-:|-|
 | Scientific Breakthrough | 1–2 | Basic research, observed principles |
 | Proof of Concept | 3–4 | Technology concept validated, laboratory validation |
 | Demonstration | 5–6 | Validation in relevant / operational environment |
@@ -59,7 +59,7 @@ The current Technology Readiness Level (TRL) meets or exceeds the stage-appropri
 **X-Axis: Market Certainty for a Huge Market (1–6)**
 
 | Level | Label | Description |
-|:---:|---|---|
+|:-:|-|-|
 | 1 | Unclear if there is a market at all | No identifiable market application |
 | 2 | Niche market | Small, limited market identified |
 | 3 | Established niche, first indications of scaling | Niche established, early scaling signals |
@@ -70,7 +70,7 @@ The current Technology Readiness Level (TRL) meets or exceeds the stage-appropri
 **Matrix Zones and Investability:**
 
 | Zone | TRL Range | Market Range | Characteristics |
-|------|:---:|:---:|---|
+|-|:-:|:-:|-|
 | **No Money Land** | TRL 1–3 at Market 1–2 | Low × Low | "Double Bet" — not VC-fundable. Also: TRL >6 without identifiable market ("Technology in search of a problem") |
 | **Pre-Seed** | TRL 3–5 | Market 2–4 | Use-case hypothesis with initial technical feasibility and IP. Transition from "Technology Push" to "Application Pull" |
 | **Seed** | TRL 4–6 | Market 3–5 | Customer validation through LOIs, pilot projects, PoC. Prototype / demo system functional. Team growing |
@@ -180,7 +180,7 @@ The company's core technological advantage is durable and resilient against exte
 - Assess the technology's "moat decay rate": Is the advantage widening over time (e.g., through accumulating proprietary data, network effects, or progressive IP) or narrowing (e.g., as open-source alternatives improve or costs drop)?
 
 | Obsolescence Risk | Time Horizon | Score Guidance |
-|---|---|:---:|
+|-|-|:-:|
 | No foreseeable paradigm shift; advantage widens with time | >10 years | 5 |
 | Known emerging alternatives but 5+ year transition period | 5–10 years | 4 |
 | Active research could produce alternatives within investment horizon | 3–5 years | 3 |

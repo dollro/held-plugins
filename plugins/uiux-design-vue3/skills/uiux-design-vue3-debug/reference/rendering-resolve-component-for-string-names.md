@@ -85,7 +85,7 @@ export default {
 ## When to Use Each Approach
 
 | Approach | Use When |
-|----------|----------|
+|-|-|
 | Direct Import | Component is known at build time (most common) |
 | `resolveComponent()` | Component is registered globally or locally by name |
 | `resolveComponent()` | Dynamic component selection from registered set |

@@ -30,7 +30,7 @@ Contents: 1 Principles · 2 Database · 3 Invariants · 4 Pages · 5 Views · 6 
 ### Stored properties
 
 | Property | Type | Layer 1 | Layer 2 | Layer 3 | Meaning |
-|---|---|---|---|---|---|
+|-|-|-|-|-|-|
 | Title | Title | outcome sentence | noun phrase | state sentence | Card text, title grammar per skill |
 | No | Unique ID | set by Notion | set by Notion | set by Notion | Never typed; the number of the code |
 | ID | Text | legacy only | legacy only | legacy only | Typed code of cards from before the Unique ID; empty on new cards |
@@ -68,7 +68,7 @@ names it in the check log. Relations to rows that no longer exist are dropped an
 ### Positions
 
 | Option | Column | Half |
-|---|---|---|
+|-|-|-|
 | `Now · <quarter> · 1st` | Now | 1st |
 | `Now · <quarter> · 2nd` | Now | 2nd |
 | `Next · <half year> · 1st` | Next | 1st |
@@ -136,7 +136,7 @@ Checked from stored properties plus at most one Serves hop. Violations are repor
 repaired silently.
 
 | # | Invariant |
-|---|---|
+|-|-|
 | I1 | A layer 1 row has no Serves |
 | I2 | A feature has a Position and serves exactly one layer 1 row |
 | I3 | An enabler has a Position and serves at least one feature; all served features serve the same outcome |
@@ -166,7 +166,7 @@ are stripped, `## ` subheadings on a page become `### ` in the document. Only th
 **name** is the contract; a renamed section counts as missing and is reported.
 
 | Section | Status | Usually on | Used for |
-|---|---|---|---|
+|-|-|-|-|
 | Outcome colours | **required** | reference | Colours in HTML and PNG |
 | System building blocks | **required** | reference | R9, missing-block note, document section 5 |
 | Deviations | **required** | reference | Deviation register, breach check |
@@ -191,7 +191,7 @@ produced per version.
 ## 5 Views
 
 | View | Setup |
-|---|---|
+|-|-|
 | Grid | Board, group by Position (manual column order, set once in the UI), sub-group by Layer (UI only), sort Layer then No; show Code and Outcome code |
 | By outcome | Table sorted by Layer and No, showing Outcome code, Impact dimension, Serves (ID) and Served by (ID). Grouping by the formula is set in the UI if Notion offers it; the connector cannot set it |
 | All | Plain table, every property |
@@ -230,7 +230,7 @@ From `payload.json` of `scripts/parse_md.py`, in this order:
 ## 8 Connector notes
 
 | Topic | Behaviour |
-|---|---|
+|-|-|
 | Two-way self-relation | Create in one statement: `ADD COLUMN "Serves" RELATION('<ds>', DUAL 'Served by' 'served_by')`; two statements create duplicate columns |
 | Formula values | Not readable: fetch and query return `formulaResult://` placeholders, and the formula text itself cannot be fetched (`formulaCode://` is refused); a view cannot be grouped by a formula through the connector. `ALTER COLUMN … SET FORMULA(…)` works, so a formula is replaced whole, never edited |
 | Board grouping | Group by works; sub-group and group order are not in the view DSL |

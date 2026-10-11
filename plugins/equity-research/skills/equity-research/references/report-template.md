@@ -18,7 +18,7 @@
 ## Report Header
 
 | Parameter | Value |
-|---|---|
+|-|-|
 | Company | [Name] |
 | Ticker | [TICKER] |
 | Exchange | [NYSE / NASDAQ / etc.] |
@@ -46,7 +46,7 @@
 **Key Financial Snapshot:**
 
 | Metric | Latest | Prior Year | 3Y CAGR |
-|---|---|---|---|
+|-|-|-|-|
 | Revenue | $[___] | $[___] | [___]% |
 | Operating Income | $[___] | $[___] | — |
 | EPS (diluted) | $[___] | $[___] | [___]% |
@@ -63,7 +63,7 @@
 [Analytical prose evaluating the company's financial health. Weave revenue growth trajectory, margin profile and trends, ROIC vs. WACC, cash flow quality, balance sheet strength, and earnings predictability into a cohesive narrative. Numbers integrated into prose, not listed. Specific and evidence-based. Identify the key financial strength and key financial weakness.]
 
 | # | Criterion | Score [1–5] | Key Evidence |
-|---|---|---|---|
+|-|-|-|-|
 | 1.1 | Revenue Growth & Trajectory 🚩 | [X] | [1-line evidence] |
 | 1.2 | Margin Profile & Trend 🚩 | [X] | [1-line evidence] |
 | 1.3 | Return on Invested Capital | [X] | [1-line evidence] |
@@ -81,7 +81,7 @@
 **Comparable Company Analysis:**
 
 | Company | P/E (Fwd) | EV/EBITDA | EV/Revenue | Growth | Margin |
-|---|---|---|---|---|---|
+|-|-|-|-|-|-|
 | [TICKER] | [X]x | [X]x | [X]x | [X]% | [X]% |
 | [Peer 1] | [X]x | [X]x | [X]x | [X]% | [X]% |
 | [Peer 2] | [X]x | [X]x | [X]x | [X]% | [X]% |
@@ -91,14 +91,14 @@
 **Valuation Summary:**
 
 | Method | Fair Value | vs. Current | Confidence |
-|---|---|---|---|
+|-|-|-|-|
 | DCF (base case) | $[___] | [+/−___]% | [High/Medium/Low] |
 | Peer multiples | $[___] | [+/−___]% | [High/Medium/Low] |
 | Historical average | $[___] | [+/−___]% | [High/Medium/Low] |
 | **Blended Fair Value** | **$[___]** | **[+/−___]%** | |
 
 | # | Criterion | Score [1–5] | Key Evidence |
-|---|---|---|---|
+|-|-|-|-|
 | 2.1 | Absolute Valuation | [X] | [1-line evidence] |
 | 2.2 | Relative Valuation vs. Peers | [X] | [1-line evidence] |
 | 2.3 | Historical Valuation Range | [X] | [1-line evidence] |
@@ -112,7 +112,7 @@
 [Analytical prose assessing competitive dynamics. Cover the moat type and durability, market position and share trajectory, pricing power evidence, and competitive threat intensity. Use Porter's framework implicitly (don't label the five forces mechanically — weave the analysis). Conclude with a clear statement on moat width and trajectory (widening, stable, narrowing).]
 
 | # | Criterion | Score [1–5] | Key Evidence |
-|---|---|---|---|
+|-|-|-|-|
 | 3.1 | Moat Type & Durability 🚩 | [X] | [1-line evidence] |
 | 3.2 | Market Position & Share Trend | [X] | [1-line evidence] |
 | 3.3 | Pricing Power | [X] | [1-line evidence] |
@@ -128,14 +128,14 @@
 **Catalyst Timeline:**
 
 | Timeframe | Catalyst | Probability | Potential Impact |
-|---|---|---|---|
+|-|-|-|-|
 | 0–3 months | [Event] | [High/Med/Low] | [Upside/downside %] |
 | 3–6 months | [Event] | [High/Med/Low] | [Upside/downside %] |
 | 6–12 months | [Event] | [High/Med/Low] | [Upside/downside %] |
 | 1–3 years | [Driver] | [High/Med/Low] | [Structural impact] |
 
 | # | Criterion | Score [1–5] | Key Evidence |
-|---|---|---|---|
+|-|-|-|-|
 | 4.1 | Near-Term Catalysts (0–12mo) | [X] | [1-line evidence] |
 | 4.2 | Medium-Term Growth (1–3yr) | [X] | [1-line evidence] |
 | 4.3 | Long-Term Optionality & TAM | [X] | [1-line evidence] |
@@ -148,7 +148,7 @@
 [Analytical prose evaluating management quality. Cover CEO/CFO track record and credibility, capital allocation discipline (M&A, buybacks, R&D ROI), insider alignment, and governance quality. Be specific about management actions that demonstrate competence or raise concerns.]
 
 | # | Criterion | Score [1–5] | Key Evidence |
-|---|---|---|---|
+|-|-|-|-|
 | 5.1 | Management Track Record | [X] | [1-line evidence] |
 | 5.2 | Capital Allocation Discipline | [X] | [1-line evidence] |
 | 5.3 | Insider Alignment & Ownership | [X] | [1-line evidence] |
@@ -164,14 +164,14 @@
 **Risk Matrix:**
 
 | Risk Factor | Probability | Severity | Mitigation | Monitoring Trigger |
-|---|---|---|---|---|
+|-|-|-|-|-|
 | [Risk 1] | [High/Med/Low] | [High/Med/Low] | [How company mitigates] | [What to watch for] |
 | [Risk 2] | [High/Med/Low] | [High/Med/Low] | [How company mitigates] | [What to watch for] |
 | [Risk 3] | [High/Med/Low] | [High/Med/Low] | [How company mitigates] | [What to watch for] |
 | [Risk 4] | [High/Med/Low] | [High/Med/Low] | [How company mitigates] | [What to watch for] |
 
 | # | Criterion | Score [1–5] | Key Evidence |
-|---|---|---|---|
+|-|-|-|-|
 | 6.1 | Macro & Cyclical Exposure | [X] | [1-line evidence] |
 | 6.2 | Regulatory & Legal Risk | [X] | [1-line evidence] |
 | 6.3 | Concentration Risk | [X] | [1-line evidence] |
@@ -211,7 +211,7 @@
 ### Bull / Base / Bear Scenarios
 
 | Scenario | Probability | Price Target | Upside/Downside | Key Assumptions |
-|---|---|---|---|---|
+|-|-|-|-|-|
 | **Bull** | [X]% | $[___] | +[X]% | [1-line: what goes right] |
 | **Base** | [X]% | $[___] | +/−[X]% | [1-line: consensus path] |
 | **Bear** | [X]% | $[___] | −[X]% | [1-line: what goes wrong] |
@@ -235,7 +235,7 @@
 ### Scoring Summary
 
 | Chapter | Weight | Avg Score | Weighted |
-|---|---|---|---|
+|-|-|-|-|
 | 1. Fundamental Quality | 35% | [X.X] | [X.XX] |
 | 2. Valuation | 20% | [X.X] | [X.XX] |
 | 3. Competitive Position | 15% | [X.X] | [X.XX] |

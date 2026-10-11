@@ -13,7 +13,7 @@ Generates a repo that follows `fullstack-engineering` and passes its own CI on t
 Ask in one message, with defaults, and wait for the answers:
 
 | Question | Default | Flag |
-|---|---|---|
+|-|-|-|
 | Project slug (kebab-case) and display name | — | `--name`, `--title` |
 | Target directory | `./<slug>` | positional |
 | Realtime/streaming/agent service needed? (see shapes in `fullstack-engineering` §2) | no → Django only | `--no-realtime` when no |
@@ -61,7 +61,7 @@ Tell the person:
 ## What the generated repo contains
 
 | Area | Content |
-|---|---|
+|-|-|
 | `backend/` | Django settings split, custom user (email login), `ApiKey` (hashed), all logins through allauth's pages (admin included) styled in the app layout; per audience: company SSO over OpenID Connect (active only when configured), external accounts with email verification by code, MFA (authenticator app, passkeys, recovery codes) and an MFA requirement switch, staff SSO-only rule (mixed); internal `validate-session`/`validate-key`, Celery with an on-commit demo task, tests per audience |
 | `realtime/` (optional) | FastAPI, SSE `GET /v1/events` fed by Redis pub/sub, auth via Django session cookie with cross-site refusal, async SQLAlchemy (psycopg) with Alembic limited to its own tables, health/readiness, tests |
 | `frontend/` | create-vue tooling; `vite.config.ts` for django-vite; styles and islands for Django pages (`main.ts`) and SPA under `/app/` (`app-main.ts`); `fetch` client with CSRF; session store; EventSource composable; Tailwind (also scanning Django templates); Playwright smoke test (login, live event, logout) |

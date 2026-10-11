@@ -40,7 +40,7 @@ Tag `vX.Y.Z` (CI builds images) → pin it in `.envs/staging/deploy.env` → `ta
 ## Testing
 
 | Runs in CI | Locally |
-|---|---|
+|-|-|
 | Lint (pre-commit: ruff, hygiene, secrets guard) | `task check:lint` |
 | Docs build (strict: broken links fail) | `task check:docs` |
 | Frontend type-check, eslint, vitest | `task check:frontend` |

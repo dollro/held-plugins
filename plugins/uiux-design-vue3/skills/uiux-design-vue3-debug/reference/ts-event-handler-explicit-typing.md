@@ -75,7 +75,7 @@ function handleSubmit(event: SubmitEvent) {
 ## Common Event Types
 
 | Event | Type | Common Properties |
-|-------|------|-------------------|
+|-|-|-|
 | click, dblclick | `MouseEvent` | clientX, clientY, button |
 | keydown, keyup, keypress | `KeyboardEvent` | key, code, ctrlKey, shiftKey |
 | input, change | `Event` | target (needs assertion) |

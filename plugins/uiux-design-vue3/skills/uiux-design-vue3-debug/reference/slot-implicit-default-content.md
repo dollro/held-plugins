@@ -119,7 +119,7 @@ All three `<p>` elements end up in the default slot together, which may not be t
 ## Best Practices
 
 | Scenario | Recommendation |
-|----------|---------------|
+|-|-|
 | Only default slot used | Implicit is fine |
 | Mixed named + default slots | Consider explicit `#default` |
 | Complex layouts | Always use explicit templates |

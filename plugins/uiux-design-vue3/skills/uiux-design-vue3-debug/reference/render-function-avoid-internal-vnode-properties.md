@@ -97,7 +97,7 @@ export default {
 ## Documented VNode Properties
 
 | Property | Type | Description |
-|----------|------|-------------|
+|-|-|-|
 | `type` | `string \| Component` | Element tag name or component definition |
 | `props` | `object \| null` | Props passed to the vnode |
 | `children` | `any` | Child vnodes, text, or slots |

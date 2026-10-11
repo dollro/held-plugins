@@ -11,7 +11,7 @@
 **What it measures:** History of executing against goals, delivering on guidance, navigating challenges.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Exceptional execution. Consistently meets/beats guidance. Successfully navigated past challenges. Industry respect. |
 | 4 | Good track record with occasional well-explained misses. Relevant prior experience. |
 | 3 | Mixed — some hits, some misses. Guidance accuracy ±5%. |
@@ -25,7 +25,7 @@
 **What it measures:** How management deploys capital — R&D, M&A, buybacks, dividends, balance sheet.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Exceptional allocators. M&A accretive with strong integration. Buybacks at low valuations. R&D yielding returns. |
 | 4 | Disciplined. Mostly value-accretive M&A. Reasonable R&D ROI. Sensible buybacks. |
 | 3 | Adequate. Reasonable but unspectacular. Some mediocre M&A but not destructive. |
@@ -39,7 +39,7 @@
 **What it measures:** Skin in the game — insider buying/selling, compensation alignment.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Significant ownership (CEO > 3%). Recent open-market buying. Compensation tied to long-term (ROIC, FCF, TSR). |
 | 4 | Meaningful ownership. No material selling. Reasonable long-term incentives. |
 | 3 | Moderate ownership. Selling limited to 10b5-1 plans. Standard compensation. |
@@ -55,7 +55,7 @@
 **What it measures:** Board independence, shareholder rights, disclosure quality.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Best-in-class. Independent board, no poison pills, annual elections, proxy access, single share class. |
 | 4 | Good. Mostly independent. Standard disclosure. Reasonable shareholder rights. |
 | 3 | Adequate. Minor concerns (staggered board, limited proxy access) but no deal-breakers. |
@@ -71,7 +71,7 @@
 **What it measures:** Sensitivity to economic cycles, rates, currency, macro conditions.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Counter-cyclical/non-cyclical. Revenue resilient in downturns. Mission-critical, inelastic demand. |
 | 4 | Low cyclicality. Revenue declined < 10% in last recession. Geographic diversification helps. |
 | 3 | Moderate. Revenue correlates with GDP but doesn't amplify. Some rate/currency sensitivity. |
@@ -85,7 +85,7 @@
 **What it measures:** Exposure to adverse regulation, litigation, antitrust, policy shifts.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Minimal exposure. No material litigation. Stable regulatory framework. Clean compliance. |
 | 4 | Some exposure but manageable. Minor litigation. Stable regulatory environment. |
 | 3 | Moderate. Potential regulatory changes within 2–3 years. Some litigation but manageable. |
@@ -99,7 +99,7 @@
 **What it measures:** Dependence on few customers, suppliers, geographies, or products.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | Highly diversified. No customer > 5%. No critical single supplier. Strong geo/product diversity. |
 | 4 | Good. Largest customer < 10%. Some concentration but manageable. |
 | 3 | Moderate. Top customer 10–20% OR > 50% from one region OR key single-supplier dependency. |
@@ -113,7 +113,7 @@
 **What it measures:** Environmental, social, governance tail risks that could cause sudden value destruction.
 
 | Score | Criteria |
-|:---:|---|
+|:-:|-|
 | 5 | ESG leader. Strong cybersecurity. Minimal environmental liabilities. Diversified operations. |
 | 4 | Good ESG. Manageable environmental exposure. Standard cybersecurity. Low tail risk. |
 | 3 | Average ESG. Some exposure within industry norms. Normal tail risk. |

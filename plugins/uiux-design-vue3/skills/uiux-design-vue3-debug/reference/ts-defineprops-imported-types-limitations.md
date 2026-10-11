@@ -268,7 +268,7 @@ defineProps<ResolvedProps>()
 ## Version-Specific Behavior
 
 | Vue Version | Imported Types | Complex Types |
-|-------------|---------------|---------------|
+|-|-|-|
 | 3.2 | Not supported | Not supported |
 | 3.3 | Supported | Limited |
 | 3.4+ | Supported | Better support |

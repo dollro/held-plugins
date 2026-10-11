@@ -7,7 +7,7 @@ Derived from a production setup that has been running for a long time (including
 ## Files
 
 | File | Holds |
-|---|---|
+|-|-|
 | `compose.yml` | Traefik and a Docker socket proxy; creates the shared `proxy` network |
 | `traefik.yml` | Static config: entrypoints (HTTP→HTTPS, header-alias protection), Docker provider via the socket proxy, Let's Encrypt resolver `letsencrypt`, logs |
 | `dynamic/middlewares.yml` | `default` chain on every route (compression without SSE), opt-in `secure-headers`, dashboard basic auth |

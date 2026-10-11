@@ -11,7 +11,7 @@
 ## Auth
 
 | Path | How |
-|---|---|
+|-|-|
 | Browser login | django-allauth's server-rendered flows under `/accounts/` for every audience (`identity.md`), styled through an override of `allauth/layouts/base.html`. The admin login is wrapped with `secure_admin_login`. |
 | SSO | allauth's generic OpenID Connect provider (`SOCIALACCOUNT_PROVIDERS["openid_connect"]["APPS"]`) configured from env: issuer URL, client ID and secret, PKCE on, `verified_email` limited to company-managed domains. Any OIDC provider is configuration only; a tenant-specific issuer (Entra: `https://login.microsoftonline.com/<tenant-id>/v2.0`) restricts sign-in to the company, because the token issuer is checked. Unconfigured: no button, its routes answer 404. |
 | External accounts | allauth accounts with mandatory email verification by code, `allauth.mfa` (TOTP, passkeys as second factor, recovery codes), a middleware that sends users without a second factor to the setup where MFA is required. |

@@ -10,7 +10,7 @@ Create professional, user-centered designs in Penpot using the `penpot/penpot-mc
 ## Available MCP Tools
 
 | Tool | Purpose |
-| ---- | ------- |
+|-|-|
 | `mcp__penpot__execute_code` | Run JavaScript in Penpot plugin context to create/modify designs |
 | `mcp__penpot__export_shape` | Export shapes as PNG/SVG for visual inspection |
 | `mcp__penpot__import_image` | Import images (icons, photos, logos) into designs |
@@ -67,7 +67,7 @@ Add to `settings.json`:
 ### Troubleshooting (If Server Is Installed But Not Working)
 
 | Issue | Solution |
-| ----- | -------- |
+|-|-|
 | Plugin won't connect | Check servers are running (`npm run start:all` in penpot-mcp dir) |
 | Browser blocks localhost | Allow local network access prompt, or disable Brave Shield, or try Firefox |
 | Tools not appearing in client | Restart VS Code/Claude completely after config changes |
@@ -531,7 +531,7 @@ penpot.currentPage.createFlow('Main Flow', startBoard);
 ### Spacing Scale (8px base)
 
 | Token | Value | Usage |
-| ----- | ----- | ----- |
+|-|-|-|
 | `spacing-xs` | 4px | Tight inline elements |
 | `spacing-sm` | 8px | Related elements |
 | `spacing-md` | 16px | Default padding |
@@ -542,7 +542,7 @@ penpot.currentPage.createFlow('Main Flow', startBoard);
 ### Typography Scale
 
 | Level | Size | Weight | Usage |
-| ----- | ---- | ------ | ----- |
+|-|-|-|-|
 | Display | 48-64px | Bold | Hero headlines |
 | H1 | 32-40px | Bold | Page titles |
 | H2 | 24-28px | Semibold | Section headers |
@@ -554,7 +554,7 @@ penpot.currentPage.createFlow('Main Flow', startBoard);
 ### Color Usage
 
 | Purpose | Recommendation |
-| ------- | -------------- |
+|-|-|
 | Primary | Main brand color, CTAs |
 | Secondary | Supporting actions |
 | Success | #22C55E range (confirmations) |
@@ -652,7 +652,7 @@ Before finalizing any design:
 Use these validation approaches with `mcp__penpot__execute_code`:
 
 | Check | Method |
-| ----- | ------ |
+|-|-|
 | Elements outside bounds | `penpotUtils.analyzeDescendants()` with `isContainedIn()` |
 | Text too small (<12px) | `penpotUtils.findShapes()` filtering by `fontSize` |
 | Missing contrast | Call `mcp__penpot__export_shape` and visually inspect |

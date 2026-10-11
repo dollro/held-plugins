@@ -103,7 +103,7 @@ const reversedItemsModern = computed(() => {
 ## Mutating vs Non-Mutating Array Methods
 
 | Mutating (Avoid in Computed) | Non-Mutating (Safe) |
-|------------------------------|---------------------|
+|-|-|
 | `sort()` | `toSorted()` (ES2023) |
 | `reverse()` | `toReversed()` (ES2023) |
 | `splice()` | `toSpliced()` (ES2023) |

@@ -18,7 +18,7 @@
 ### Category A: Business & Competitive Risk
 
 | Risk | Description | What to Look For | Severity If Realized |
-|---|---|---|---|
+|-|-|-|-|
 | **Moat Erosion** | Competitive advantages weakening | Market share loss, pricing pressure, margin compression, new well-funded entrants | High — structural value destruction |
 | **Disruption** | Technology or business model substitution | Emerging alternatives gaining traction, customer migration signals, declining NPS | Very High — potential existential |
 | **Customer Concentration** | Revenue dependence on few customers | Top customer > 10% revenue, contract renewal dates, customer financial health | High — revenue cliff risk |
@@ -29,7 +29,7 @@
 ### Category B: Financial Risk
 
 | Risk | Description | What to Look For | Severity If Realized |
-|---|---|---|---|
+|-|-|-|-|
 | **Leverage / Debt** | Excessive debt burden | Net debt/EBITDA > sector "Weak" threshold, covenant proximity, rising interest expense, ratings downgrade | Very High — solvency risk |
 | **Liquidity** | Insufficient cash to meet obligations | Declining cash balances, negative operating CF, maturity wall, revolver draw | Very High — immediate |
 | **Earnings Quality** | Reported earnings overstating reality | GAAP/non-GAAP divergence growing, accruals rising, FCF conversion declining, DSO increasing | High — trust destruction |
@@ -39,7 +39,7 @@
 ### Category C: Macro & External Risk
 
 | Risk | Description | What to Look For | Severity If Realized |
-|---|---|---|---|
+|-|-|-|-|
 | **Recession / Cyclical** | Economic downturn impact | High beta, discretionary product, B2B spend correlated to GDP, customer budget sensitivity | Medium to High — sector-dependent |
 | **Interest Rate** | Rate changes impacting valuation or business | High leverage, rate-sensitive revenue (housing, auto), long-duration asset with high P/E | Medium — repricing risk |
 | **Inflation** | Input cost increases not passable | Rising COGS faster than revenue, commodity input exposure, wage inflation in labor-intensive business | Medium — margin compression |
@@ -49,7 +49,7 @@
 ### Category D: Regulatory & Legal Risk
 
 | Risk | Description | What to Look For | Severity If Realized |
-|---|---|---|---|
+|-|-|-|-|
 | **Regulatory Change** | New regulations impacting business model | Proposed legislation, regulatory commentary, industry lobbying activity, political sentiment shift | High — can permanently alter economics |
 | **Antitrust** | Government action against market power | Market share concentration, DOJ/FTC investigations, European Commission scrutiny, political rhetoric | High — forced structural changes |
 | **Litigation** | Material lawsuit exposure | Pending lawsuits, class action filings, product liability, patent disputes, settlement history | Variable — depends on exposure |
@@ -59,7 +59,7 @@
 ### Category E: ESG & Sustainability Risk
 
 | Risk | Description | What to Look For | Severity If Realized |
-|---|---|---|---|
+|-|-|-|-|
 | **Climate / Environmental** | Physical or transition climate risk | Carbon-intensive operations, stranded asset risk, disclosure requirements, carbon pricing exposure | Variable — sector-dependent |
 | **Social / Labor** | Workforce or community issues | Labor disputes, DEI controversies, supply chain labor conditions, community opposition | Medium — reputational + operational |
 | **Governance** | Board and management failures | Dual-class shares, related-party transactions, board not independent, excessive compensation | Medium to High — value extraction |
@@ -74,7 +74,7 @@ These are leading indicators that often precede material fundamental deteriorati
 ### Financial Early Warnings
 
 | Indicator | Signal | Data Source | Action Level |
-|---|---|---|---|
+|-|-|-|-|
 | **Revenue deceleration** | Sequential QoQ growth rate declining for 3+ quarters | Quarterly income statement | Review thesis if growth halves |
 | **Gross margin erosion** | Gross margin down > 100 bps YoY for 2+ quarters | Quarterly income statement | Investigate cause immediately |
 | **FCF conversion drop** | FCF/Net Income falls below 70% for 2+ quarters | Cash flow statement | Quality concern — investigate |
@@ -89,7 +89,7 @@ These are leading indicators that often precede material fundamental deteriorati
 ### Competitive Early Warnings
 
 | Indicator | Signal | Data Source | Action Level |
-|---|---|---|---|
+|-|-|-|-|
 | **Share loss** | Revenue growth below industry growth rate for 2+ quarters | Web search — industry data | Moat may be narrowing |
 | **Pricing pressure** | ASP declining or promotions increasing | Earnings calls, channel checks | Pricing power weakening |
 | **New entrant gaining** | Well-funded competitor crossing meaningful adoption threshold | Web search, news | Evaluate threat severity |
@@ -99,7 +99,7 @@ These are leading indicators that often precede material fundamental deteriorati
 ### Management & Governance Early Warnings
 
 | Indicator | Signal | Data Source | Action Level |
-|---|---|---|---|
+|-|-|-|-|
 | **Insider selling cluster** | 3+ insiders selling in same month outside of 10b5-1 plans | Insider transaction data (MCP) | Investigate — insiders know more |
 | **Board resignations** | Independent director departures | SEC filings, news | Governance concern |
 | **CEO distraction** | CEO taking external board seats, media roles, or political appointments | News, proxy filings | Focus dilution |
@@ -164,7 +164,7 @@ Define specific thresholds that should trigger a thesis review. Include these in
 ### Standard Monitoring Framework
 
 | Category | Metric | Positive Trigger (upgrade thesis) | Negative Trigger (downgrade thesis) |
-|---|---|---|---|
+|-|-|-|-|
 | **Growth** | Revenue growth QoQ | Acceleration for 2+ quarters | Deceleration for 3+ quarters |
 | **Margins** | Operating margin | Expansion > 100 bps sustained | Compression > 150 bps sustained |
 | **Cash Flow** | FCF conversion | Sustained > 100% | Drops below 60% |
@@ -192,7 +192,7 @@ While position sizing is ultimately the portfolio manager's decision, the resear
 ### Position Size Framework
 
 | IAS Range | Verdict | Suggested Position Size | Rationale |
-|---|---|---|---|
+|-|-|-|-|
 | 85–100 | Strong Buy | 3–5% of portfolio | High conviction, exceptional risk/reward |
 | 70–84 | Buy | 2–4% of portfolio | Favorable risk/reward |
 | 55–69 | Hold | 1–2% of portfolio (if owned) | Neutral — no active position change |
@@ -217,7 +217,7 @@ Adjust position size upward for:
 ### Stop-Loss Framework
 
 | Verdict | Suggested Stop-Loss | Rationale |
-|---|---|---|
+|-|-|-|
 | Strong Buy | 20–25% below entry | High conviction — wider stop to avoid noise |
 | Buy | 15–20% below entry | Standard — protect against thesis failure |
 | Hold | 10–15% below entry | Tighter — limited upside expectation |

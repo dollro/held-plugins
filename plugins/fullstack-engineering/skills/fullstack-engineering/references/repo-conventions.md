@@ -5,7 +5,7 @@ What a repo built on this stack must tell an agent, so that anyone (person or ag
 ## What the root CLAUDE.md must cover
 
 | Topic | Must say | Example (reference stack) |
-|---|---|---|
+|-|-|-|
 | Where things run | That services, tests and package managers run in containers, and what must never run on the host | "Everything runs in Docker through Task. Never run Django, pytest, uv sync or pnpm on the host." |
 | First run | The one command that prepares a fresh clone | `task setup` |
 | Start | How to start the stack **in the background**, and the URL | `task dev:up` → http://localhost:8000 |

@@ -29,7 +29,7 @@ DCF is the primary intrinsic value method. Use for all companies with positive o
 **Step 2: Project FCF Growth (5-Year Explicit Period)**
 
 | Year | Growth Rate Basis |
-|---|---|
+|-|-|
 | Year 1 | Analyst consensus or recent trajectory, modestly conservative |
 | Year 2 | Fade toward medium-term sustainable rate |
 | Year 3 | Medium-term sustainable rate |
@@ -58,7 +58,7 @@ Where:
 **Shortcut WACC estimation:**
 
 | Company Profile | Typical WACC Range |
-|---|---|
+|-|-|
 | Large-cap, low-beta, investment grade | 7–9% |
 | Mid-cap, moderate beta | 9–11% |
 | Small-cap, higher risk | 11–14% |
@@ -101,7 +101,7 @@ Fair Value Per Share = Equity Value / Shares Outstanding
 Always present a sensitivity table varying the two most impactful assumptions:
 
 | | WACC 8% | WACC 9% | WACC 10% | WACC 11% | WACC 12% |
-|---|---|---|---|---|---|
+|-|-|-|-|-|-|
 | Growth 5% | $[___] | $[___] | $[___] | $[___] | $[___] |
 | Growth 8% | $[___] | $[___] | $[___] | $[___] | $[___] |
 | Growth 10% | $[___] | $[___] | $[___] | $[___] | $[___] |
@@ -133,7 +133,7 @@ After calculating DCF fair value, verify:
 Select 3–5 closest comparable companies based on:
 
 | Factor | Priority | Notes |
-|---|---|---|
+|-|-|-|
 | Business model | Highest | Same revenue model (subscription, transactional, etc.) |
 | Industry | High | Same or adjacent industry |
 | Growth rate | High | Within 2x growth rate range |
@@ -210,7 +210,7 @@ The average provides the central fair value estimate. The range defines optimist
 No single valuation method is definitive. Triangulate using weights based on confidence:
 
 | Method | Default Weight | When to Increase Weight | When to Decrease Weight |
-|---|---|---|---|
+|-|-|-|-|
 | DCF | 40% | Stable, predictable FCF; high-quality inputs | Volatile or negative FCF; uncertain growth |
 | Comps | 30% | Good peer set available; liquid comps | Few true comps; company is unique |
 | Historical Range | 20% | Stable business; no structural change | Business model or growth profile changed |
@@ -261,7 +261,7 @@ The probability-weighted price target (from bull/base/bear scenarios) should be:
 - **Primary:** Risk-adjusted NPV of pipeline
 - Assign probability of success to each pipeline asset by phase:
   | Phase | Typical Probability of Success |
-  |---|---|
+  |-|-|
   | Preclinical | 5–10% |
   | Phase I | 10–15% |
   | Phase II | 25–35% |

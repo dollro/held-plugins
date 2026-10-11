@@ -21,7 +21,7 @@
 ### Packages
 
 | Need | Install | Avoid |
-|---|---|---|
+|-|-|-|
 | LangGraph orchestration | `langgraph` with an explicit floor, plus `langchain` if you use `create_agent`, middleware or the Langfuse callback | Relying on transitive versions only |
 | Langfuse + LangGraph | `langfuse` + full `langchain` (the callback imports it) | `langchain-core` alone |
 | Langfuse + CrewAI | `openinference-instrumentation-crewai` | — |
@@ -33,7 +33,7 @@
 ### Current conflict picture (checked 2026-10-08, re-check on every upgrade)
 
 | Topic | State | Consequence |
-|---|---|---|
+|-|-|-|
 | OpenTelemetry | CrewAI accepts `>=1.42,<2`; Langfuse 4.16+ needs `>=1.45` | Resolves at current versions. The old "install CrewAI first" trick is obsolete. CrewAI below 1.15.22 and Langfuse 4.16+ conflict. |
 | OpenAI SDK | CrewAI caps `openai<3`; Pydantic AI's `openai`/`openrouter` extras need `openai>=3` in recent 2.x releases | `pydantic-ai-slim[openrouter]` next to CrewAI silently falls back to an old 2.x. Use `pydantic-ai-slim[anthropic]` (resolves to current versions) or isolate the crews. |
 | Anthropic SDK | `crewai[anthropic]` pins an older `anthropic` than current Pydantic AI needs | Check the resolution: install the Anthropic provider on one side only, or isolate. |
@@ -45,7 +45,7 @@
 ### Security floors (checked 2026-10-08)
 
 | Package | Floor | Reason |
-|---|---|---|
+|-|-|-|
 | `langgraph` | `>=1.2.14` | Fix for an advisory affecting 1.2.3–1.2.13; earlier msgpack deserialization advisory |
 | `langgraph-checkpoint` | `>=4.1.1` (4.2 recommended) | Unsafe JSON deserialization; cache RCE in versions below 4.0 |
 | `langgraph-checkpoint-postgres` / `-sqlite` | `>=3.1.1` | Store namespace prefix matching |
@@ -75,7 +75,7 @@ Use package metadata, not `module.__version__`: some packages, for example `lang
 ### Options
 
 | Option | When |
-|---|---|
+|-|-|
 | Task queue workers (Celery, RQ, Arq) | Long-running pipelines triggered by an app; you run the infrastructure |
 | LangSmith Deployment (Agent Server, Studio) | Graph-centric services with streaming, threads, cron and human approval built in. Cloud, hybrid or self-hosted; check licensing. |
 | Durable workflow engine (Temporal, DBOS) | Runs that span days or must survive infrastructure loss (section 4) |
@@ -122,7 +122,7 @@ celery -A tasks worker --pool=prefork --concurrency=2 --prefetch-multiplier=1
 ```
 
 | Checkpointer with workers | Use |
-|---|---|
+|-|-|
 | `None` | Stateless, simplest, no resume |
 | Async Postgres | Crash recovery: another worker resumes the same `thread_id` (use synchronous durability with `acks_late`) |
 | Redis | Fast, durable alternative |
@@ -155,7 +155,7 @@ Pin the uv image tag in production. Secrets come in at runtime, never at build t
 ### Calls per refinement round (3 experts, moderator, writer, memory on)
 
 | Component | Calls per round | Notes |
-|---|---|---|
+|-|-|-|
 | Expert LLM calls | 1–3 each | Agent reasoning loop, capped by `max_iter` |
 | Moderator | 1–2 | +1 when contract parsing or a guardrail retries |
 | Writer | 1–2 | Usually one shot |
@@ -181,7 +181,7 @@ Price a pipeline from these counts and the **current** price list of your provid
 ## 4. Durable execution
 
 | Need | Choice |
-|---|---|
+|-|-|
 | Resume after an interrupt, worker crash or deploy | LangGraph checkpointer (default) with synchronous durability, retry policies and drain |
 | Runs over days, guaranteed completion across infrastructure loss, complex compensation | A durable workflow engine: Temporal (a LangGraph plugin exists; check its maturity) or DBOS, or the engine integrations of Pydantic AI for standalone agents |
 
@@ -190,7 +190,7 @@ Price a pipeline from these counts and the **current** price list of your provid
 ## 5. Protocols and SDKs
 
 | Protocol / SDK | Use it for | Notes |
-|---|---|---|
+|-|-|-|
 | **MCP** | Connecting agents to tools and data | Recent spec versions made the protocol stateless and changed elicitation and sampling. Check which spec version your SDKs speak; they differ per framework. Filter tools and pin servers (`security.md`). |
 | **A2A** | Agent-to-agent calls across services, teams or vendors | 1.0 is stable and governed by an open foundation. Use it for isolating crews into their own service, too. Validate everything against contracts. |
 | **AG-UI** | Streaming agents into front-ends (events, state, tool calls) | 1.0 released; framework adapters may lag. Sanitize history from the browser. |

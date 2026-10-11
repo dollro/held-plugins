@@ -180,7 +180,7 @@ async def crew_node(state: PipelineState) -> dict:
 ### Concurrency
 
 | Scenario | Safe? | Notes |
-|---|---|---|
+|-|-|-|
 | Parallel workers, different documents | ✅ | Memory scoped by document ID |
 | Parallel workers, same document | ⚠️ | Distributed lock (for example Redis `SET NX`) |
 | Reusing a crew or agents across rounds | ❌ | Always fresh instances |
@@ -223,7 +223,7 @@ def create_pipeline_memory(document_id: str) -> Memory:
 Parameter names and defaults change between releases, so check the memory docs before you tune anything.
 
 | Setting | Library default | Fast pipeline (minutes) | Long-running (weeks) |
-|---|---|---|---|
+|-|-|-|-|
 | Recency half-life (days, integer ≥ 1) | 30 | 1 (recency barely matters) | 7–30 |
 | Recency / semantic / importance weights | 0.3 / 0.5 / 0.2 | 0.1 / 0.6 / 0.3 | 0.2 / 0.5 / 0.3 |
 | Consolidation threshold | 0.85 | 0.85 | 0.90 |
@@ -242,7 +242,7 @@ Round 2: expert technical stores "Encryption is still missing for health data."
 ### Scoped agents: access enforced in the memory layer
 
 | Agent | Can read | Can write |
-|---|---|---|
+|-|-|-|
 | Expert (each) | Its own scope `/expert/<name>` | Its own scope |
 | Moderator | All expert scopes + `/moderator` (panoramic view) | `/moderator` |
 | Writer | `/moderator` only (context-fenced) | Nothing (read-only) |
@@ -267,7 +267,7 @@ def create_scoped_agents(memory: Memory) -> dict[str, Agent]:
 ### Dual context: nudge plus memory
 
 | | Nudge (prompt injection) | Memory (scoped recall) |
-|---|---|---|
+|-|-|-|
 | Type | Push, deterministic | Pull, semantic |
 | Purpose | Break argument loops | Deep historical recall |
 | Content | Latest ruling only | All stored facts, ranked |

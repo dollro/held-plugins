@@ -60,7 +60,7 @@ braindump2prd; a card that needs one says `prd: yes` instead of carrying the det
 ## 2 Layers and columns
 
 | Layer | Default row name | Guiding question | Content |
-|---|---|---|---|
+|-|-|-|-|
 | 1 | Business Outcomes | Why are we doing this? | The party the value lands with acts, decides or concludes differently |
 | 2 | Product & Features | What does the user get in their hands? | The artifact or property a user receives, named from the user's side |
 | 3 | Tech Enabler | Which preconditions do we have to create? | The condition that must hold in the system so a layer 2 feature can exist |
@@ -72,7 +72,7 @@ recorded in the context section and kept by later runs.
 Column names are fixed:
 
 | Column | Header | Meaning | Period |
-|---|---|---|---|
+|-|-|-|-|
 | Now | In Progress | Solution decided, work running or starting next | The running quarter |
 | Next | Investigating | Problem validated, solution open | The following half year |
 | Later | Considering | Hypothesis, not yet assessed | Beyond that |
@@ -84,7 +84,7 @@ Next. Otherwise Later. "Important" answers neither question.
 That gives five positions, each labelled with its absolute period, year first:
 
 | Position | Meaning |
-|---|---|
+|-|-|
 | `Now · 2026 Q4 · 1st` | First half of the running quarter |
 | `Now · 2026 Q4 · 2nd` | Second half of the running quarter |
 | `Next · 2027 H1 · 1st` | First half of the following half year |
@@ -135,7 +135,7 @@ the outcome whose feature they serve.
 Common misfilings and the probe that resolves each:
 
 | Raw phrasing | Usually is | Probe |
-|---|---|---|
+|-|-|-|
 | "We need an agent framework" | Layer 3 | Which feature stops working without it? |
 | "Better onboarding" | Outcome without evidence | Who does what differently, and how would you notice? |
 | "The account manager can show X in the meeting" | Layer 2, outcome missing above | And what does that get us, with whom? |
@@ -175,7 +175,7 @@ The statement which blocks are missing or partial, and what hangs on them, is ma
 ## 6 Card fields
 
 | Field | Mandatory | Format |
-|---|---|---|
+|-|-|-|
 | `id` | yes | Stable, never reused, layer letter plus number: `O-1` outcomes, `F-1` layer 2, `E-1` layer 3. In Notion the number comes from the Unique ID for new cards, so numbers are unique but not gapless per layer |
 | `title` | yes | Title grammar below. Quoted |
 | `layer` | yes | 2 or 3 (outcomes live in the outcome table) |
@@ -212,7 +212,7 @@ the block.
 ## 7 Title grammar
 
 | Layer | Now and Next | Later | Max words |
-|---|---|---|---|
+|-|-|-|-|
 | 1 | Full sentence, the external party as subject: what they do, decide or conclude. No product names | Same | 16 |
 | 2 | Noun phrase: the thing the user gets. Could appear on an invoice | Same | 9 |
 | 3 | State sentence in the present: the condition that must hold. Test: append "so that the feature above can exist" | Same form, no vendor names | 9 |
@@ -231,7 +231,7 @@ seconds without its description; and the person who gave the item recognises it.
 ### Register and length, per field
 
 | Field | Layer 1 | Layers 2 and 3 |
-|---|---|---|
+|-|-|-|
 | Title | Executive language, impact first: who gets what, and what changes. The system name may appear when it is the thing management knows (beacon, atlas), never as the subject | Layer 2: the thing the user gets, with its version where one exists ("atlas v2 (beta): …"). Layer 3: the condition, named in the architecture's own terms (HUB, RELAY, account profile, beacon-db-feed) |
 | Description | One to two sentences of context: what is really behind the sentence, for the reader who needs it. Drawn on the card in small type, in both views | One to two sentences: mechanism, scope cut, or the card it mirrors or rests on. Drawn on the card in the detailed view only |
 | Evidence | The falsifiable criterion or the metric. Never in the picture | — |
@@ -352,7 +352,7 @@ deleting an outcome) is logged as **"formally passed, finding in substance"**, a
 goes into the gap list.
 
 | Rule | Check |
-|---|---|
+|-|-|
 | R1 | Every card has an outcome |
 | R2 | Every outcome has a metric with today and target, or a falsifiable criterion; the log says which |
 | R3 | Every outcome has at least one card in its column or a column to its left |
@@ -395,7 +395,7 @@ Basis: <documents, interviews, sessions with dates>.
 ## 2 Outcomes
 
 | Code | Outcome | Context | Impact | Value | Evidence | Type | Position | Colour |
-|---|---|---|---|---|---|---|---|---|
+|-|-|-|-|-|-|-|-|-|
 | O-1 | The key-account customer recognises in the sales call that the offer fits their goals | atlas v2 beta UI, opened by the account manager in the call | Customer value | outside | A sales call runs with the matching shown, without anyone building the list by hand | Criterion | Now · 2026 Q4 · 2nd | `#1F5E5B` |
 
 <"Impact" only when the roadmap defines impact dimensions; then a list of outcomes per dimension
@@ -428,7 +428,7 @@ a cut and which are decisions.>
 ## 4 Sequence
 
 | Position | What comes into being | From then on |
-|---|---|---|
+|-|-|-|
 | Now · 2026 Q4 · 1st | <what is built> | <what becomes possible; for 2nd halves this reads like an outcome sentence> |
 
 **Outcome positions:** <per outcome in Now and Next the half it is placed in, and whether the
@@ -440,7 +440,7 @@ sentence each on why first, or "none"), and any in-cell order set by the author.
 ## 5 System building blocks
 
 | ID | Block | Purpose | Status | Used by | Depends on |
-|---|---|---|---|---|---|
+|-|-|-|-|-|-|
 | B3 | CRM | System of record for identity and process state | exists | E-1, E-2 | — |
 | B2 | Evidence layer | Source, date and product on every statement | missing | E-1, E-3, E-5 | B1 |
 
@@ -463,14 +463,14 @@ No headcount unless the user gave one.>
 ## 8 Open gaps
 
 | Gap | Affects | Who can close it |
-|---|---|---|
+|-|-|-|
 
 <Everything not in the material and not settled in the interview. Markers stay visible.>
 
 ## 9 Check log, deviations and changes
 
 | Rule | Result | Note |
-|---|---|---|
+|-|-|-|
 
 <All twelve rules.>
 

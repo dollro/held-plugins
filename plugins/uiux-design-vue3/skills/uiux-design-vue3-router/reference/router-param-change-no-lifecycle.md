@@ -162,7 +162,7 @@ const { data: user, loading, error } = useRouteData('id', fetchUser)
 ## What Triggers vs. What Doesn't
 
 | Navigation Type | Lifecycle Hooks | beforeRouteUpdate | Watch on params |
-|----------------|-----------------|-------------------|-----------------|
+|-|-|-|-|
 | `/users/1` to `/posts/1` | YES | NO | YES |
 | `/users/1` to `/users/2` | NO | YES | YES |
 | `/users/1?tab=a` to `/users/1?tab=b` | NO | YES | NO (different watch) |

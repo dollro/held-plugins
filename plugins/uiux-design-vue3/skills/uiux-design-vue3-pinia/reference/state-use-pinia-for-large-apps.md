@@ -166,7 +166,7 @@ export const useSettingsStore = defineStore('settings', {
 ## Pinia vs Hand-Rolled Comparison
 
 | Feature | Hand-Rolled `reactive()` | Pinia |
-|---------|-------------------------|-------|
+|-|-|-|
 | DevTools integration | No | Yes |
 | TypeScript inference | Manual | Automatic |
 | HMR support | No | Yes |

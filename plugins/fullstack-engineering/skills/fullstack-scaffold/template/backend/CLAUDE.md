@@ -14,7 +14,7 @@ task dev:manage -- issue_api_key <email> <name>
 ## Access Points
 
 | Service | URL |
-|---|---|
+|-|-|
 | App (via local proxy) | http://localhost:8000 |
 | Admin | http://localhost:8000/admin/ |
 | Flower | http://localhost:5555 |

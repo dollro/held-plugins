@@ -26,7 +26,7 @@ Locally and in CI a small proxy container (Caddy) plays the reverse proxy, so th
 A service can be replaced (another framework, another language) if the replacement keeps these contracts.
 
 | Contract | Rule |
-|---|---|
+|-|-|
 | HTTP API | REST under `/api/v1/`, JSON in and out, errors as `{"detail": "..."}`, describable as OpenAPI. Breaking changes get a new version prefix. |
 | Browser auth | One origin. Session cookie (HttpOnly, SameSite, Secure in production) + CSRF header on unsafe methods. |
 | Login | Per audience (`identity.md`): the company identity provider (OpenID Connect) for staff, app accounts with verified email and MFA for externals; always through one login layer (allauth). |
@@ -39,7 +39,7 @@ A service can be replaced (another framework, another language) if the replaceme
 ## Choosing the shape
 
 | Question | If yes |
-|---|---|
+|-|-|
 | Do users need realtime updates, streams, long-running agent runs or many open connections? | Add the realtime service (Django + FastAPI). |
 | Is it only "refresh when something changed"? | Django only; poll, or SSE from a Django async view. |
 | Mostly agents/streaming, few tables, no business admin, identity fully in the company identity provider, coarse roles, team accepts owning the glue? | FastAPI only is acceptable (below). |
@@ -56,7 +56,7 @@ Django brings what internal tools need on day one: users, permissions, admin, OR
 Use it only when **all** of these hold: the app is mainly agent runs or streaming; roughly a dozen domain tables or fewer with simple CRUD; no business-user admin (ops views suffice); identity fully delegated to the company identity provider (no local accounts); coarse authorization from the provider's roles or groups; the team accepts owning session, CSRF and admin glue and keeping up with FastAPI's 0.x releases. Exit path: when CRUD, admin, object permissions or reporting grow, move to the Django + FastAPI reference instead of rebuilding Django.
 
 | Component | Choice | Why |
-|---|---|---|
+|-|-|-|
 | ORM / migrations | SQLAlchemy 2.x (async) + Alembic, separate Pydantic schemas | Most capable and stable; SQLModel is still pre-1.0 |
 | Driver | psycopg 3 | Shared with the LangGraph Postgres checkpointer |
 | Login | Authlib OIDC against the company identity provider, backend-for-frontend; server-side session in Redis; `__Host-` cookie | Current OAuth guidance for browser apps: no tokens in the browser |

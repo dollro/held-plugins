@@ -50,7 +50,7 @@ const currentView = computed(() => routes[currentPath.value])
 ### Features You'd Have to Implement Manually
 
 | Feature | Simple Routing | Vue Router |
-|---------|---------------|------------|
+|-|-|-|
 | Navigation guards | Manual, error-prone | Built-in, composable |
 | Nested routes | Complex to implement | Native support |
 | Route params | Parse manually | Automatic extraction |

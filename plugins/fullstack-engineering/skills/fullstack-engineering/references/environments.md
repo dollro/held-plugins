@@ -5,7 +5,7 @@ How local, CI, staging and production differ, and how a value travels from an en
 ## The environments
 
 | Environment | Purpose | Runs | Settings |
-|---|---|---|---|
+|-|-|-|-|
 | local | Development | Compose dev stack, code bind-mounted, Vite dev server with HMR | Development settings (debug tools) |
 | ci | Checks before merge | The dev stack plus a CI overlay: built assets, no dev server, debug off | Development settings with debug off, or test settings for unit tests |
 | staging | Verify a release before production | The release images, on a server | **Production settings**, own env values |
@@ -25,7 +25,7 @@ Small apps may skip staging. Then production deploys need the end-to-end suite g
 ## Where values live
 
 | Kind | Where | Committed |
-|---|---|---|
+|-|-|-|
 | Secrets and per-environment config | `.envs/<env>/app.env`, encrypted (SOPS) | Only encrypted, plus a generated example with credentials blanked |
 | Deploy state (pinned version, host, proxy network) | `.envs/<env>/deploy.env` | Yes, plain text: its history is the deploy history |
 | Local development defaults | `.envs/local/app.env` | Encrypted; the example works as is for booting the stack |

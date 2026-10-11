@@ -127,7 +127,7 @@ const { count, doubleCount, increment, reset } = useCounter(10)
 ## Naming Convention Examples
 
 | Good Name | Bad Name | Reason |
-|-----------|----------|--------|
+|-|-|-|
 | `useFetch` | `fetch` | Conflicts with native fetch |
 | `useAuth` | `authStore` | "Store" implies Pinia/Vuex |
 | `useLocalStorage` | `localStorage` | Conflicts with native API |

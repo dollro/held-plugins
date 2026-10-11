@@ -163,7 +163,7 @@ const items = ref([/* ... */])
 ## Performance Comparison
 
 | Scenario | Without Directive | With v-once/v-memo |
-|----------|-------------------|-------------------|
+|-|-|-|
 | Static header, parent re-renders 100x | Re-evaluated 100x | Evaluated 1x |
 | 1000 items, selection changes | 1000 items re-render | 2 items re-render |
 | Complex child component | Full re-render | Skipped if memoized |

@@ -116,7 +116,7 @@ createApp({
 ## SFC vs In-DOM Templates
 
 | Feature | SFC (.vue files) | In-DOM (HTML) |
-|---------|------------------|---------------|
+|-|-|-|
 | Case sensitivity | Preserved | Lowercased by browser |
 | Dynamic arguments | Full support | Lowercase only |
 | Recommendation | Preferred | Use for progressive enhancement |

@@ -11,7 +11,7 @@
 ### Deal Header
 
 | Field | Detail |
-|-------|--------|
+|-|-|
 | **Company** | [Legal entity name] |
 | **Sector** | [Digital Tech / Industrial Tech / Life Sciences / Climate Tech] |
 | **Stage** | [Pre-Seed / Seed / Series A] |
@@ -50,7 +50,7 @@
 **Aggregate Scorecard (Chapters 2–7):**
 
 | # | Chapter | Score | Weight | Weighted |
-|---|---------|:---:|:---:|:---:|
+|-|-|:-:|:-:|:-:|
 | 1 | Team & Management | ___ / 5 | __% | ___ |
 | 2 | Technology, IP & Industrialization | ___ / 5 | __% | ___ |
 | 3 | Market & Timing | ___ / 5 | __% | ___ |
@@ -70,7 +70,7 @@
 > *One line per quadrant — the single most important item. Full analysis in Chapter 8.8.*
 
 | | Positive | Negative |
-|---|---|---|
+|-|-|-|
 | **Internal** | **S:** [Top strength — criterion # + one-liner] | **W:** [Top weakness — criterion # + one-liner] |
 | **External** | **O:** [Top opportunity — criterion # + one-liner] | **T:** [Top threat — criterion # + one-liner] |
 
@@ -81,7 +81,7 @@
 > *Summary of 10x return path. Full analysis in Chapter 8.2.*
 
 | Parameter | Value |
-|-----------|-------|
+|-|-|
 | Our investment | €___ |
 | Required exit EV (for 10x) | €___ |
 | Implied ARR at exit (at ___x multiple) | €___ |
@@ -93,7 +93,7 @@
 ### Recommended Deal
 
 | Parameter | Value |
-|-----------|-------|
+|-|-|
 | Our ticket / ownership post-money | €___ / ___% |
 | Pre-money valuation | €___ |
 | Total round size | €___ |

@@ -14,7 +14,7 @@ This file holds the **principles and guardrails**. They change slowly. The `refe
 1. **Check the baseline.** The reference stack targets the latest stable major version of each framework:
 
    | Component | Major line | Role |
-   |---|---|---|
+   |-|-|-|
    | LangGraph (+ langchain, langchain-core) | 1.x | Orchestration, state, persistence, human-in-the-loop |
    | Pydantic AI | 2.x | Single-agent execution |
    | CrewAI | 1.x | Multi-agent teams, scoped memory |
@@ -29,7 +29,7 @@ This file holds the **principles and guardrails**. They change slowly. The `refe
 4. **Repo rules apply on top:** pull request size, file and function length limits, CLAUDE.md and `docs/` come from `engineering-standards`.
 
 | Read | When you build or review |
-|---|---|
+|-|-|
 | `references/architecture.md` | Framework roles, node types, layering, project structure |
 | `references/langgraph.md` | State, graph topology, routing, human-in-the-loop, persistence, fault tolerance, streaming |
 | `references/pydantic-ai.md` | Single-agent nodes, capabilities, output validation, tool approval, MCP |
@@ -45,7 +45,7 @@ This file holds the **principles and guardrails**. They change slowly. The `refe
 ## 1. Architecture: one owner per concern
 
 | Concern | Owner | Never |
-|---|---|---|
+|-|-|-|
 | Control flow, loops, branching, cross-step state, persistence, human approval | **LangGraph** | Duplicate it with Pydantic AI graphs, CrewAI Flows or a second durable engine inside the same run |
 | One agent with tools and structured output | **Pydantic AI** (adapter node) | Let it own state across graph steps |
 | Several role-based agents collaborating | **CrewAI** (adapter node, fresh crew per call) | Reuse crews or agents across calls |
@@ -55,7 +55,7 @@ This file holds the **principles and guardrails**. They change slowly. The `refe
 Choose the node type by the task:
 
 | Task | Node |
-|---|---|
+|-|-|
 | Deterministic routing, validation, preprocessing | Plain LangGraph function |
 | One agent, structured output | Pydantic AI adapter node |
 | Several agents debating or dividing work | CrewAI adapter node |
@@ -186,7 +186,7 @@ project/
 ## Review checklist (top mistakes)
 
 | Mistake | Fix |
-|---|---|
+|-|-|
 | Model ID literal in an agent | Model factory with tiers |
 | Exceptions, clients or Pydantic objects in state | `last_error` message + `ErrorSnapshot`, IDs, `model_dump(mode="json")` |
 | Validation inside the generator | Separate validator node, then fixer |

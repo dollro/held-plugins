@@ -204,7 +204,7 @@
 
 **Moat taxonomy:**
 | Moat Type | Description | Durability Signal |
-|---|---|---|
+|-|-|-|
 | Network Effects | Value increases with each user | User growth accelerating, multi-sided platform |
 | Switching Costs | Painful/expensive to leave | High retention rates, long contracts, deep integration |
 | Cost Advantages | Structural cost advantage | Scale-driven, proprietary process, resource access |

@@ -189,7 +189,7 @@ const { currentView } = useHashRouter({
 ## When to Use Simple Routing vs Vue Router
 
 | Use Simple Hash Routing | Use Vue Router |
-|------------------------|----------------|
+|-|-|
 | Learning/prototyping | Production apps |
 | Very simple apps (2-3 pages) | Nested routes needed |
 | No build step available | Navigation guards needed |

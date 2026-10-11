@@ -12,7 +12,7 @@ The snippets in this skill show patterns. Exact signatures, defaults and package
 ## LangGraph and LangChain
 
 | What | Where |
-|---|---|
+|-|-|
 | Docs (Python) | https://docs.langchain.com/oss/python/langgraph/overview |
 | Changelog (LangChain + LangGraph) | https://docs.langchain.com/oss/python/releases/changelog |
 | Interrupts (human-in-the-loop) | https://docs.langchain.com/oss/python/langgraph/interrupts |
@@ -29,7 +29,7 @@ The snippets in this skill show patterns. Exact signatures, defaults and package
 ## Pydantic AI and Pydantic
 
 | What | Where |
-|---|---|
+|-|-|
 | Docs | https://pydantic.dev/docs/ai/ |
 | Changelog | https://pydantic.dev/docs/ai/project/changelog/ |
 | Migration guide (major versions) | https://pydantic.dev/docs/ai/overview/migration/ |
@@ -45,7 +45,7 @@ The snippets in this skill show patterns. Exact signatures, defaults and package
 ## CrewAI
 
 | What | Where |
-|---|---|
+|-|-|
 | Docs | https://docs.crewai.com/ |
 | Changelog | https://docs.crewai.com/en/changelog |
 | Crews, agents, tasks, guardrails | https://docs.crewai.com/en/concepts/crews, https://docs.crewai.com/en/concepts/agents, https://docs.crewai.com/en/concepts/tasks |
@@ -58,7 +58,7 @@ The snippets in this skill show patterns. Exact signatures, defaults and package
 ## Observability
 
 | What | Where |
-|---|---|
+|-|-|
 | Langfuse Python SDK | https://langfuse.com/docs/observability/sdk/python/overview |
 | Langfuse SDK upgrade guide (v3 → v4) | https://langfuse.com/docs/observability/sdk/upgrade-path/python-v3-to-v4 |
 | Langfuse + LangChain/LangGraph | https://langfuse.com/integrations/frameworks/langchain |
@@ -71,7 +71,7 @@ The snippets in this skill show patterns. Exact signatures, defaults and package
 ## Models
 
 | What | Where |
-|---|---|
+|-|-|
 | Claude models overview | https://platform.claude.com/docs/en/about-claude/models/overview |
 | Claude model deprecations (retirement dates) | https://platform.claude.com/docs/en/about-claude/model-deprecations |
 | Claude pricing | https://platform.claude.com/docs/en/about-claude/pricing |
@@ -80,7 +80,7 @@ The snippets in this skill show patterns. Exact signatures, defaults and package
 ## Protocols, SDKs, durable execution
 
 | What | Where |
-|---|---|
+|-|-|
 | MCP specification and changelog | https://modelcontextprotocol.io/specification |
 | A2A protocol | https://a2a-protocol.org |
 | AG-UI | https://docs.ag-ui.com |
@@ -91,11 +91,11 @@ The snippets in this skill show patterns. Exact signatures, defaults and package
 ## Security
 
 | What | Where |
-|---|---|
+|-|-|
 | OWASP GenAI Security Project (Agentic Top 10, LLM Top 10) | https://genai.owasp.org |
 
 ## Tooling
 
 | What | Where |
-|---|---|
+|-|-|
 | uv (locking, sync, tree) | https://docs.astral.sh/uv/ |

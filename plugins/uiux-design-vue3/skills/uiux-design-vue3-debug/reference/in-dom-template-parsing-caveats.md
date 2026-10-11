@@ -120,7 +120,7 @@ Some HTML elements have strict rules about valid children. Invalid elements are 
 ## When Do These Apply?
 
 | Template Type | Affected? | Example |
-|---------------|-----------|---------|
+|-|-|-|
 | Single-File Component (`.vue`) | No | `<template>` section |
 | String template | No | `template: '<div>...</div>'` |
 | In-DOM template | **Yes** | `<div id="app">...</div>` |

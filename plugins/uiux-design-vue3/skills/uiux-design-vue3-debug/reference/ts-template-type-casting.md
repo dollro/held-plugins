@@ -186,7 +186,7 @@ const items = ref<(string | number)[]>([1, 'two', 3])
 ## When Type Casting is Needed
 
 | Scenario | Solution |
-|----------|----------|
+|-|-|
 | Union types | Cast to specific type |
 | Nullable types | Use optional chaining or cast after null check |
 | Event targets | Cast `event.target` to specific element type |

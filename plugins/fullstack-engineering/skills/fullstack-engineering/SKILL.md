@@ -17,7 +17,7 @@ This file holds the **principles and guardrails**. They change slowly. The `refe
 4. **Repo rules apply on top:** pull request size, file and function limits, CLAUDE.md and `docs/` come from `engineering-standards`; agent code from `agentic-engineering`.
 
 | Read | When you build or review |
-|---|---|
+|-|-|
 | `references/architecture.md` | Services, contracts, choosing the app shape, FastAPI-only and Channels options |
 | `references/backend-django.md` | Settings, auth, DRF, internal endpoints, Celery, migrations, admin |
 | `references/realtime-fastapi.md` | Async rules, SSE vs WebSocket, auth bridge, Redis fan-out, Alembic ownership |
@@ -64,7 +64,7 @@ Detect the stack from the lockfiles and manifests first. If the repo is not on t
 ## 1. Architecture: owners and contracts
 
 | Concern | Owner | Never |
-|---|---|---|
+|-|-|-|
 | Users, permissions, admin, CRUD, REST API, server-rendered pages | **Django** (system of record) | Re-implement auth or admin in another service |
 | Long-lived connections, streaming, agent runs | **FastAPI** realtime service | Hold domain state that Django owns |
 | Background and scheduled work | **Celery** workers (Django code) | Long work inside a request |
@@ -79,7 +79,7 @@ Services talk through **contracts**, so an implementation can be replaced withou
 ## 2. Choose the shape on purpose
 
 | Shape | Use when |
-|---|---|
+|-|-|
 | **Django only** (default) | Most internal tools. Simple notifications via polling or Server-Sent Events from Django. |
 | **Django + FastAPI** (reference) | Realtime, streaming or agent workloads (LLM token streams, long agent runs, many connections, non-browser clients). |
 | **FastAPI only** (option) | Agent- or streaming-heavy app with few tables, no business admin, identity fully in the company identity provider, coarse roles. Exit path: move to Django + FastAPI when CRUD, admin or permissions grow. |
@@ -191,7 +191,7 @@ repo/
 ## Review checklist (top mistakes)
 
 | Mistake | Fix |
-|---|---|
+|-|-|
 | Token in localStorage, or token in a URL | Session cookie + CSRF; realtime validates the cookie via Django |
 | Own JSON login view next to allauth | All logins through allauth (rate limits, verification, MFA); admin login redirected there |
 | External user can fetch another user's object | Queryset scoped to `request.user`; test with a second user |

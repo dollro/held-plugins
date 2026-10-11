@@ -47,7 +47,7 @@ which colors are "background" vs "surface").
 **Identify and document:**
 
 | Attribute | What to Determine |
-|-----------|-------------------|
+|-|-|
 | Platform | Mobile (iOS/Android), web (desktop/responsive), desktop app |
 | Design language | Material Design, iOS HIG, custom, hybrid |
 | Layout approach | Single column, multi-column, sidebar+content, dashboard grid |
@@ -121,7 +121,7 @@ Scan the screenshot in this order:
 ### Color Palette
 
 | # | Color | Hex | Usage | Suggested Token |
-|---|-------|-----|-------|-----------------|
+|-|-|-|-|-|
 | 1 | Dark forest green | #1B3C2D | Page background, card backgrounds | color.neutral.900 |
 | 2 | Medium green | #2D5A42 | Secondary backgrounds, borders | color.neutral.700 |
 | 3 | Lime green | #A3E635 | CTAs, progress bars, active states | color.primary.500 |
@@ -185,7 +185,7 @@ Use known reference points to estimate sizes:
 ### Typography
 
 | # | Style | Family | Size | Weight | Case | Tracking | Usage |
-|---|-------|--------|------|--------|------|----------|-------|
+|-|-|-|-|-|-|-|-|
 | 1 | Display | Inter (or similar) | ~32px | Bold (700) | Normal | Tight | Page titles |
 | 2 | Heading | Inter | ~24px | Semibold (600) | Normal | Tight | Section headers |
 | 3 | Body | Inter | ~16px | Regular (400) | Normal | Normal | Main content |
@@ -292,7 +292,7 @@ Look at every element with rounded corners and estimate the radius. Group by usa
 ### Border Radius
 
 | Value | Where | Suggested Token |
-|-------|-------|-----------------|
+|-|-|-|
 | 0px | None detected | radius.none |
 | 4px | Input fields, small badges | radius.s |
 | 8px | Buttons, dropdowns | radius.m |
@@ -308,7 +308,7 @@ First, classify the **overall depth strategy** — this prevents generating shad
 UI that relies on borders, or vice versa:
 
 | Strategy | Characteristics |
-|----------|----------------|
+|-|-|
 | Borders only | No shadows. Depth conveyed via border color, background shifts. Common in minimal/flat UIs. |
 | Subtle shadows | Light, small shadows on cards and elevated elements. Modern default. |
 | Layered shadows | Multiple shadow levels creating clear elevation hierarchy. Material-like. |
@@ -389,7 +389,7 @@ UI element with consistent visual treatment.
 ### Component Inventory
 
 | # | Component | Variants Detected | States Visible | States Needed | Notes |
-|---|-----------|-------------------|----------------|---------------|-------|
+|-|-|-|-|-|-|
 | 1 | Button | Primary, Secondary, Ghost | Default only | Hover, Active, Focus, Disabled | Lime bg for primary, outline for secondary |
 | 2 | Text Input | Standard, With Icon | Default, Filled | Focus, Error, Disabled | Dark bg, subtle border, placeholder text visible |
 | 3 | Toggle Switch | — | On, Off | Disabled | Lime green for "on" state |
@@ -494,7 +494,7 @@ KNOWN GAPS:
 Avoid these during analysis — they lead to unusable output:
 
 | Mistake | Fix |
-|---------|-----|
+|-|-|
 | Guessing hex values without acknowledging approximation | Prefix all sizes with `~`; note confidence for colors |
 | Extracting colors without assigning roles | Every color must have a named role (background, text, border, accent) |
 | Listing components without measuring them | Every component needs dimensions, padding, radius, and color values |

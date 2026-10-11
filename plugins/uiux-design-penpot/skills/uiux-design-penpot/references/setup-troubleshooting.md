@@ -282,7 +282,7 @@ PENPOT_MCP_SERVER_PORT=4501 npm run start:all
 ### Environment Variables
 
 | Variable | Default | Description |
-|----------|---------|-------------|
+|-|-|-|
 | `PENPOT_MCP_SERVER_PORT` | 4401 | HTTP/SSE server port |
 | `PENPOT_MCP_WEBSOCKET_PORT` | 4402 | WebSocket server port |
 | `PENPOT_MCP_SERVER_LISTEN_ADDRESS` | localhost | Server bind address |

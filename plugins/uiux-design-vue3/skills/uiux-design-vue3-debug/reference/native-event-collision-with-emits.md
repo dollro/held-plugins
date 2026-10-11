@@ -100,7 +100,7 @@ const emit = defineEmits(['select', 'custom-action'])
 This applies to any native DOM event you might declare:
 
 | Event | Behavior When Declared |
-|-------|----------------------|
+|-|-|
 | `click` | Only responds to `emit('click')`, not native clicks |
 | `input` | Only responds to `emit('input')`, not native input |
 | `change` | Only responds to `emit('change')`, not native change |

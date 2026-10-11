@@ -405,7 +405,7 @@ if ok:
 ### Checkpointer selection
 
 | Environment | Checkpointer | Notes |
-|---|---|---|
+|-|-|-|
 | Tests, local dev | `InMemorySaver` | Lost on restart (`MemorySaver` is only an old alias) |
 | Production | `AsyncPostgresSaver` with a connection pool | Durable, multi-worker, resume on another worker |
 | Production alternatives | Redis (maintained by Redis Inc.), MongoDB, SQLite (single host) | Check maintenance status and security advisories |

@@ -70,7 +70,7 @@ const props = withDefaults(defineProps<Props>(), {
 ## When Factory Functions Are Required
 
 | Type | Factory Required | Example Default |
-|------|-----------------|-----------------|
+|-|-|-|
 | `string` | No | `'hello'` |
 | `number` | No | `42` |
 | `boolean` | No | `false` |

@@ -141,7 +141,7 @@ function emitSubmit(data: FormData) {
 ## Choosing Between Styles
 
 | Style | Use When | Benefits |
-|-------|----------|----------|
+|-|-|-|
 | Type-based | TypeScript project | Compile-time checking, IDE support |
 | Array | JavaScript, simple events | Simple, no types needed |
 | Object | Need runtime validation | Validates payloads at runtime |

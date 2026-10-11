@@ -42,7 +42,7 @@ The product delivers a verifiable 10x improvement over the incumbent solution (o
 The company has established structural, durable barriers that protect its competitive position over time, and the moat trajectory is widening (getting stronger through data accumulation, patent filings, customer lock-in, or network effects) rather than narrowing. Score based on moat type and durability:
 
 | Moat Type | Strength | Examples |
-|-----------|----------|---------|
+|-|-|-|
 | Patents / IP | High (if broad + enforceable) | Granted patents in key jurisdictions |
 | Proprietary data | High (if growing + unique) | Sensor data flywheel, training data |
 | Network effects | Very High (if present) | Platform dynamics, ecosystem lock-in |

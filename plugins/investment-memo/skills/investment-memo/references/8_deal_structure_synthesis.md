@@ -23,7 +23,7 @@ The deal economics work as an integrated equation: our ticket achieves target ow
 Does our ticket size, at the proposed pre-money valuation, yield our target ownership?
 
 | Variable | Value | Check |
-|----------|-------|-------|
+|-|-|-|
 | Fund ownership target | [15–20%] | Fund strategy constraint |
 | Our ticket | €___ | Capital allocation constraint |
 | Pre-money valuation | €___ | Founder expectation |
@@ -36,7 +36,7 @@ Does our ticket size, at the proposed pre-money valuation, yield our target owne
 Is the implied pre-money defensible given stage, traction, and market comparables?
 
 | Stage | Typical Pre-Money Range (DACH, 2025) | Valuation Driver |
-|-------|:---:|---|
+|-|:-:|-|
 | Pre-Seed | €1.5M – €4M | Team + IP + early prototype |
 | Seed | €3M – €10M | TRL 4–6 + pilot customers + IP |
 | Series A | €8M – €25M | ARR + product-market fit + unit economics |
@@ -46,7 +46,7 @@ Is the implied pre-money defensible given stage, traction, and market comparable
 Model the cap table through the next 2 rounds. At typical Series A dilution (20–25%) and Series B dilution (15–20%), what does founder ownership look like?
 
 | Scenario | Founder Ownership | Fund Ownership (no follow-on) | Fund Ownership (full pro-rata) |
-|----------|:---:|:---:|:---:|
+|-|:-:|:-:|:-:|
 | Post this round | ___% | ___% | ___% |
 | Post Series A (est.) | ___% | ___% | ___% |
 | Post Series B (est.) | ___% | ___% | ___% |
@@ -75,7 +75,7 @@ The 10x return math works: at our ownership percentage (accounting for dilution 
 **10x Return Check:**
 
 | Variable | Value |
-|----------|-------|
+|-|-|
 | Our investment | €___ |
 | Target return | 10x → €___ |
 | Our ownership at exit (est., post-dilution) | ___% |
@@ -86,7 +86,7 @@ The 10x return math works: at our ownership percentage (accounting for dilution 
 **Exit pathway assessment:**
 
 | Exit Route | Timeline | Plausibility | Named Potential Acquirers |
-|------------|:---:|:---:|---|
+|-|:-:|:-:|-|
 | Trade sale / strategic M&A | 5–7 years | [High / Medium / Low] | [Name 1, Name 2, Name 3] |
 | Secondary / growth equity buyout | 5–8 years | [High / Medium / Low] | [Type of buyer] |
 | IPO | 7–10 years | [High / Medium / Low] | [Min. ARR threshold] |
@@ -119,7 +119,7 @@ The co-investor syndicate brings meaningful value beyond capital across three di
 **Syndicate Quality Assessment:**
 
 | Dimension | Assessment |
-|-----------|-----------|
+|-|-|
 | **Follow-on capacity** | Can co-investors participate in Series A pro-rata? Do they have reserves? |
 | **Domain expertise** | Do co-investors bring sector knowledge, customer intros, or technical validation? |
 | **Signal value** | Does the co-investor roster strengthen the Series A fundraise narrative? |
@@ -127,7 +127,7 @@ The co-investor syndicate brings meaningful value beyond capital across three di
 **Co-Investor Detail:**
 
 | Co-Investor | Ticket | Status | Follow-on Capacity | Value-Add |
-|-------------|:---:|:---:|:---:|---|
+|-|:-:|:-:|:-:|-|
 | [Name] | €___ | [Committed / Soft-circled / Pipeline] | [Yes / No] | [Description] |
 | [Name] | €___ | [Committed / Soft-circled / Pipeline] | [Yes / No] | [Description] |
 | [Name] | €___ | [Committed / Soft-circled / Pipeline] | [Yes / No] | [Description] |
@@ -156,7 +156,7 @@ The portfolio company creates concrete, actionable strategic value for fund LP r
 **LP Synergy Mapping:**
 
 | LP / Strategic Partner | Synergy Type | Concrete Opportunity | Status |
-|---|---|---|:---:|
+|-|-|-|:-:|
 | [LP Name] | [Pilot customer / Distribution / Co-invest / Acquirer] | [Specific description] | [Confirmed / In discussion / Identified] |
 | [LP Name] | [Pilot customer / Distribution / Co-invest / Acquirer] | [Specific description] | [Confirmed / In discussion / Identified] |
 
@@ -184,7 +184,7 @@ A specific, actionable post-investment value creation plan is in place — with 
 **Value Creation Plan (Fund Actions):**
 
 | Company Need | Fund Resource / Action | Responsible Person | Timeline |
-|---|---|---|:---:|
+|-|-|-|:-:|
 | [e.g., First enterprise pilot customer] | [e.g., Intro to LP X's innovation team] | [Deal lead / Partner] | [Q/Year] |
 | [e.g., CTO hire] | [e.g., Activate recruiter network] | [Deal lead / Platform team] | [Q/Year] |
 | [e.g., Series A positioning] | [e.g., Introduce to 3 target Series A VCs] | [Deal lead / Partner] | [Q/Year] |
@@ -192,7 +192,7 @@ A specific, actionable post-investment value creation plan is in place — with 
 **Key Milestones (Company):**
 
 | Milestone | Target Date | Success Metric | Linked Criterion |
-|-----------|:-----------:|----------------|:---:|
+|-|:-:|-|:-:|
 | [Milestone 1] | [Q/Year] | [Specific KPI] | [e.g., 3.2] |
 | [Milestone 2] | [Q/Year] | [Specific KPI] | [e.g., 6.1] |
 | [Milestone 3] | [Q/Year] | [Specific KPI] | [e.g., 7.4] |
@@ -218,7 +218,7 @@ A specific, actionable post-investment value creation plan is in place — with 
 ### Deal Structure Summary (8.1–8.5)
 
 | Criterion | Checkpoint | Notes |
-|-----------|:---:|--------|
+|-|:-:|-|
 | 8.1 — Valuation–Ownership Fit | [✓ / ✗ / ○] | [Brief note] |
 | 8.2 — Return Math & Exit Plausibility | [✓ / ✗ / ○] | [Brief note] |
 | 8.3 — Syndicate Quality | [✓ / ✗ / ○] | [Brief note] |
@@ -280,7 +280,7 @@ A specific, actionable post-investment value creation plan is in place — with 
 #### BCSA Assessment of the Current Deal
 
 | BCSA Dimension | Status | Evidence | Gap / Action Required |
-|---|:---:|---|---|
+|-|:-:|-|-|
 | **B — Better** | [✓ / ○ / ✗] | [→ Criterion 5.2: ___/5, Criterion 6.1: ___/5] | [Perception gap between technical performance and decision-maker value?] |
 | **C — Cheaper** | [✓ / ○ / ✗] | [→ Criterion 6.4: ___/5, Criterion 6.5: ___/5] | [Which cost metric matters to the decision-maker? CAPEX vs. OPEX vs. TCO?] |
 | **S — Simpler** | [✓ / ○ / ✗] | [Integration effort, training, compatibility] | [Adoption barriers: form factor mismatch, integration complexity, training?] |
@@ -289,7 +289,7 @@ A specific, actionable post-investment value creation plan is in place — with 
 #### Value Chain Analysis: Where Is Natural Relevance Highest?
 
 | Value Chain Stage | B | C | S | A | BCSA Fit | Natural Relevance | Conversion Forecast |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 | [Stage 1: e.g., Manufacturer] | [✓/✗] | [✓/✗] | [✓/✗] | [✓/✗] | [Yes/No] | [High/Med/Low] | [___% est.] |
 | [Stage 2: e.g., Integrator] | [✓/✗] | [✓/✗] | [✓/✗] | [✓/✗] | [Yes/No] | [High/Med/Low] | [___% est.] |
 | [Stage 3: e.g., End Customer] | [✓/✗] | [✓/✗] | [✓/✗] | [✓/✗] | [Yes/No] | [High/Med/Low] | [___% est.] |
@@ -298,7 +298,7 @@ A specific, actionable post-investment value creation plan is in place — with 
 **BCSA Benchmarks:**
 
 | Metric | Strong BCSA Signal | Weak BCSA Signal |
-|--------|:---:|:---:|
+|-|:-:|:-:|
 | Customer conversion rate | >65% | <30% |
 | GP / Cost of Engagement ratio | Above-average | Below-average |
 | Sales cycle length | Shorter than competitors | Longer than competitors |
@@ -333,7 +333,7 @@ A specific, actionable post-investment value creation plan is in place — with 
 #### Current Deal Positioning
 
 | Parameter | Current | Expected for Stage | Gap Assessment |
-|-----------|---------|-------------------|----------------|
+|-|-|-|-|
 | **TRL** | [___] | [___] | [✓ On track / ○ Minor gap / ✗ Significant gap — Description] |
 | **Market Certainty** | [___] | [___] | [✓ On track / ○ Minor gap / ✗ Significant gap — Description] |
 | **DTM Zone** | [___] | [___] | [✓ Matches stage / ○ One zone below / ✗ Two+ zones below] |
@@ -399,7 +399,7 @@ From: 4.2 Timing, 4.4 Regulatory, 4.5 Geographic, 7.2 Non-dilutive funding, BCSA
 From: 3.6 Obsolescence, 4.4 ESG, 4.5 Macro/supply chain, 5.4 Competitor response, 7.3 Bear case, BCSA adoption failure:
 
 | Risk | Source | Likelihood | Impact | Mitigable? |
-|------|:---:|:---:|:---:|---|
+|-|:-:|:-:|:-:|-|
 | [e.g., Adjacent technology renders approach obsolete] | 3.6 | [H/M/L] | [H/M/L] | [Yes/No/Partially — brief] |
 | [e.g., Critical component single-sourced from China] | 4.5 | [H/M/L] | [H/M/L] | [Yes/No/Partially — brief] |
 | [e.g., Incumbent launches competing solution] | 5.4 | [H/M/L] | [H/M/L] | [Yes/No/Partially — brief] |
@@ -486,7 +486,7 @@ From: 3.6 Obsolescence, 4.4 ESG, 4.5 Macro/supply chain, 5.4 Competitor response
 All criteria marked with 🚩 must score ≥2 to proceed. Any 🚩 criterion scored 0–1 triggers an automatic Pass unless the IC explicitly overrides with documented rationale.
 
 | Red Flag Criterion | Score | Pass/Clear |
-|---|:---:|:---:|
+|-|:-:|:-:|
 | 2.1 — Founder-Market Fit | ___ | ☐ |
 | 2.2 — Team Complementarity | ___ | ☐ |
 | 3.1 — Innovation Depth | ___ | ☐ |
@@ -504,7 +504,7 @@ All criteria marked with 🚩 must score ≥2 to proceed. Any 🚩 criterion sco
 #### Conviction Assessment
 
 | Dimension | Conviction |
-|-----------|:---:|
+|-|:-:|
 | Team | [Extremely Bullish / Bullish / Neutral / Bearish / Extremely Bearish] |
 | Technology | [Extremely Bullish / Bullish / Neutral / Bearish / Extremely Bearish] |
 | Market | [Extremely Bullish / Bullish / Neutral / Bearish / Extremely Bearish] |
@@ -517,7 +517,7 @@ All criteria marked with 🚩 must score ≥2 to proceed. Any 🚩 criterion sco
 #### IC Vote
 
 | IC Member | Vote | Key Comment |
-|-----------|:----:|-------------|
+|-|:-:|-|
 | [Name] | [Invest / Pass] | [One-line rationale] |
 | [Name] | [Invest / Pass] | [One-line rationale] |
 | [Name] | [Invest / Pass] | [One-line rationale] |
@@ -529,7 +529,7 @@ All criteria marked with 🚩 must score ≥2 to proceed. Any 🚩 criterion sco
 ### Chapter 8 Summary
 
 | Section | Assessment | Notes |
-|---------|:---:|--------|
+|-|:-:|-|
 | 8.1 — Valuation–Ownership Fit | [✓ / ✗ / ○] | |
 | 8.2 — Return Math & Exit | [✓ / ✗ / ○] | |
 | 8.3 — Syndicate Quality | [✓ / ✗ / ○] | |

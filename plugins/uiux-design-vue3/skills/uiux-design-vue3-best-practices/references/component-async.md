@@ -91,7 +91,7 @@ const AsyncDashboard = defineAsyncComponent({
 ## Delay Guidelines
 
 | Scenario | Recommended Delay |
-|----------|-------------------|
+|-|-|
 | Small component, fast network | `200ms` |
 | Known heavy component | `100ms` |
 | Background or non-critical UI | `300-500ms` |
