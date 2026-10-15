@@ -31,7 +31,19 @@ import tarfile
 from pathlib import Path
 from urllib.parse import urlparse
 
-VERSION = "2"  # bump when the generated kit changes shape (forces "stale")
+VERSION = "3"  # bump when the generated kit changes shape (forces "stale")
+# Appended to the sandbox's user CLAUDE.md: the agent inside never sees the
+# host's memory and rarely opens the reference unless something points at it.
+SANDBOX_NOTE = """
+## Inside a Docker Sandbox (added by the sbx harness kit)
+
+You run inside an `sbx` sandbox (`$SANDBOX_NAME` is set). Before working around a missing tool or a failing command, read engineering-standards `references/agent-sandbox.md` (Test loop, Troubleshooting).
+
+- Use the repo's sandbox-aware tasks (CLAUDE.md, Taskfile) before composing commands by hand. If the repo's CLAUDE.md names tasks this branch lacks, the branch predates them: say so, and merge the base branch only with the user's agreement.
+- Tools the sandbox lacks (pnpm, Playwright browsers, a newer runtime) run in containers, not installed here: the image CI uses, pinned to the project's version. Node tools already installed run from `node_modules/.bin/<tool>`.
+- Tools installed with uv or pipx land in `~/.local/bin`; git hooks and non-login shells may not have it on PATH. Call them by full path and tell the user the kit should link them into `/usr/local/bin`.
+- The host's auto-memory does not exist here. A fact you had to rediscover belongs in the repo's CLAUDE.md: propose the line.
+"""
 KIT_NAME = "claude-harness"
 HOME = Path.home()
 CLAUDE = Path(os.environ.get("CLAUDE_CONFIG_DIR") or HOME / ".claude")
@@ -260,6 +272,7 @@ def effective(sel, ctx):
     if ekm:
         harness["extraKnownMarketplaces"] = ekm
     files = {r: t for r, t in ctx["files"].items() if r in on("files")}
+    files["CLAUDE.md"] = files.get("CLAUDE.md", "").rstrip("\n") + "\n" + SANDBOX_NOTE
     sl = ctx["statusline"]
     if sl and "statusLine" in on("settings") and sl[0] in files:
         harness["statusLine"] = {**sl[1], "command": f"{AGENT_CLAUDE}/{sl[0]}{sl[2]}"}

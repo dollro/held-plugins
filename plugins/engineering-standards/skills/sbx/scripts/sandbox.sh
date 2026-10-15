@@ -208,6 +208,21 @@ git_check() {
   esac
 }
 
+# branch_check <dir>: does the checked-out branch lack sandbox setup (kit, compose
+# overlays, Taskfiles, CLAUDE.md) that the base branch already has? Then the agent
+# inside works around tasks its CLAUDE.md does not mention yet.
+branch_check() {
+  local ws=$1 base ref n
+  base=$(cd "$ws" && default_base) || return 0
+  for ref in "origin/$base" "$base"; do git -C "$ws" rev-parse -q --verify "$ref^{commit}" >/dev/null && break; ref=""; done
+  [ -n "$ref" ] || return 0
+  [ "$(git -C "$ws" branch --show-current)" = "$base" ] && return 0
+  n=$(git -C "$ws" rev-list --count "HEAD..$ref" -- .sbx ':(glob)**/Taskfile.yml' ':(glob)**/*sbx*.yml' ':(glob)**/CLAUDE.md' 2>/dev/null) || return 0
+  if [ "${n:-0}" -gt 0 ]; then
+    warn "branch: $ref has $n commit(s) touching the kit, sandbox overlays, Taskfiles or CLAUDE.md that this branch lacks (git log HEAD..$ref -- .sbx '**/Taskfile.yml' '**/CLAUDE.md'); merge $ref first or the agent inside misses them"
+  else ok "branch: has the sandbox setup of $ref"; fi
+}
+
 # harness_status: prints one line about the harness kit. Returns 0 current,
 # 1 stale (host config changed), 2 missing, 5 new candidates to review.
 harness_status() {
@@ -446,6 +461,7 @@ cmd_check() {
     done < <(kit_env "$kit")
   fi
   git_check "$name" "$ws"
+  branch_check "$ws"
   harness_check "$name"
   echo "ATTACH: sbx run --name $name"
 }

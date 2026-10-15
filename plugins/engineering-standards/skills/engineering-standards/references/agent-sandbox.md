@@ -88,7 +88,7 @@ Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.4
 #### Test loop: how the agent runs the suite
 
 1. **Copy the CI job.** Read the job that runs the suite (`.gitlab-ci.yml`, the GitHub workflow) and reuse its compose files, images and command order. Do not invent a separate flow.
-2. **Tools run in containers, not in the sandbox.** Missing pnpm or browsers are not installed into the sandbox; use the image CI uses, pinned to the project's version (for E2E the official Playwright image matching `@playwright/test` in `package.json`).
+2. **Tools run in containers, not in the sandbox.** Missing pnpm or browsers are not installed into the sandbox; use the image CI uses, pinned to the project's version. Playwright's browsers do not install on the sandbox OS when it is newer than Playwright supports (`does not support chromium on ubuntu<ver>`); run the official image matching `@playwright/test` in `package.json` against the stack inside: `docker run --rm --network host -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/w -w /w mcr.microsoft.com/playwright:v<ver>-noble npx playwright test`. Node tools already in `node_modules` run as `node_modules/.bin/<tool>` without pnpm. Better: a sandbox-aware task per suite (One Taskfile above), so the agent never composes these by hand.
 3. **Throwaway overlays stay out of the repo.** One-off compose files (a tool container, a production-like setting) go into the agent's scratchpad and are added with another `-f`. Relative paths in them resolve against the first compose file's directory. An `environment:` entry in an overlay overrides the service's `env_file` (e.g. switch the app from the Vite dev server to built assets). If the overlay is worth keeping, commit it next to `compose.sbx.yml`.
 4. **Tool containers follow the same rules:** the proxy/CA block above (with every compose service name in `NO_PROXY`) and `user: "${UID}:${GID}"` with `HOME` under `/tmp` (File ownership below). For pnpm as non-root, set `COREPACK_HOME` to a writable path and `corepack enable --install-directory <writable dir>`. Escape `$` as `$$` inside a compose `command:`.
 5. **Start only what the tests need:** `up -d --wait <services>`, not the whole stack.
@@ -283,6 +283,8 @@ permissions:
 ```
 
 - Install as the agent user (`"1000"`); root (`"0"`, the default) only for system paths.
+- **Put user installs on every PATH.** uv, `uv tool` and pipx install into `/home/agent/.local/bin`, which git hooks and non-login shells do not see (`pre-commit not found` on commit). A later root step links them: `ln -sf /home/agent/.local/bin/{uv,uvx,pre-commit} /usr/local/bin/`.
+- **Install what the repo's checks call:** the git-hook runner (`uv tool install pre-commit`), and pnpm pinned to the version in `package.json`'s `packageManager` (`npm install -g pnpm@<ver>`). Corepack without a `packageManager` field picks an unpinned version and may fail to fetch it.
 - Pre-warm everything large or slow (tool environments, model downloads) at install, not at first use.
 - `sbx kit validate ./.sbx/atlas` before committing; local relative paths must start with `./`. A kit can also come from a Git URL pinned to a commit (`git+https://...#ref=<sha>&dir=<dir>`).
 - **A sandbox reads its kit only when it is created.** After changing the kit, recreate it: `sbx rm -f <name>`, then `sbx run claude --kit ./<kit>` (`sbx kit add` also recreates, and only applies environment, install and allow entries). A running or stopped sandbox keeps its old environment.
@@ -308,6 +310,10 @@ The built-in `claude` agent starts bare: no plugins or marketplaces, no user `CL
 | Files | `~/.claude/CLAUDE.md`, `agents/`, `commands/`, `output-styles/`, the status line script | Written to `/home/agent/.claude/`; the status line path is rewritten |
 | Settings | An allowlist: `model`, `effortLevel`, `autoCompactEnabled`, `attribution`, `outputStyle`, `statusLine`, … | Merged key by key into the `settings.json` the agent image already has (python3 or jq), never overwritten |
 
+**It also appends an "Inside a Docker Sandbox" section to the sandbox's `CLAUDE.md`** (even when the host's is left out): read this reference before working around a missing tool, use the repo's sandbox-aware tasks, run missing tools in containers, mind `~/.local/bin` on PATH, and propose CLAUDE.md lines for facts it had to rediscover. Without it the agent inside had the skill loaded but never opened this file, and found every item here again by trial and error.
+
+**Memory stays on the host.** Facts the host's auto-memory holds about the repo (a `PYTHONPATH` for single-file tests, a restart command) are missing inside; anything an agent in the sandbox needs goes into the repo's CLAUDE.md.
+
 Never copied: credentials, `~/.claude.json`, history, `projects/` and memory, sessions, `env`, `permissions`, `hooks`, helper commands (`apiKeyHelper` and the like). Content goes inline into the install steps (base64), not as kit files: `sbx kit add` refuses kits with static files or `setup.files`, and this way an existing sandbox can take the kit without losing its state.
 
 - **Network:** the kit allows `github.com`, `codeload.github.com`, `api.github.com`, `objects.githubusercontent.com`, `raw.githubusercontent.com`, the hosts of non-GitHub marketplaces and of git submodules found in the host's clone, plus `networkAllow` from the selection (host names only).
@@ -322,7 +328,7 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 
 1. **No host Docker socket** mounted into any sandbox, dev container or compose service that runs agent code (`grep -rn docker.sock`).
 2. **sbx version** at or above the one this reference was checked against (`sbx version`).
-3. **Kit:** schema v2 for a mixin on a built-in agent; no v1 fields (`commands:`, `network.allowedDomains`); `sbx kit validate ./<kit>` passes; the kit is actually tracked (`git ls-files .sbx`; the common Vim swap rule `[._]s[a-v][a-z]` in `.gitignore` matches `.sbx` and needs `!/.sbx/`); install steps that write outside system paths run as `user: "1000"`; large downloads pre-warmed.
+3. **Kit:** schema v2 for a mixin on a built-in agent; no v1 fields (`commands:`, `network.allowedDomains`); `sbx kit validate ./<kit>` passes; the kit is actually tracked (`git ls-files .sbx`; the common Vim swap rule `[._]s[a-v][a-z]` in `.gitignore` matches `.sbx` and needs `!/.sbx/`); install steps that write outside system paths run as `user: "1000"`; large downloads pre-warmed; tools in `~/.local/bin` linked into `/usr/local/bin`; the git-hook runner and a pinned pnpm installed if the repo uses them.
 4. **Network:** host services allowed as `localhost:<port>` (not `host.docker.internal:<port>`); wildcards paired with their bare domain; broad entries justified; rules added on the command line (`sbx policy ls`) copied into the kit.
 5. **Compose:** every service that writes into the bind mount has `user: "${UID}:${GID}"` and a writable `HOME`; `node_modules`, the venv and package stores are out of the mount; ports bind to `127.0.0.1`.
 6. **IDs exported:** the Taskfile (or an untracked `.env`) sets `UID` and `GID`; no reliance on `${UID:-1000}`.
@@ -331,7 +337,8 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 9. **Secrets:** none in the kit, `.mcp.json` or committed settings; sandbox values through `sbx secret` or the MCP gateway.
 10. **Git push from the sandbox:** remote type matches a route in Git hosts (SSH remote plus host-key kit, or GitHub HTTPS with the `github` secret); no mounted `~/.ssh`, no token in `.git/config`, no `insteadOf`/`extraHeader` for the git host; the host key was verified out of band.
 11. **Stack inside the sandbox** (if the agent should run integration tests itself): a compose overlay passes the sandbox proxy and CA to the containers; external APIs the stack calls are in the kit; services that need migrations wait for a healthy backend.
-12. **CLAUDE.md:** says which sandbox kind the repo uses, which commands run in the sandbox, which the human runs on the host, and the URLs of host services.
+12. **CLAUDE.md:** says which sandbox kind the repo uses, which commands run in the sandbox (one task per test suite, unit tests included), which the human runs on the host, and the URLs of host services; holds the facts that otherwise live only in a host's memory.
+13. **Branch:** `sandbox.sh check` reports `WARN branch: … lacks` when the base branch has sandbox setup (kit, overlays, Taskfiles, CLAUDE.md) the working branch does not; merge the base first.
 
 ## Troubleshooting
 
@@ -362,6 +369,11 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | `git push` inside: `Permission denied (publickey)` | Host's ssh-agent empty or not running in the terminal that attached | `ssh-add ~/.ssh/<key>`, check `ssh-add -l`, attach again |
 | `git push` over HTTPS to GitLab inside: `HTTP Basic: Access denied` or a prompt for a password | The proxy cannot inject Basic auth for GitLab | SSH remote plus `gitlab-ssh` kit (Git hosts) |
 | `sbx create`/`kit add` refuses a kit from `github.com/docker/…` | `kit.allowedSources` does not list it | `sbx settings set kit.allowedSources '["docker.io/","github.com/docker/"]'` |
+| `pnpm: command not found`, or corepack `Cannot find module …/corepack/pnpm/<ver>/…` | No pnpm in the sandbox image; corepack fetched an unpinned version | `node_modules/.bin/<tool>`, a tool container, or pnpm pinned in the kit (Kit) |
+| Playwright: `does not support chromium on ubuntu<ver>` | Sandbox OS newer than Playwright's supported list | Official Playwright image (Test loop, step 2) |
+| `git commit` inside: `` `pre-commit` not found `` | Installed into `~/.local/bin`, not on the hook's PATH | Link into `/usr/local/bin` in the kit (Kit) |
+| Dev server answers nothing (`curl` code 000) after an edit | Its autoreload hit a syntax error mid-edit and the process exited; the container stays down | `docker compose … up -d --wait <svc>` |
+| Agent inside works around tasks its CLAUDE.md names but the branch lacks | Branch cut before the sandbox setup reached the base | `check` warns `branch: … lacks`; merge the base branch |
 | `docker compose run --no-deps <svc>` never returns | The entrypoint waits for a database that `--no-deps` did not start | `exec` into the running service, or start its dependencies |
 | A container exits with 137 after the agent removed it | Killed by the removal (SIGKILL), not a failure | Nothing to fix |
 | `sbx kit add` refuses an older sandbox | Created before sbx could recreate sandboxes | Recreate the sandbox |
