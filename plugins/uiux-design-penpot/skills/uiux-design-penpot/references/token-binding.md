@@ -1,5 +1,13 @@
 # Token Binding — Penpot Implementation
 
+## Contents
+
+- Token Resolver Utility
+- Greenfield Pattern — Inline Binding During Creation
+- Brownfield Sweep Recipe
+- Property Extraction Helpers
+- Penpot-Specific Gotchas
+
 Penpot-specific patterns for binding design tokens to shapes. Implements the
 strategies defined in `uiux-design-system/references/token-binding-strategy.md`.
 
@@ -29,15 +37,15 @@ function initTokenResolver() {
     },
     applySafe(shape, token, properties) {
       if (!token) return false;
-      // Toggle guard: applyToken() is a toggle — calling twice UNBINDS
-      // Read shape.tokens to check if already bound before applying
+      // Toggle guard: applyToken() is a toggle, calling twice UNBINDS.
+      // shape.tokens maps property -> token name, e.g. { fill: "bg.body", fontFamily: "font.sans" }
       const existing = shape.tokens || {};
-      // TODO: verify shape.tokens key structure at runtime, then add:
-      //   const propKey = properties || 'all';
-      //   if (existing[propKey]?.id === token.id) return false; // already bound
-      // Until verified, this is safe for greenfield (first-time binding)
-      // but risky for brownfield re-runs. For brownfield, verify manually.
-      shape.applyToken(token, properties);
+      const props = properties ? [].concat(properties) : null;
+      const bound = props
+        ? props.every(p => existing[p] === token.name)
+        : Object.values(existing).includes(token.name);
+      if (bound) return false;
+      shape.applyToken(token, props || undefined);
       return true;
     }
   };
@@ -62,20 +70,21 @@ TR.applySafe(rect, TR.resolve('semantic', 'bg.interactive'), 'fill');
 
 ### Property Strings by Token Type
 
-> **CRITICAL:** `applyToken(token, properties)` **silently fails** for some non-color
-> token types when passing explicit properties. Only pass `'fill'` or `'strokeColor'`
-> for color tokens. For ALL other types, **omit the properties argument entirely**.
-> See `mcp-known-issues.md` § "applyToken() Silent Failure" for details.
+> **CRITICAL:** on Penpot 2.18, some documented property names are rejected:
+> `['fontFamilies']` and `['all']` throw `should be a set of strings` (the real key
+> is `fontFamily`). Only pass `'fill'` or `'strokeColor'` for color tokens. For ALL
+> other types, **omit the properties argument** and read the key back from `shape.tokens`.
+> See `mcp-known-issues.md` § "applyToken(): Property Names and Errors".
 
 | Token type | `properties` arg | Notes |
 |-|-|-|
 | Color (fill) | `'fill'` | Maps to `fillColor` of the FIRST fill |
 | Color (stroke) | `'strokeColor'` | Maps to first stroke color |
-| borderRadius | **omit** | Explicit arg may silently fail |
+| borderRadius | **omit** | |
 | shadow | **omit** | |
 | spacing | **omit** | |
 | sizing | **omit** | |
-| fontFamilies | **omit** | Confirmed: explicit `'fontFamilies'` silently fails |
+| fontFamilies | **omit** | 2.18: `'fontFamilies'` throws; binds as `fontFamily` |
 | fontSizes | **omit** | |
 | fontWeights | **omit** | |
 | All other types | **omit** | Safe default — let Penpot resolve the property |
@@ -159,8 +168,8 @@ function extractBindableProps(shape) {
 |-|-|
 | `applyToken()` is a toggle | Calling it on an already-bound shape **unbinds** the token. Read `shape.tokens` first. |
 | `shape.tokens` is readonly | Exposes current bindings as an object. Use it to check before calling `applyToken()`. |
-| Arg style is version-dependent | Object vs positional form flips between Penpot versions. Test both at project start (see `mcp-known-issues.md`). |
+| Object args only (2.18) | `addSet({ name })`, `addToken({ type, name, value })`. Positional forms throw. |
 | One page per sweep call | Bulk font changes + page switch in a single `execute_code` call crashes WASM renderer. |
-| Slash normalization in names | `atoms/button` becomes `atoms / button`. Use `.includes()` for name matching, never exact equality. |
-| Duplicate token names are silent | `addToken()` with an existing name returns `undefined` without error. |
-| `catalog.sets` on empty catalog | Crashes. Create at least one set before accessing `.sets`. |
+| Slash normalization in names | `atoms/button` becomes `atoms / button`. Normalise `" / "` before comparing. |
+| Duplicate token names throw | `addToken()` with an existing name (or group prefix) throws. Check `set.tokens` first. |
+| `catalog.sets` on empty catalog | Crashed on older versions. Guard the first read with try/catch. |

@@ -5,93 +5,47 @@ description: "Creates and reviews UI/UX designs in Penpot through its MCP tools:
 
 # Penpot UI/UX Design Guide
 
-Create professional, user-centered designs in Penpot using the `penpot/penpot-mcp` MCP server and proven UI/UX principles.
+Create professional, user-centered designs in Penpot using the MCP server built into Penpot (2.15+, verified on 2.18) and proven UI/UX principles.
 
 ## Available MCP Tools
 
 | Tool | Purpose |
 |-|-|
-| `mcp__penpot__execute_code` | Run JavaScript in Penpot plugin context to create/modify designs |
-| `mcp__penpot__export_shape` | Export shapes as PNG/SVG for visual inspection |
-| `mcp__penpot__import_image` | Import images (icons, photos, logos) into designs |
-| `mcp__penpot__penpot_api_info` | Retrieve Penpot API documentation |
+| `mcp__penpot__high_level_overview` | API primer. Call once per session before other Penpot tools (the server asks for this) |
+| `mcp__penpot__execute_code` | Run JavaScript in the Penpot plugin context to create/modify designs |
+| `mcp__penpot__export_shape` | Export shapes as PNG/SVG for visual inspection (`shapeId` or `"selection"` / `"page"`) |
+| `mcp__penpot__penpot_api_info` | Retrieve Penpot API documentation per type/member |
+
+There is **no `import_image` tool** on the built-in server. Import images inside `execute_code` with `await penpot.uploadMediaUrl(name, url)` (set the result as a `fillImage`) or `penpot.createShapeFromSvg(svg)` for icons.
 
 ## MCP Server Setup
 
-The Penpot MCP tools require the `penpot/penpot-mcp` server running locally. For detailed installation and troubleshooting, see [setup-troubleshooting.md](references/setup-troubleshooting.md).
+The server runs inside the user's Penpot instance at `https://<penpot-host>/mcp/stream?userToken=<MCP key>`. It executes code through a **Penpot browser tab** that has a design file open and is connected. For admin enablement, client config and troubleshooting, see [setup-troubleshooting.md](references/setup-troubleshooting.md).
 
-### Before Setup: Check If Already Running
+### Before Setup: Check the Connection
 
-**Always check if the MCP server is already available before attempting setup:**
+1. **Smoke test**: call `mcp__penpot__execute_code` with `return { version: penpot.version, file: penpot.currentFile?.name, page: penpot.currentPage?.name }`.
+   - Returns a version and file → ready. Note the version: the workarounds in [mcp-known-issues.md](references/mcp-known-issues.md) are verified for 2.18.
+   - Error about no connected plugin or instance → the client reaches the server, but no tab is connected. Ask the user to open the design file and choose **File → MCP Server → Connect**.
+   - Penpot tools missing, or 401/404 → client config, key or server problem. Ask whether the MCP server is set up before walking through setup.
+2. **Confirm the target**: the tools act on the file and page in the connected tab. Tell the user which file you are working in before you make changes.
 
-1. **Try calling a tool first**: Attempt `mcp__penpot__penpot_api_info` - if it succeeds, the server is running and connected. No setup needed.
+### Quick Setup (Only If Not Configured)
 
-2. **If the tool fails**, ask the user:
-   > "The Penpot MCP server doesn't appear to be connected. Is the server already installed and running? If so, I can help troubleshoot. If not, I can guide you through the setup."
+1. Admin: `enable-mcp` in `PENPOT_FLAGS`, plus the `penpot-mcp` service. A reverse proxy must forward `/mcp/stream` and the WebSocket on `/mcp/ws`.
+2. User: **Your account → Integrations → MCP Server** → turn on Status → create the MCP key → copy the URL.
+3. Client (Claude Code): `claude mcp add --transport http --scope local penpot "https://<penpot-host>/mcp/stream?userToken=<key>"`. The key is a secret, so never commit it.
+4. Penpot: open a design file → **File → MCP Server → Connect**.
 
-3. **Only proceed with setup instructions if the user confirms the server is not installed.**
+### Connection Behaviour (2.18)
 
-### Quick Start (Only If Not Installed)
-
-```bash
-# Clone and install
-git clone https://github.com/penpot/penpot-mcp.git
-cd penpot-mcp
-npm install
-
-# Build and start servers
-npm run bootstrap
-```
-
-Then in Penpot:
-1. Open a design file
-2. Go to **Plugins** → **Load plugin from URL**
-3. Enter: `http://localhost:4400/manifest.json`
-4. Click **"Connect to MCP server"** in the plugin UI
-
-### VS Code Configuration
-
-Add to `settings.json`:
-```json
-{
-  "mcp": {
-    "servers": {
-      "penpot": {
-        "url": "http://localhost:4401/sse"
-      }
-    }
-  }
-}
-```
-
-### Troubleshooting (If Server Is Installed But Not Working)
-
-| Issue | Solution |
-|-|-|
-| Plugin won't connect | Check servers are running (`npm run start:all` in penpot-mcp dir) |
-| Browser blocks localhost | Allow local network access prompt, or disable Brave Shield, or try Firefox |
-| Tools not appearing in client | Restart VS Code/Claude completely after config changes |
-| Tool execution fails/times out | Ensure Penpot plugin UI is open and shows "Connected" |
-| "WebSocket connection failed" | Check firewall allows ports 4400, 4401, 4402 |
-| "No Penpot plugin instances are currently connected" | Plugin disconnected — reopen plugin panel in Penpot, click "Connect to MCP server" again. There is no auto-reconnect |
-| Plugin disconnects during token/theme operations | See "Connection Stability" section below |
-
-### Connection Stability (as of Penpot 2.13.x — newer versions may resolve these)
-
-The MCP plugin communicates via WebSocket (port 4402). There is **no automatic reconnection** — if the connection drops, you must manually reconnect from the plugin UI.
-
-**Common disconnect triggers:**
-- **Plugin UI panel closed** (even accidentally) — immediately kills the connection
-- **30-second execution timeout** — the bridge auto-rejects long-running tasks
-- **Async property propagation** — operations like `theme.toggleActive()` and `set.toggleActive()` trigger internal async updates. Reading properties immediately after can cause race conditions or crashes
-- **Heavy token/theme operations** in a single `execute_code` call
-
-**Workarounds:**
-- **Keep the plugin UI panel visible** at all times — closing it kills the connection
-- **Split token/theme operations across multiple `execute_code` calls** — don't create tokens, activate themes, and read results in one call
-- **Don't read properties immediately after toggling** — the async state hasn't propagated yet. A `waitForSync()` API has been proposed ([penpot-mcp #27](https://github.com/penpot/penpot-mcp/issues/27)) but is not yet available
-- **If disconnected**: reopen plugin panel → click "Connect to MCP server" → retry the failed operation
-- **Verify connection**: access `http://localhost:4403/` (REPL server) to test WebSocket connectivity independently
+- **One tab** holds the MCP connection (choose it with the MCP status button). Code runs against that tab's current page.
+- **Background tabs get throttled or frozen** and tool calls hang until the tab is focused again. Keep the tab visible during long sessions.
+- **Idle sessions close after ~60 min.** If calls start failing, reconnect the tab (File → MCP Server → Connect).
+- **Tool timeout**: `PENPOT_MCP_TOOL_TIMEOUT_S` (default 120 s). Split large generations into several calls.
+- **`await` works** inside `execute_code`. Wait for async updates in the same call (`await new Promise(r => setTimeout(r, 150))`) instead of a follow-up call.
+- **No rollback**: shapes created before an exception stay in the file. Store created ids in `storage` so you can clean up.
+- **`penpot.currentUser` throws** `Permission user:read is not granted` on 2.18. Don't read user info.
 
 ## Quick Reference
 
@@ -107,6 +61,7 @@ The MCP plugin communicates via WebSocket (port 4402). There is **no automatic r
 | Multi-brand & dark mode strategy | `uiux-design-system/references/theming-multi-brand.md` |
 | Screen sizes & platform specs | `uiux-design-system/references/platform-guidelines.md` |
 | Full Penpot Plugin API reference | [penpot-api-reference.md](references/penpot-api-reference.md) |
+| Snippets: shapes, z-order, grid, effects, text, library, page/viewport/events | [penpot-api-reference.md § Snippets](references/penpot-api-reference.md) |
 | Color conversion utilities (OKLCH→hex, HSL→hex) | `uiux-design-system/references/color-utilities.md` |
 | Penpot color API patterns (fills, gradients, library) | [penpot-color-patterns.md](references/penpot-color-patterns.md) |
 | Token binding (resolver, toggle guard, brownfield sweep) | [token-binding.md](references/token-binding.md) |
@@ -114,39 +69,33 @@ The MCP plugin communicates via WebSocket (port 4402). There is **no automatic r
 | Flex vs Grid layout decision (**read before step 5**) | [generation-recipes.md § Layout Selection Guide](references/generation-recipes.md) + `uiux-design-system/references/layout-patterns.md` |
 | Reusable execute_code generation templates | [generation-recipes.md](references/generation-recipes.md) |
 
-## Core Design Principles
-
-### The Golden Rules
-
-1. **Clarity over cleverness**: Every element must have a purpose
-2. **Consistency builds trust**: Reuse patterns, colors, and components
-3. **User goals first**: Design for tasks, not features
-4. **Accessibility is not optional**: Design for everyone
-5. **Test with real users**: Validate assumptions early
-
-### Visual Hierarchy (Priority Order)
-
-1. **Size**: Larger = more important
-2. **Color/Contrast**: High contrast draws attention
-3. **Position**: Top-left (LTR) gets seen first
-4. **Whitespace**: Isolation emphasizes importance
-5. **Typography weight**: Bold stands out
-
 ## Design Workflow
 
-1. **Check for design system first**: Ask user if they have existing tokens/specs, or discover from current Penpot file
-2. **Understand the page**: Call `mcp__penpot__execute_code` with `penpotUtils.shapeStructure()` to see hierarchy
-3. **Find elements**: Use `penpotUtils.findShapes()` or `penpot.currentPage.findShapes({name, type})` to locate elements
-4. **Create/modify**: Use `penpot.createBoard()`, `createRectangle()`, `createEllipse()`, `createText()`, `createPath()`, `createShapeFromSvg()` etc.
-5. **Apply layout**: Choose the right layout method for each container:
-   - **Flex** (`addFlexLayout()`): 1D content flow — items in a row/column, wrapping tags, nav items. Items size to their content
-   - **Grid** (`addGridLayout()`): 2D structure or parent-controlled equal sizing — card grids (`'flex', 1` tracks), dashboards, page layouts (sidebar + header + main)
-   - **Nested**: Grid for outer structure, flex for inner component layout (e.g., grid of cards where each card uses flex column internally)
-   - **Rule of thumb**: If you're setting properties on *children* to fix sizing, use Grid instead (parent controls layout)
-   - **Before generating**: Read `generation-recipes.md` § "Layout Selection Guide" for concrete Penpot API patterns. Do not default to flex for everything
-6. **Add effects**: Apply shadows, blur, strokes, blend modes as needed
-7. **Set up prototyping**: Add interactions, flows, overlays for click-through prototypes
-8. **Validate**: Call `mcp__penpot__export_shape` to visually check your work
+Copy this checklist and track progress:
+
+```
+Design Progress:
+- [ ] 1. Smoke test the connection, note penpot.version and the target file/page
+- [ ] 2. Discover the design system (tokens, library components, colors in use)
+- [ ] 3. Inspect the page structure (penpotUtils.shapeStructure)
+- [ ] 4. Pick a free canvas position for new boards
+- [ ] 5. Build with layouts (grid outside, flex inside) and bind tokens inline
+- [ ] 6. Export and inspect, fix, export again until it passes
+- [ ] 7. Run the review checklists (component, accessibility, design review)
+```
+
+**Step 2**: see "Design System Handling" below. Always prefer the user's tokens over the defaults.
+
+**Step 3**: `penpotUtils.shapeStructure(penpot.root, 3)`. Find elements with `penpotUtils.findShapes(predicate, root)`.
+
+**Step 5, choosing a layout:**
+- **Flex** (`addFlexLayout()`): 1D flow (rows, columns, wrapping tags, nav items). Items size to their content
+- **Grid** (`addGridLayout()`): 2D structure or parent-controlled equal sizing (card grids with `'flex', 1` tracks, dashboards, sidebar + header + main)
+- **Nested**: grid for outer structure, flex inside each component
+- **Rule of thumb**: if you are setting properties on *children* to fix sizing, use Grid instead
+- Read [generation-recipes.md](references/generation-recipes.md) § "Layout Selection Guide" before generating. Do not default to flex for everything
+
+**Step 6, the feedback loop:** call `mcp__penpot__export_shape` on each new board and look at the image. Check for overflow, clipped text, children outside the board, contrast and spacing rhythm. Fix the problem, then export again. Only move on when the export looks right. For programmatic checks, see "Validating Designs" below.
 
 ## Design System Handling
 
@@ -216,40 +165,14 @@ For the complete token tables with light/dark mode values, read `uiux-design-sys
 - Grid `appendChild(child, row, column)` requires row/column — unlike flex's `appendChild(child)`
 - `"fill"` token property maps to `fillColor` of the first fill, not the fills array
 - **`createText('')` returns null** — empty strings produce null, not a Text shape. Always guard: `if (!content?.trim()) return null`. Spaces (`'  '`) work fine
-- **Slash normalization** — `board.name = 'atoms/button'` becomes `'atoms / button'` (spaces injected). Use `.includes()` for name matching, never exact `===`
-- **`createComponent` doubles the name** — prepends shape name to component name. Fix after registration by trimming the duplicate prefix. See [mcp-known-issues.md](references/mcp-known-issues.md)
-- **`comp.name` returns leaf only** — use `comp.mainInstance().name` for the full slash-separated path
-- **`openPage()` context switch** — on upstream Penpot, `openPage()` may not switch the plugin execution context. Branch fix available. See [mcp-known-issues.md](references/mcp-known-issues.md)
+- **Slash normalization** — `board.name = 'atoms/button'` becomes `'atoms / button'` (spaces injected). Normalise `" / "` before comparing names, never exact `===` on raw input
+- **Component names**: name the shape with the full path (`'Card/Default'`) *before* `createComponent`. The result is `comp.path` `"Card"`, `comp.name` `"Default"`, main instance `"Card / Default"`. Setting `comp.name` with slashes afterwards **appends** to the existing path (`"Button / Button"`), so rename the leaf only. See [mcp-known-issues.md](references/mcp-known-issues.md)
+- **`openPage()` is async**: `penpot.currentPage` switches ~300 ms later. `await` before creating shapes and check `currentPage.id`. `createPage()` does not switch pages
 - **`layoutChild` is null before parenting** — always `parent.appendChild(child)` first, then access `child.layoutChild`
-- **`applyToken()` with explicit properties silently fails** for some non-color token types (confirmed: `fontFamilies`). Only pass `'fill'`/`'strokeColor'` for color tokens. For all other types, **omit the properties arg**. See [mcp-known-issues.md](references/mcp-known-issues.md)
-- **Token API arg style is version-dependent** — object form (`addSet({ name: "x" })`) and positional form (`addSet("x")`) swap behavior between Penpot versions. Test both at project start. See [mcp-known-issues.md](references/mcp-known-issues.md)
+- **`applyToken()` property names**: on 2.18, `['fontFamilies']` and `['all']` throw `should be a set of strings` (the binding key is `fontFamily`). Pass `'fill'`/`'strokeColor'` only for color tokens. For all other types, **omit the properties arg** and read the key from `shape.tokens`. See [mcp-known-issues.md](references/mcp-known-issues.md)
+- **Token API takes object args only** (2.18): `addSet({ name })`, `addToken({ type, name, value })`, `addTheme({ group, name })`. Positional forms throw `Value not valid`
 - **Child positioning is page-absolute** — after `board.appendChild(child)`, `child.x = N` sets page coordinates, not board-relative. Use `penpotUtils.setParentXY(child, relX, relY)` or flex/grid layouts. Nested boards need recursive fixing. See [mcp-known-issues.md](references/mcp-known-issues.md)
-- **Async property updates** (Penpot ≤2.13.x) — after `toggleActive()`, `resize()`, or `growType` changes, computed properties (e.g. `height`) update async (~100ms). Don't read them in the same `execute_code` call — use a follow-up call instead
-
-### OKLCH to Hex (inline helper)
-
-When working with OKLCH colors (Tailwind v4, modern design systems), use this converter:
-
-```javascript
-function oklchToHex(L, C, H) {
-  const hRad = H * Math.PI / 180;
-  const a = C * Math.cos(hRad), b = C * Math.sin(hRad);
-  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
-  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
-  const l = l_ ** 3, m = m_ ** 3, s = s_ ** 3;
-  let r = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
-  let g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
-  let bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
-  const gamma = v => v > 0.0031308 ? 1.055 * Math.pow(v, 1/2.4) - 0.055 : 12.92 * v;
-  const toByte = v => Math.max(0, Math.min(255, Math.round(gamma(Math.max(0, v)) * 255)));
-  return '#' + [r, g, bl].map(v => toByte(v).toString(16).padStart(2, '0')).join('').toUpperCase();
-}
-// oklchToHex(1, 0, 0) → '#FFFFFF'  |  oklchToHex(0, 0, 0) → '#000000'
-```
-
-More converters (HSL, RGB, palette generation, contrast checks) in `uiux-design-system/references/color-utilities.md`.
-Penpot-specific color API patterns (fills, gradients, library) in [penpot-color-patterns.md](references/penpot-color-patterns.md).
+- **Async property updates**: after `toggleActive()`, `applyToken()`, `openPage()` or `growType` changes, computed properties update asynchronously. `await` 100-300 ms in the same call, or use `await penpot.waitForLayoutUpdate()` for flex/grid layout changes
 
 ## Positioning New Boards
 
@@ -285,176 +208,39 @@ newBoard.resize(375, 812);
 - Align boards vertically (same y) for visual organization
 - Group related screens horizontally in user flow order
 
-## Shape Operations
-
-Beyond `createBoard()`, `createRectangle()`, `createText()`:
-
-| Method | Returns | Purpose |
-|-|-|-|
-| `penpot.createEllipse()` | Ellipse | Circle/oval shapes |
-| `penpot.createPath()` | Path | Custom vector paths |
-| `penpot.createBoolean(type, shapes)` | Boolean | Union, difference, intersection, exclude |
-| `penpot.createShapeFromSvg(svgString)` | Group | Import SVG as shapes |
-| `penpot.group(shapes)` | Group | Group shapes together |
-| `penpot.ungroup(group)` | void | Ungroup |
-| `shape.clone()` | Shape | Duplicate a shape |
-| `shape.remove()` | void | Delete a shape |
-| `shape.rotate(angle, center?)` | void | Rotate in degrees |
-| `shape.export(config)` | Promise\<Uint8Array\> | Programmatic export |
-
-### Z-Ordering & Alignment
-
-```javascript
-shape.bringToFront();    // top of stack
-shape.bringForward();    // one step up
-shape.sendToBack();      // bottom of stack
-shape.sendBackward();    // one step down
-
-penpot.alignHorizontal(shapes, 'center'); // 'left' | 'center' | 'right'
-penpot.alignVertical(shapes, 'top');      // 'top' | 'center' | 'bottom'
-penpot.distributeHorizontal(shapes);      // even spacing
-penpot.distributeVertical(shapes);
-```
-
-## Grid Layout
-
-Boards support grid layout in addition to flex:
-
-```javascript
-const board = penpot.createBoard();
-board.resize(600, 400);
-const grid = board.addGridLayout();
-
-// Add tracks — types: "flex", "fixed", "percent", "auto"
-grid.addColumn('fixed', 200);  // sidebar
-grid.addColumn('flex', 1);     // main content
-grid.addRow('fixed', 64);      // header
-grid.addRow('flex', 1);        // body
-
-// Place children at specific row/column
-grid.appendChild(sidebar, 0, 0);   // row 0, col 0
-grid.appendChild(header, 0, 1);    // row 0, col 1
-grid.appendChild(content, 1, 1);   // row 1, col 1
-```
-
-Grid shares the same padding/gap/sizing properties as flex (`rowGap`, `columnGap`, `horizontalPadding`, etc.).
-
-## Effects
-
-```javascript
-// Drop shadow
-shape.shadows = [{
-  style: 'drop-shadow', offsetX: 0, offsetY: 4,
-  blur: 12, spread: 0,
-  color: { color: '#000000', opacity: 0.15 }
-}];
-
-// Inner shadow
-shape.shadows = [{ style: 'inner-shadow', offsetX: 0, offsetY: 2, blur: 4, spread: 0, color: { color: '#000000', opacity: 0.1 } }];
-
-// Blur
-shape.blur = { type: 'layer-blur', value: 8 };
-
-// Strokes
-shape.strokes = [{
-  strokeColor: '#D1D5DB', strokeOpacity: 1,
-  strokeStyle: 'solid',  // 'solid' | 'dotted' | 'dashed'
-  strokeWidth: 1,
-  strokeAlignment: 'inner' // 'center' | 'inner' | 'outer'
-}];
-```
-
-Blend modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `hue`, `saturation`, `color`, `luminosity`
-
-## Text & Typography
-
-```javascript
-// Create styled text
-const text = penpot.createText('Hello World');
-text.fontFamily = 'Inter';
-text.fontSize = '24';
-text.fontWeight = '600';
-text.align = 'center';
-
-// Per-character styling with TextRange
-const range = text.getRange(0, 5); // "Hello"
-range.fontWeight = '700';
-range.fills = [{ fillColor: '#3B82F6' }];
-
-// Apply library typography
-const typo = penpot.library.local.typographies.find(t => t.name === 'Heading');
-if (typo) text.applyTypography(typo);
-
-// Font discovery
-const inter = penpot.fonts.findByName('Inter');
-const allFonts = penpot.fonts.all;
-```
-
-## Library Management
-
-```javascript
-// Create library color
-const libColor = penpot.library.local.createColor();
-libColor.name = 'Primary';
-libColor.path = 'Brand';
-libColor.color = '#3B82F6';
-
-// Use library colors as fills/strokes
-shape.fills = [libColor.asFill()];
-shape.strokes = [libColor.asStroke()];
-
-// Create library typography
-const libTypo = penpot.library.local.createTypography();
-libTypo.name = 'Body';
-const font = penpot.fonts.findByName('Inter');
-if (font) libTypo.setFont(font);
-libTypo.fontSize = '16';
-
-// Create component from shapes
-const component = penpot.library.local.createComponent([shape1, shape2]);
-const instance = component.instance(); // create instance
-
-// Color operations
-const colors = penpot.shapesColors(penpot.selection); // discover colors
-penpot.replaceColor(penpot.selection, { color: '#FF0000' }, { color: '#3B82F6' }); // swap
-```
-
 ## Design Tokens API
 
-Penpot has a built-in design tokens system (17 token types). **Important:** the arg style (object vs positional) is version-dependent — test both at project start. See [mcp-known-issues.md](references/mcp-known-issues.md) for full details.
+Penpot has a built-in design tokens system (17 token types). On 2.18 every token method takes **object arguments**. See [mcp-known-issues.md](references/mcp-known-issues.md) for full details.
 
 ```javascript
 const catalog = penpot.library.local.tokens;
 
-// Create a token set — test both arg styles at project start
-catalog.addSet("Brand/Colors"); // positional — OR: addSet({ name: "Brand/Colors" })
+// Create a token set (returns a usable proxy; new sets start INACTIVE)
+const set = catalog.addSet({ name: "Brand/Colors" });
 
-// Read back for reliable proxy (addSet return value may have empty id)
-const set = catalog.sets.find(s => s.name === "Brand/Colors");
-
-// Add tokens — (type, name, value) or ({ type, name, value })
+// Add tokens: object form { type, name, value }
 // 17 types (use EXACT strings): borderRadius, borderWidth, color,
-// dimension, fontFamilies (NOT fontFamily), fontSizes (NOT fontSize),
-// fontWeights, letterSpacing, number, opacity, rotation, shadow,
-// sizing, spacing, textCase, textDecoration, typography
-set.addToken("color", "primary", "#3B82F6");
-set.addToken("spacing", "md", "16");          // string, not number
-set.addToken("borderRadius", "lg", "12");     // string, not number
-set.addToken("spacing", "ref", "{spacing.md}"); // references work
+// dimension, fontFamilies, fontSizes, fontWeights, letterSpacing,
+// number, opacity, rotation, shadow, sizing, spacing, textCase,
+// textDecoration, typography
+set.addToken({ type: "color", name: "primary", value: "#3B82F6" });
+set.addToken({ type: "spacing", name: "md", value: "16" });
+set.addToken({ type: "borderRadius", name: "lg", value: "12" });
+set.addToken({ type: "spacing", name: "ref", value: "{spacing.md}" }); // references work
 
 // Activate set
 if (!set.active) set.toggleActive();
 
-// Create and activate themes — POSITIONAL args: (group, name)
-catalog.addTheme("Mode", "Light");
-catalog.addTheme("Mode", "Dark");
+// Themes
+catalog.addTheme({ group: "Mode", name: "Light" });
+catalog.addTheme({ group: "Mode", name: "Dark" });
 
-// Apply token to shape
+// Apply token to shape (toggle! check shape.tokens first)
 const token = set.tokens.find(t => t.name === "primary");
-shape.applyToken(token, 'fill'); // TokenColorProps: 'fill' | 'strokeColor'
+if (shape.tokens?.fill !== token.name) shape.applyToken(token, ['fill']); // 'fill' | 'strokeColor'
 ```
 
-**Gotchas:** `catalog.sets` crashes on files with no tokens — create a set first. Duplicate token names silently return `undefined`. See [mcp-known-issues.md](references/mcp-known-issues.md) for the full working flow and all workarounds.
+**Gotchas:** Duplicate token names (or a name that collides with an existing group prefix) **throw**. Check `set.tokens` first. On an empty catalog, guard the first `catalog.sets` read with try/catch. See [mcp-known-issues.md](references/mcp-known-issues.md) for the full working flow and all workarounds.
 
 ### Token Binding
 
@@ -467,38 +253,6 @@ shape.applyToken(token, 'fill'); // TokenColorProps: 'fill' | 'strokeColor'
 **Trigger phrases:** "bind tokens to shapes", "wire up tokens", "audit token bindings", "tokens aren't applied", "tokens aren't working".
 
 **Critical:** `applyToken()` is a **toggle** in Penpot — calling it on an already-bound shape unbinds the token. Always check `shape.tokens` before applying. See [token-binding.md](references/token-binding.md) for the `applySafe()` toggle guard.
-
-## Page, Viewport & Events
-
-```javascript
-// Page management
-const page = penpot.createPage();
-page.name = 'Settings';
-penpot.openPage(page);
-
-// Find shapes on current page (built-in — no penpotUtils needed)
-const buttons = penpot.currentPage.findShapes({ nameLike: 'btn-' });
-const boards = penpot.currentPage.findShapes({ type: 'board' });
-const shape = penpot.currentPage.getShapeById('some-id');
-
-// Viewport control
-penpot.viewport.zoomIntoView(shapes);  // zoom to fit shapes
-penpot.viewport.zoomToFitAll();        // zoom to fit all
-penpot.viewport.zoom = 1.5;           // set zoom level (1 = 100%)
-
-// Events
-const id = penpot.on('selectionchange', (ids) => { /* shape IDs */ });
-penpot.off(id); // remove listener
-// Events: pagechange, filechange, selectionchange, themechange, shapechange, contentsave
-
-// History — batch operations as single undo step
-const blockId = penpot.history.undoBlockBegin();
-// ... multiple operations ...
-penpot.history.undoBlockFinish(blockId);
-
-// Upload media
-const imgData = await penpot.uploadMediaUrl('logo', 'https://example.com/logo.png');
-```
 
 ## Prototyping
 
@@ -661,14 +415,3 @@ Use these validation approaches with `mcp__penpot__execute_code`:
 ### Export CSS
 
 Use `penpot.generateStyle(selection, { type: 'css', includeChildren: true })` via `mcp__penpot__execute_code` to extract CSS from designs.
-
-## Tips for Great Designs
-
-1. **Start with content**: Real content reveals layout needs
-2. **Design mobile-first**: Constraints breed creativity
-3. **Use a grid**: 8px base grid keeps things aligned
-4. **Limit colors**: 1 primary + 1 secondary + neutrals
-5. **Limit fonts**: 1-2 typefaces maximum
-6. **Embrace whitespace**: Breathing room improves comprehension
-7. **Be consistent**: Same action = same appearance everywhere
-8. **Provide feedback**: Every action needs a response

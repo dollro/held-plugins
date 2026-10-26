@@ -1,5 +1,14 @@
 # Generation Recipes for Penpot MCP
 
+## Contents
+
+- Shared Helpers
+- Layout Selection Guide
+- Design System Boards
+- Component Recipes
+- Token Binding Summary
+- Tips for Dynamic Components
+
 Reusable `execute_code` templates for generating UI components and design system boards
 in Penpot. Each recipe is self-contained — adapt placeholder values (colors, fonts, sizes)
 to match your project's design system or Confirmed Spec.
@@ -63,7 +72,15 @@ function initTokenResolver() {
     },
     applySafe(shape, token, properties) {
       if (!token) return false;
-      shape.applyToken(token, properties);
+      // Toggle guard: applyToken() is a toggle, calling twice UNBINDS.
+      // shape.tokens maps property -> token name, e.g. { fill: "bg.body", fontFamily: "font.sans" }
+      const existing = shape.tokens || {};
+      const props = properties ? [].concat(properties) : null;
+      const bound = props
+        ? props.every(p => existing[p] === token.name)
+        : Object.values(existing).includes(token.name);
+      if (bound) return false;
+      shape.applyToken(token, props || undefined);
       return true;
     }
   };
@@ -1009,9 +1026,9 @@ Every recipe in this file follows the same pattern:
 **Property mapping for `applyToken()`:**
 - Color → `'fill'` (maps to first fill) or `'strokeColor'`
 - **All other types → omit properties entirely** (borderRadius, shadow, spacing, sizing,
-  fontFamilies, fontSizes, fontWeights, etc.). Passing explicit properties silently fails
-  for some types. See [token-binding.md](token-binding.md) and
-  [mcp-known-issues.md](mcp-known-issues.md) § "applyToken() Silent Failure"
+  fontFamilies, fontSizes, fontWeights, etc.). On 2.18 some documented property names
+  throw (`['fontFamilies']` → `should be a set of strings`). See [token-binding.md](token-binding.md) and
+  [mcp-known-issues.md](mcp-known-issues.md) § "applyToken(): Property Names and Errors"
 
 **If no tokenMap is available** (standalone recipe use), the recipes still work with hardcoded fallback values. Token binding simply won't occur. See [token-binding.md](token-binding.md) for the brownfield sweep approach to bind tokens after the fact.
 
@@ -1039,7 +1056,7 @@ If the design calls for a component not covered by these recipes:
 
 Since Penpot MCP supports SVG import via `penpot.createShapeFromSvg()`:
 - Use simple SVG strings for common icons
-- Import from an icon library URL via `mcp__penpot__import_image` for complex icons
+- For raster icons or images, `await penpot.uploadMediaUrl(name, url)` and set the result as `fillImage` (the built-in MCP has no `import_image` tool)
 - Keep icon colors as fills so they respond to token changes
 
 ```javascript

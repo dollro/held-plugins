@@ -1,197 +1,212 @@
 # Penpot MCP Known Issues & Workarounds
 
-> Documented API bugs, workarounds, and correct patterns for the Penpot MCP plugin.
-> Updated: 2026-03-20. Some issues have branch fixes; others require upstream changes.
+> API bugs, workarounds and correct patterns for the Penpot MCP server built into Penpot.
+> Verified against **Penpot 2.18.5** (built-in MCP, `/mcp/stream`). Older notes came from the standalone `penpot-mcp` server on Penpot ≤2.13.
+
+## Contents
+
+- Status Key
+- Token API: Object Arguments Only
+- applyToken(): Property Names and Errors
+- Async Updates: await Inside the Same Call
+- openPage() Is Async
+- createText('') Returns Null
+- Component Naming
+- Absolute vs Relative Positioning
+- layoutChild Is Null Before Parenting
+- resize() Is a Method, Not a Property
+- Permissions: currentUser Needs user:read
+- Images: No import_image Tool
+- Orphaned Shapes After a Failed Call
+- WASM Renderer Crash on Bulk Font Changes + Page Switch
+- Quick Reference: Common Pitfalls (2.18)
 
 ---
 
-## Fix Status Key
+## Status Key
 
 | Status | Meaning |
 |-|-|
-| **FIXED** | Resolved in our branch |
-| **PARTIAL** | Partially improved in our branch |
-| **UPSTREAM** | Requires fix in Penpot core / plugin API |
-| **BY DESIGN** | Correct API behavior — caller must adapt |
+| **FIXED (2.18)** | Was broken on older versions, verified working on 2.18.5 |
+| **PRESENT (2.18)** | Verified still present on 2.18.5 |
+| **BY DESIGN** | Correct API behaviour, caller must adapt |
+| **UNVERIFIED** | Seen on older versions, not re-tested on 2.18 |
+
+If `penpot.version` is below 2.18, assume the older behaviour and test before relying on any fix listed here.
 
 ---
 
-## Critical: Token API Argument Style — Version-Dependent
+## Token API: Object Arguments Only
 
-**Status: UPSTREAM**
+**Status: FIXED (2.18)**
 
-> **WARNING:** The correct argument style (object vs positional) has **flipped between Penpot versions**.
-> Do NOT assume either form works — test both at the start of every project.
+On 2.18 the object form is the only working form. Positional arguments throw `Value not valid`.
 
-The `penpot_api_info` tool documents TypeScript-style object signatures. In some Penpot versions the object form fails and positional works; in others the **opposite** is true — the object form returns a usable proxy with a valid ID while the positional form creates a ghost set that can't be found via `catalog.sets.find()`.
-
-| Method | Object form | Positional form |
+| Method | Works (2.18) | Throws |
 |-|-|-|
 | `catalog.addSet` | `addSet({ name: "x" })` | `addSet("x")` |
 | `set.addToken` | `addToken({ type: "color", name: "x", value: "#FFF" })` | `addToken("color", "x", "#FFF")` |
-| `catalog.addTheme` | `addTheme({ group: "Mode", name: "Light" })` | `addTheme("Mode", "Light")` |
+| `catalog.addTheme` | `addTheme({ group: "Mode", name: "Light" })` | positional form (not re-tested, assume it throws) |
 
-**Always test at project start:** Create a throwaway set with each form, read it back via `catalog.sets.find()`, and use whichever returns a valid proxy. Delete the test set afterward.
+- `addSet()` returns a usable proxy with a valid `id`. The old read-back workaround is no longer needed.
+- New sets start **inactive**. Call `if (!set.active) set.toggleActive()`.
+- Numbers are coerced to strings (`value: 16` is stored as `"16"`). Strings are still the safe choice.
+- `fontFamilies` values are stored as arrays (`"Inter"` becomes `["Inter"]`).
+- References work: `value: "{color.primary}"`.
+- Other useful members: `set.remove()`, `set.duplicate()`, `set.tokensByType`, `catalog.getSetById(id)`, `catalog.getThemeById(id)`.
 
-### catalog.sets Crash on Empty Catalog
+### Duplicate Token Names Throw
 
-```javascript
-const catalog = penpot.library.local.tokens;
-
-catalog.sets;
-// CRASHES: "No protocol method ITokenSets.get-sets defined for type null:"
-// Clojure protocol dispatch error — backend calls ITokenSets.get-sets on nil
-
-// After creating any set:
-catalog.addSet("anything");
-catalog.sets; // NOW works, returns TokenSetProxy[]
-```
-
-**Workaround:** Always create at least one set before accessing `catalog.sets`.
-
-### Duplicate Token Behavior
+**Status: FIXED (2.18)** (it used to return `undefined` silently)
 
 ```javascript
-primSet.addToken("color", "color.blue.500", "#2563EB"); // first call: returns proxy
-primSet.addToken("color", "color.blue.500", "#FF0000"); // duplicate: returns undefined (silent)
-// GUI shows "a token with the same name exists" but API swallows it
-// Cannot distinguish duplicate from wrong-signature — both return undefined
+set.addToken({ type: "color", name: "color.blue.500", value: "#2563EB" }); // ok
+set.addToken({ type: "color", name: "color.blue.500", value: "#FF0000" });
+// throws: "A token already exists at the path: color.blue.500 or at a prefix thereof."
 ```
 
-### Token Types Confirmed Working
+A name can't be both a token and a group prefix: once `color.blue` is a token, `color.blue.500` is rejected too. Guard with `set.tokens.some(t => t.name === name)` or catch the error.
 
-All 17 Penpot token types. `$type` must match these exact strings.
+### catalog.sets on an Empty Catalog
+
+**Status: UNVERIFIED** (crashed on older versions with `No protocol method ITokenSets.get-sets defined for type null`)
+
+Wrap the first `catalog.sets` read in try/catch on a file that has no tokens yet. If it throws, create a set first.
+
+### Token Types
+
+`type` must be one of these exact strings:
 
 | TokenType string | Example value | Notes |
 |-|-|-|
-| `"borderRadius"` | `"8"` | String, not number |
-| `"borderWidth"` | `"1"` | String, not number |
+| `"borderRadius"` | `"8"` | |
+| `"borderWidth"` | `"1"` | |
 | `"color"` | `"#2563EB"` | Hex string with `#` |
-| `"dimension"` | `"16"` | String, not number |
-| `"fontFamilies"` | `"Inter"` | NOT `"fontFamily"` |
-| `"fontSizes"` | `"16"` | NOT `"fontSize"` — string, not number |
-| `"fontWeights"` | `"600"` | String, not number |
-| `"letterSpacing"` | `"-0.025em"` | String with unit |
-| `"number"` | `"1.5"` | Unitless numeric string |
-| `"opacity"` | `"0.5"` | String 0-1 range |
-| `"rotation"` | `"45"` | Degrees as string |
+| `"dimension"` | `"16"` | |
+| `"fontFamilies"` | `"Inter"` | Type is plural, but the binding property is `fontFamily` (see applyToken) |
+| `"fontSizes"` | `"16"` | Type is plural |
+| `"fontWeights"` | `"600"` | |
+| `"letterSpacing"` | `"-0.025em"` | |
+| `"number"` | `"1.5"` | Unitless |
+| `"opacity"` | `"0.5"` | 0-1 range |
+| `"rotation"` | `"45"` | Degrees |
 | `"shadow"` | `"0 4 6 -1 #0000001A"` | `offsetX offsetY blur spread color` |
-| `"sizing"` | `"24"` | String, not number |
-| `"spacing"` | `"{dimension.4}"` | Reference syntax `{...}` works |
-| `"textCase"` | `"uppercase"` | Rarely used in primitives |
-| `"textDecoration"` | `"underline"` | Rarely used in primitives |
-| `"typography"` | — | Composite type, rarely used directly |
+| `"sizing"` | `"24"` | |
+| `"spacing"` | `"{dimension.4}"` | References work |
+| `"textCase"` | `"uppercase"` | |
+| `"textDecoration"` | `"underline"` | |
+| `"typography"` | — | Composite type |
 
-### Full Working Token Flow
+### Full Working Token Flow (2.18)
 
 ```javascript
 const catalog = penpot.library.local.tokens;
 
-// 0. TEST which arg style works on this Penpot version
-//    Try object form first (newer versions), fall back to positional
-catalog.addSet({ name: "___test___" });
-let testSet = catalog.sets.find(s => s.name === "___test___");
-const useObjectArgs = !!testSet;
-// Clean up test set, then proceed with the style that worked
+const prim = catalog.addSet({ name: "primitives" });
+prim.addToken({ type: "color", name: "color.blue.500", value: "#2563EB" });
+prim.addToken({ type: "dimension", name: "dimension.4", value: "16" });
+prim.addToken({ type: "borderRadius", name: "borderRadius.md", value: "8" });
+prim.addToken({ type: "spacing", name: "spacing.md", value: "{dimension.4}" });
+if (!prim.active) prim.toggleActive();
 
-// 1. Create set (ignore returned proxy — may be broken)
-catalog.addSet("primitives"); // or addSet({ name: "primitives" })
+const sem = catalog.addSet({ name: "semantic" });
+sem.addToken({ type: "color", name: "bg.body", value: "{color.blue.500}" });
+if (!sem.active) sem.toggleActive();
 
-// 2. Read back to get reliable proxy
-const primSet = catalog.sets.find(s => s.name === "primitives");
-
-// 3. Add tokens — use whichever arg style tested working
-primSet.addToken("color", "color.blue.500", "#2563EB");
-primSet.addToken("dimension", "dimension.4", "16");
-primSet.addToken("borderRadius", "borderRadius.md", "8");
-primSet.addToken("spacing", "spacing.md", "{dimension.4}"); // references work
-
-// 4. Activate
-if (!primSet.active) primSet.toggleActive();
-
-// 5. Semantic set with references
-catalog.addSet("semantic");
-const semSet = catalog.sets.find(s => s.name === "semantic");
-semSet.addToken("color", "bg.body", "{color.white}");
-if (!semSet.active) semSet.toggleActive();
-
-// 6. Themes
-catalog.addTheme("Mode", "Light");
-catalog.addTheme("Mode", "Dark");
+catalog.addTheme({ group: "Mode", name: "Light" });
+catalog.addTheme({ group: "Mode", name: "Dark" });
 ```
 
 ---
 
-## addSet() Returns Broken Proxy
+## applyToken(): Property Names and Errors
 
-**Status: PARTIAL (branch fix)**
+**Status: PRESENT (2.18)**, but now it throws instead of failing silently
+
+Some binding property names differ from the documented `TokenProperty` names. On 2.18.5:
+
+| Call | Result |
+|-|-|
+| `shape.applyToken(colorToken, ['fill'])` | binds (`shape.tokens` → `{ fill: ... }`) |
+| `shape.applyToken(colorToken, 'fill')` | binds (a string is accepted too) |
+| `shape.applyToken(colorToken)` | binds to `fill` |
+| `text.applyToken(fontFamiliesToken, ['fontFamilies'])` | **throws** `Field 1 is invalid: should be a set of strings` |
+| `text.applyToken(fontFamiliesToken, ['all'])` | **throws** the same error |
+| `text.applyToken(fontFamiliesToken, ['fontFamily'])` | binds (`shape.tokens` → `{ fontFamily: ... }`) |
+| `text.applyToken(fontFamiliesToken)` | binds to `fontFamily` |
+| `token.applyToShapes([text], ['fontFamilies'])` | **throws** the same error |
+
+**Safe pattern:**
+- Color tokens: pass `'fill'` or `'strokeColor'` to choose fill or stroke.
+- Every other type: **omit the properties argument**, then read the key Penpot used from `shape.tokens`.
+- If you get `should be a set of strings`, the property name is wrong for this version. It is not a wrong argument shape.
+- 2.19 accepts `fontFamilies` as the property name (CHANGES.md #11405). On 2.18, use `fontFamily` or omit the argument.
 
 ```javascript
-const newSet = catalog.addSet("primitives");
-
-newSet.id;      // "" (empty string)
-newSet.tokens;  // [] (always empty)
-newSet.addToken("color", "test", "#FF0000"); // may fail
-
-// Workaround — always read back:
-const workingSet = catalog.sets.find(s => s.name === "primitives");
-workingSet.id;  // "2cc8df8b-..." (valid UUID)
-workingSet.addToken("color", "test", "#FF0000"); // works
+shape.applyToken(colorToken, ['fill']);
+shape.applyToken(colorToken, ['strokeColor']);
+shape.applyToken(radiusToken);
+shape.applyToken(fontFamilyToken);   // binds as "fontFamily"
+shape.applyToken(fontSizeToken);
 ```
 
-**Root cause:** `addSet()` returns a proxy before the backend assigns the UUID. Branch fix gives the proxy a name-based fallback, but the read-back workaround remains the most reliable pattern.
+**applyToken() is a toggle.** **PRESENT (2.18)**: calling it again with the token that is already bound **unbinds** it, with no error. Always check `shape.tokens` first. See the `applySafe()` guard in [token-binding.md](token-binding.md).
+
+Application is asynchronous: `await` ~100-200 ms before reading `shape.tokens` or the resolved values.
 
 ---
 
-## openPage() Context Switch
+## Async Updates: await Inside the Same Call
 
-**Status: FIXED (branch)**
+**Status: BY DESIGN**
+
+`execute_code` runs as an async function body, so top-level `await` works. You no longer need a separate tool call to read async results:
 
 ```javascript
-// BEFORE FIX:
-const foundationsPage = penpotUtils.getPageByName('foundations');
-penpot.openPage(foundationsPage);
-await new Promise(r => setTimeout(r, 1000));
-penpot.currentPage.name; // STILL "cover" — didn't switch
-const rect = penpot.createRectangle(); // lands on "cover", not target
-
-// AFTER FIX:
-penpot.openPage(foundationsPage);
-// No await needed — context switches synchronously
-penpot.currentPage.name; // "foundations" ✓
-const rect = penpot.createRectangle(); // lands on correct page ✓
-
-// Full workflow:
-const newPage = penpot.createPage();
-newPage.name = 'my-page';
-penpot.openPage(newPage);
-penpot.currentPage.id === newPage.id; // true ✓
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+text.growType = 'auto-width';
+await sleep(150);
+return text.width; // updated
 ```
 
-**Root cause:** `openPage()` navigated the UI viewport but the plugin execution context was not updated. Branch fix: synchronous `UpdateEvent` for `:current-page-id`.
+This applies to `openPage()`, `applyToken()`, `toggleActive()` and `growType` auto-sizing. Keep each call well under the execution timeout (`PENPOT_MCP_TOOL_TIMEOUT_S`, default 120 s).
 
-**Note:** If running on upstream Penpot without this fix, cross-page workflows require manual page switches by the user.
+For flex/grid layout changes, 2.18 adds `penpot.waitForLayoutUpdate()` (present on 2.18.5). Prefer it over a fixed sleep before reading layout-computed sizes.
+
+---
+
+## openPage() Is Async
+
+**Status: FIXED (2.18)**: the switch now works on upstream Penpot. It is no longer synchronous.
+
+```javascript
+const page = penpot.createPage();   // does NOT switch to the new page
+page.name = 'my-page';
+penpot.openPage(page);
+penpot.currentPage.name;            // still the old page
+await new Promise(r => setTimeout(r, 300));
+penpot.currentPage.name;            // "my-page"
+penpot.createRectangle();           // lands on my-page
+```
+
+Always `await` ~300 ms after `openPage()` before creating shapes, or create the shapes on the next call. Check that `penpot.currentPage.id === page.id`.
 
 ---
 
 ## createText('') Returns Null
 
-**Status: UPSTREAM**
+**Status: PRESENT (2.18)**
 
 ```javascript
 penpot.createText('');    // null
-penpot.createText('  ');  // valid Text (spaces work)
+penpot.createText('  ');  // valid Text
 penpot.createText('x');   // valid Text
-
-// Dangerous cascading failure:
-const text = penpot.createText(''); // null
-text.fontFamily = 'Inter';         // CRASH: "Cannot set properties of null"
 ```
 
 **Defensive pattern:**
 
 ```javascript
-function safeText(content, opts) {
+function safeText(content, opts = {}) {
   if (!content || content.trim() === '') return null;
   const t = penpot.createText(content);
   if (!t) return null;
@@ -206,257 +221,174 @@ function safeText(content, opts) {
 
 ---
 
-## Component Naming Issues
-
-**Status: UPSTREAM**
+## Component Naming
 
 ### Slash Normalization
 
+**Status: BY DESIGN**
+
 ```javascript
 board.name = 'atoms/button/primary';
-board.name; // "atoms / button / primary" (spaces injected around slashes)
+board.name; // "atoms / button / primary" (spaces are added around slashes)
 ```
 
-### createComponent Doubles the Name
+Match names loosely, for example by normalising both sides: `s.name.replace(/\s*\/\s*/g, '/') === 'atoms/button'`.
+
+### createComponent Splits Path and Name
+
+**Status: FIXED (2.18)**: the main instance name is no longer doubled.
 
 ```javascript
-shape.name = 'atoms / button / primary / default';
-penpot.library.local.createComponent([shape]);
-comp.mainInstance().name;
-// "atoms / button / primary / atoms / button / primary / default" — DOUBLED
+board.name = 'Card/Default';
+const comp = penpot.library.local.createComponent([board]);
+comp.name;                 // "Default"  (leaf only)
+comp.path;                 // "Card"
+comp.mainInstance().name;  // "Card / Default"
 ```
 
-### comp.name Returns Leaf Only
+**Name the shape with the full path before `createComponent`**, and don't rename afterwards.
+
+### Setting comp.name With Slashes Appends to the Path
+
+**Status: PRESENT (2.18)**
 
 ```javascript
-comp.name;               // "default"
-comp.mainInstance().name; // "atoms / button / primary / default"
+// comp.path === "Button", comp.name === "Primary"
+comp.name = 'Button/Primary';
+comp.path;                 // "Button / Button" (doubled)
+comp.mainInstance().name;  // "Button / Button / Primary"
 ```
 
-### Post-Registration Fix Pattern
-
-```javascript
-function registerAndFixComponents(root, prefix) {
-  const shapes = penpotUtils.findShapes(
-    s => s.name.includes(prefix) && s.type === 'board', root
-  );
-  for (const shape of shapes) {
-    try { penpot.library.local.createComponent([shape]); } catch(e) {}
-  }
-  for (const comp of penpot.library.local.components) {
-    const main = comp.mainInstance();
-    if (!main) continue;
-    const name = main.name;
-    const lastIdx = name.lastIndexOf(prefix);
-    if (lastIdx > 0) main.name = name.substring(lastIdx);
-  }
-}
-```
-
-### Fuzzy Name Matching (Required Due to Slash Normalization)
-
-```javascript
-// FAILS:
-penpotUtils.findShape(s => s.name === 'atoms/button', root);
-
-// WORKS:
-penpotUtils.findShape(s => s.name.includes('atoms') && s.name.includes('button'), root);
-```
+If you must rename after registration, set only the leaf (`comp.name = 'Primary'`). On a component with an empty path, a slashed name is safe (`'Chip'` → `comp.name = 'Chip/Selected'` gives path `Chip`, name `Selected`).
 
 ---
 
-## Absolute vs Relative Positioning — Children Outside Board Bounds
+## Absolute vs Relative Positioning
 
-**Status: BY DESIGN**
+**Status: BY DESIGN** (verified on 2.18.5)
 
-After `board.appendChild(child)`, setting `child.x = 32` uses **absolute page coordinates**, not board-relative coordinates. If the board is positioned at x=1000, the child ends up at page x=32 — roughly 1000px to the left of its parent, invisible.
+After `board.appendChild(child)`, `child.x = 10` uses **page coordinates**. With the board at x=1000, the child ends up at page x=10 (`parentX` -990), outside the board.
 
 ```javascript
-// WRONG — absolute coordinates, child appears outside board:
+// WRONG: child ends up outside the board
 board.appendChild(child);
-child.x = 32;   // page-absolute → child is at page x=32, not board x=32
-child.y = 100;
+child.x = 32;
 
-// CORRECT — relative positioning via utility:
+// CORRECT: relative to the parent
 board.appendChild(child);
-penpotUtils.setParentXY(child, 32, 100);  // positions relative to parent board
+penpotUtils.setParentXY(child, 32, 100);
 
-// BEST — use flex/grid layouts (never has this issue):
+// BEST: flex/grid layout positions children for you
 board.addFlexLayout();
-board.appendChild(child);  // layout handles positioning automatically
+board.appendChild(child);
 ```
 
 ### Recursive Fix for Nested Boards
 
-The first positioning fix may only correct direct children of top-level boards. Nested boards (e.g., input fields inside an inputs board) have their own misplaced children. A recursive fix is required:
-
 ```javascript
 function fixBoard(board) {
   for (const child of board.children || []) {
-    // Re-apply relative positioning
-    const relX = child.x - board.x;
-    const relY = child.y - board.y;
-    penpotUtils.setParentXY(child, relX, relY);
-    // Recurse into nested boards
-    if (child.type === 'board' && child.children?.length) {
-      fixBoard(child);
-    }
+    penpotUtils.setParentXY(child, child.x - board.x, child.y - board.y);
+    if (child.type === 'board' && child.children?.length) fixBoard(child);
   }
 }
 ```
 
-**Best practice:** Use flex/grid layouts wherever possible — they handle positioning automatically and never exhibit this issue. Only use manual positioning for absolute-positioned overlays (e.g., badges, tooltips).
+Use manual positioning only for absolutely positioned overlays (badges, tooltips).
 
 ---
 
-## layoutChild Null Before Parenting
+## layoutChild Is Null Before Parenting
 
-**Status: BY DESIGN**
+**Status: BY DESIGN** (verified on 2.18.5)
 
 ```javascript
-const parent = penpot.createBoard();
-parent.addFlexLayout();
 const child = penpot.createRectangle();
-
-// WRONG ORDER:
-child.layoutChild.horizontalSizing = 'fix'; // CRASH — layoutChild is null
-
-// CORRECT ORDER:
-parent.appendChild(child);                   // FIRST — parent the child
-child.layoutChild.horizontalSizing = 'fix';  // THEN — layoutChild exists
+child.layoutChild;                           // null
+parent.appendChild(child);                   // parent the child FIRST
+child.layoutChild.horizontalSizing = 'fix';  // THEN set its layout properties
 ```
-
-`layoutChild` only exists when the shape is inside a layout container. Always parent first.
 
 ---
 
 ## resize() Is a Method, Not a Property
 
+**Status: BY DESIGN**
+
 ```javascript
-shape.resize = 80;              // CRASH — .resize is a method
 shape.resize(80, 80);           // CORRECT
-
-shape.width = 80;               // DOES NOT WORK — read-only
-shape.resize(80, shape.height); // CORRECT way to set width only
-
-shape.x = 100;                  // WORKS — writable
-shape.parentX = 50;             // DOES NOT WORK — read-only
-penpotUtils.setParentXY(shape, 50, 50); // CORRECT
+shape.width = 80;               // no effect (read-only)
+shape.resize(80, shape.height); // set width only
+shape.parentX = 50;             // no effect (read-only)
+penpotUtils.setParentXY(shape, 50, 50);
 ```
+
+`resize()` on a Text resets `growType` to `"fixed"`. Set it back afterwards.
 
 ---
 
-## Orphaned Shapes After Crash
+## Permissions: currentUser Needs user:read
 
-**Status: UPSTREAM**
+**Status: BY DESIGN (2.18)**
 
-When `execute_code` throws mid-execution, all shapes created before the error persist as root-level orphans.
+With the built-in MCP on 2.18, `penpot.currentUser` and `activeUsers` throw `Permission user:read is not granted`. The cause is that the MCP plugin manifest grants only `library`, `comment` and `content` read/write. No setting can grant `user:read`. 2.19 adds `user:read` to the manifest. Don't read user info in scripts. Everything else used in this skill (file, pages, shapes, library, tokens) works.
+
+---
+
+## Images: No import_image Tool
+
+**Status: 2.18 built-in MCP**
+
+The built-in server exposes only `high_level_overview`, `execute_code`, `export_shape` and `penpot_api_info`. To add images, run one of these inside `execute_code`:
+
+- `await penpot.uploadMediaUrl(name, url)` → `Promise<ImageData>`, then set it as a fill: `shape.fills = [{ fillOpacity: 1, fillImage: imageData }]`
+- `penpot.uploadMediaData(name, bytes, mimeType)` for inline data
+- `penpot.createShapeFromSvg(svgString)` for icons (preferred for vector icons)
+
+---
+
+## Orphaned Shapes After a Failed Call
+
+**Status: PRESENT (2.18)**
+
+When `execute_code` throws partway through, the shapes it created before the error stay in the file. There is no rollback. On 2.18.5, a call that threw at `applyToken` still left its components and boards behind.
 
 ```javascript
-// After a crashed execution, clean up:
 const orphans = penpot.root.children.filter(c =>
   !expectedBoardNames.some(n => c.name.includes(n))
 );
 for (const o of orphans) o.remove();
 ```
 
-**Best practice:** Wrap complex multi-shape operations in a try/catch and clean up on failure. There is no transactional execution / rollback.
+Store the ids of shapes you create in `storage` so you can clean up precisely. Wrap multi-shape operations in try/catch.
 
 ---
 
 ## WASM Renderer Crash on Bulk Font Changes + Page Switch
 
-**Status: UPSTREAM**
+**Status: UNVERIFIED**
 
-Bulk `fontFamily` changes across multiple pages in a single `execute_code` call can crash the WASM renderer. The crash trace:
+Bulk `fontFamily` changes across several pages in one `execute_code` call have crashed the WASM text renderer (`_set_shape_text_content → fonts_from_text_content → initialize_viewport`). Data is safe. Reload the file to recover.
 
-```
-_set_shape_text_content → fonts_from_text_content → set_object → initialize_viewport
-```
-
-The crash occurs in the WASM text rendering pipeline when initializing the viewport after a page switch (`open-page-context` in the event trail). The renderer tries to resolve fonts for text content it can't handle after rapid `update-text-attrs` commits followed by page navigation.
-
-**Note:** The `openPage()` branch fix makes this more reachable — `openPage` now works and triggers `initialize-viewport` with the new page's shapes, whereas before it silently did nothing.
-
-**Data is safe** — WASM crashes are rendering-side only. Reload the file to verify.
-
-**Workaround:** Don't combine bulk `fontFamily` changes across multiple pages in a single `execute_code` call. Split into one page per call:
-
-```javascript
-// WRONG — bulk font changes + page switch in one call:
-for (const page of pages) {
-  penpot.openPage(page);
-  for (const text of getTexts(page)) {
-    text.fontFamily = 'Inter';  // rapid update-text-attrs
-  }
-}
-
-// CORRECT — one page per execute_code call:
-// Call 1:
-penpot.openPage(page1);
-for (const text of getTexts(page1)) {
-  text.fontFamily = 'Inter';
-}
-return { done: 'page1' }; // let renderer settle
-
-// Call 2 (separate execute_code):
-penpot.openPage(page2);
-for (const text of getTexts(page2)) {
-  text.fontFamily = 'Inter';
-}
-return { done: 'page2' };
-```
+**Workaround:** one page per `execute_code` call. Switch the page, `await`, change the fonts, then return.
 
 ---
 
-## applyToken() Silent Failure with Explicit Properties
-
-**Status: UPSTREAM**
-
-`applyToken(token, properties)` silently fails for some token types when passing the `properties` argument explicitly. Confirmed with `fontFamilies` — may affect other types.
-
-```javascript
-// BROKEN — silent failure, token not bound:
-shape.applyToken(token, 'fontFamilies');   // nothing happens
-shape.applyToken(token, ['fontFamilies']); // nothing happens
-
-// WORKS — omit properties, let Penpot use the default:
-shape.applyToken(token);  // binds correctly
-```
-
-**Safe pattern:** Always try without explicit properties first. Only pass `'fill'` or `'strokeColor'` for color tokens where you need to disambiguate fill vs stroke. For all other token types (fontFamilies, fontSizes, fontWeights, borderRadius, shadow, spacing, sizing, etc.), **omit the properties argument**.
-
-```javascript
-// Color tokens — explicit property needed to disambiguate:
-shape.applyToken(colorToken, 'fill');        // bind to fill
-shape.applyToken(colorToken, 'strokeColor'); // bind to stroke
-
-// All other token types — omit properties:
-shape.applyToken(radiusToken);      // binds to borderRadius
-shape.applyToken(shadowToken);      // binds to shadow
-shape.applyToken(fontFamilyToken);  // binds to fontFamily
-shape.applyToken(fontSizeToken);    // binds to fontSize
-shape.applyToken(spacingToken);     // binds to spacing/sizing
-```
-
-**Reminder:** `applyToken()` is a **toggle** — calling it on a shape that already has the same token bound will **unbind** it. Always check `shape.tokens` before applying.
-
----
-
-## Quick Reference: Common Pitfalls
+## Quick Reference: Common Pitfalls (2.18)
 
 | Pitfall | Correct Pattern |
 |-|-|
-| `applyToken` with explicit properties | Omit properties for non-color tokens — explicit args silently fail for some types. Only use `'fill'`/`'strokeColor'` for color tokens |
-| Assuming token API arg style | Test both object and positional forms at project start — behavior is version-dependent |
-| Using `addSet()` return value | Read back: `catalog.sets.find(s => s.name === "x")` |
-| `catalog.sets` on empty file | Create any set first, then access `.sets` |
-| Exact name match after slash | Use `.includes()` — slashes get normalized with spaces |
-| `createText('')` | Guard: check content non-empty before calling |
-| `layoutChild` before parenting | Always `parent.appendChild(child)` first |
-| Setting `width`/`height` | Use `shape.resize(w, h)` |
-| `child.x = N` inside board | Use `penpotUtils.setParentXY(child, relX, relY)` — `.x`/`.y` are page-absolute |
-| Fixing only top-level children | Use recursive `fixBoard()` — nested boards have the same issue |
-| Cross-page shape creation | Use `penpot.openPage(targetPage)` first (requires branch fix) |
-| Reading props after toggle | Split into separate `execute_code` calls |
-| Bulk font changes + page switch | One page per `execute_code` call — WASM renderer crashes on rapid `update-text-attrs` + `initialize-viewport` |
+| Positional token args | Object form only: `addSet({ name })`, `addToken({ type, name, value })` |
+| New set has no effect | Sets start inactive: `if (!set.active) set.toggleActive()` |
+| Duplicate token name | Throws. Check `set.tokens` first |
+| `applyToken(t, ['fontFamilies'])` throws | Omit properties for non-color tokens. The binding key is `fontFamily` |
+| Re-applying a bound token | It's a toggle and unbinds. Check `shape.tokens` first |
+| Reading async results | `await sleep(150)` in the same call |
+| `openPage()` then create | `await` ~300 ms, check `currentPage.id` |
+| Renaming a component with slashes | Name the shape before `createComponent`, rename the leaf only |
+| Exact name match after a slash | Normalise `" / "` before comparing |
+| `createText('')` | Guard content before calling |
+| `layoutChild` before parenting | `parent.appendChild(child)` first |
+| `child.x = N` inside a board | `penpotUtils.setParentXY(child, relX, relY)` |
+| `penpot.currentUser` | Not permitted. Don't read it |
+| Importing images | `penpot.uploadMediaUrl()` / `createShapeFromSvg()` inside `execute_code` |

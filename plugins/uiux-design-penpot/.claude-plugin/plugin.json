@@ -1,5 +1,5 @@
 {
   "name": "uiux-design-penpot",
-  "description": "Professional UI/UX design in Penpot using MCP tools. Covers Plugin API, design tokens with inline binding, generation recipes, prototyping, and known issues. References shared design knowledge from uiux-design-system. Adds a /uiux-design-penpot skill.",
-  "version": "2.7.1"
+  "description": "Professional UI/UX design in Penpot using its built-in MCP server (Penpot 2.15+, verified on 2.18). Covers Plugin API, design tokens with inline binding, generation recipes, prototyping, and known issues. References shared design knowledge from uiux-design-system. Adds a /uiux-design-penpot skill.",
+  "version": "3.0.0"
 }

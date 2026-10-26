@@ -3,6 +3,17 @@
 > Penpot-specific implementation patterns for the design system architecture
 > defined in `uiux-design-system/references/design-system-template.md`.
 
+## Contents
+
+- 1. Penpot Structural Hierarchy
+- 2. Page Structure & Naming
+- 3. Frame (Board) Naming
+- 4. Token Panel Usage (Native Penpot)
+- 5. Color Asset Registration
+- 6. Typography Asset Registration
+- 7. Naming Rules Summary
+- 8. Cover Page (File Metadata)
+
 ---
 
 ## 1. Penpot Structural Hierarchy

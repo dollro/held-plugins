@@ -1,5 +1,29 @@
 # Penpot Plugin API Reference
 
+## Contents
+
+- Core Entry Point
+- Shape Properties (ShapeBase)
+- Shape Methods
+- Board
+- Color & Fill
+- Shadow & Blur
+- Text
+- Path
+- Flex Layout
+- Grid Layout
+- Layout Child Properties
+- Library
+- Design Tokens
+- Page
+- Viewport
+- Events
+- History / Undo
+- Font Management
+- Utilities
+- Export & Markup
+- Snippets
+
 Full API reference for the `penpot` object available inside `execute_code`. Source: https://doc.plugins.penpot.app/
 
 ## Core Entry Point
@@ -605,3 +629,176 @@ Access: `penpot.fonts`
 | `penpot.generateStyle(shapes, options?)` | string | CSS output |
 | `penpot.generateFontFaces(shapes)` | Promise\<string\> | @font-face CSS |
 | `shape.export(config)` | Promise\<Uint8Array\> | Per-shape export |
+
+---
+
+## Snippets
+
+Worked examples for common operations (moved from SKILL.md).
+
+### Shape Operations
+
+Beyond `createBoard()`, `createRectangle()`, `createText()`:
+
+| Method | Returns | Purpose |
+|-|-|-|
+| `penpot.createEllipse()` | Ellipse | Circle/oval shapes |
+| `penpot.createPath()` | Path | Custom vector paths |
+| `penpot.createBoolean(type, shapes)` | Boolean | Union, difference, intersection, exclude |
+| `penpot.createShapeFromSvg(svgString)` | Group | Import SVG as shapes |
+| `penpot.group(shapes)` | Group | Group shapes together |
+| `penpot.ungroup(group)` | void | Ungroup |
+| `shape.clone()` | Shape | Duplicate a shape |
+| `shape.remove()` | void | Delete a shape |
+| `shape.rotate(angle, center?)` | void | Rotate in degrees |
+| `shape.export(config)` | Promise\<Uint8Array\> | Programmatic export |
+
+#### Z-Ordering & Alignment
+
+```javascript
+shape.bringToFront();    // top of stack
+shape.bringForward();    // one step up
+shape.sendToBack();      // bottom of stack
+shape.sendBackward();    // one step down
+
+penpot.alignHorizontal(shapes, 'center'); // 'left' | 'center' | 'right'
+penpot.alignVertical(shapes, 'top');      // 'top' | 'center' | 'bottom'
+penpot.distributeHorizontal(shapes);      // even spacing
+penpot.distributeVertical(shapes);
+```
+
+### Grid Layout
+
+Boards support grid layout in addition to flex:
+
+```javascript
+const board = penpot.createBoard();
+board.resize(600, 400);
+const grid = board.addGridLayout();
+
+// Add tracks — types: "flex", "fixed", "percent", "auto"
+grid.addColumn('fixed', 200);  // sidebar
+grid.addColumn('flex', 1);     // main content
+grid.addRow('fixed', 64);      // header
+grid.addRow('flex', 1);        // body
+
+// Place children at specific row/column
+grid.appendChild(sidebar, 0, 0);   // row 0, col 0
+grid.appendChild(header, 0, 1);    // row 0, col 1
+grid.appendChild(content, 1, 1);   // row 1, col 1
+```
+
+Grid shares the same padding/gap/sizing properties as flex (`rowGap`, `columnGap`, `horizontalPadding`, etc.).
+
+### Effects
+
+```javascript
+// Drop shadow
+shape.shadows = [{
+  style: 'drop-shadow', offsetX: 0, offsetY: 4,
+  blur: 12, spread: 0,
+  color: { color: '#000000', opacity: 0.15 }
+}];
+
+// Inner shadow
+shape.shadows = [{ style: 'inner-shadow', offsetX: 0, offsetY: 2, blur: 4, spread: 0, color: { color: '#000000', opacity: 0.1 } }];
+
+// Blur
+shape.blur = { type: 'layer-blur', value: 8 };
+
+// Strokes
+shape.strokes = [{
+  strokeColor: '#D1D5DB', strokeOpacity: 1,
+  strokeStyle: 'solid',  // 'solid' | 'dotted' | 'dashed'
+  strokeWidth: 1,
+  strokeAlignment: 'inner' // 'center' | 'inner' | 'outer'
+}];
+```
+
+Blend modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `hue`, `saturation`, `color`, `luminosity`
+
+### Text & Typography
+
+```javascript
+// Create styled text
+const text = penpot.createText('Hello World');
+text.fontFamily = 'Inter';
+text.fontSize = '24';
+text.fontWeight = '600';
+text.align = 'center';
+
+// Per-character styling with TextRange
+const range = text.getRange(0, 5); // "Hello"
+range.fontWeight = '700';
+range.fills = [{ fillColor: '#3B82F6' }];
+
+// Apply library typography
+const typo = penpot.library.local.typographies.find(t => t.name === 'Heading');
+if (typo) text.applyTypography(typo);
+
+// Font discovery
+const inter = penpot.fonts.findByName('Inter');
+const allFonts = penpot.fonts.all;
+```
+
+### Library Management
+
+```javascript
+// Create library color
+const libColor = penpot.library.local.createColor();
+libColor.name = 'Primary';
+libColor.path = 'Brand';
+libColor.color = '#3B82F6';
+
+// Use library colors as fills/strokes
+shape.fills = [libColor.asFill()];
+shape.strokes = [libColor.asStroke()];
+
+// Create library typography
+const libTypo = penpot.library.local.createTypography();
+libTypo.name = 'Body';
+const font = penpot.fonts.findByName('Inter');
+if (font) libTypo.setFont(font);
+libTypo.fontSize = '16';
+
+// Create component from shapes
+const component = penpot.library.local.createComponent([shape1, shape2]);
+const instance = component.instance(); // create instance
+
+// Color operations
+const colors = penpot.shapesColors(penpot.selection); // discover colors
+penpot.replaceColor(penpot.selection, { color: '#FF0000' }, { color: '#3B82F6' }); // swap
+```
+
+
+### Page, Viewport & Events
+
+```javascript
+// Page management
+const page = penpot.createPage();
+page.name = 'Settings';
+penpot.openPage(page);
+
+// Find shapes on current page (built-in — no penpotUtils needed)
+const buttons = penpot.currentPage.findShapes({ nameLike: 'btn-' });
+const boards = penpot.currentPage.findShapes({ type: 'board' });
+const shape = penpot.currentPage.getShapeById('some-id');
+
+// Viewport control
+penpot.viewport.zoomIntoView(shapes);  // zoom to fit shapes
+penpot.viewport.zoomToFitAll();        // zoom to fit all
+penpot.viewport.zoom = 1.5;           // set zoom level (1 = 100%)
+
+// Events
+const id = penpot.on('selectionchange', (ids) => { /* shape IDs */ });
+penpot.off(id); // remove listener
+// Events: pagechange, filechange, selectionchange, themechange, shapechange, contentsave
+
+// History — batch operations as single undo step
+const blockId = penpot.history.undoBlockBegin();
+// ... multiple operations ...
+penpot.history.undoBlockFinish(blockId);
+
+// Upload media
+const imgData = await penpot.uploadMediaUrl('logo', 'https://example.com/logo.png');
+```

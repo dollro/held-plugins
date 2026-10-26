@@ -1,5 +1,14 @@
 # Prototyping & Interactions
 
+## Contents
+
+- Adding Interactions
+- Triggers
+- Actions
+- Animations
+- Flows
+- Common Patterns
+
 Add interactive behaviors to shapes for prototyping in Penpot's view mode.
 
 ## Adding Interactions

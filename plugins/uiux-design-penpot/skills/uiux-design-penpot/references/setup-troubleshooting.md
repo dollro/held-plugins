@@ -1,328 +1,154 @@
 # Penpot MCP Server Setup & Troubleshooting
 
-Complete guide for installing, configuring, and troubleshooting the Penpot MCP Server.
+> Covers the MCP server **built into Penpot** (integrated in 2.15, current as of 2.18). The standalone `penpot/penpot-mcp` repo (local ports 4400-4403, `npm run bootstrap`) is archived. Its code now lives in `penpot/penpot/mcp`. Don't set it up for new projects.
+> Sources: https://help.penpot.app/mcp/, https://github.com/penpot/penpot/blob/develop/mcp/README.md, Penpot CHANGES.md. Verified on Penpot 2.18.5.
+
+## Contents
+
+- Architecture Overview
+- Server Side (Self-Hosted Admin)
+- User Side
+- Verifying the Setup
+- Troubleshooting
+- Getting Help
+- Old Patterns
+
+---
 
 ## Architecture Overview
 
-The Penpot MCP integration requires **three components** working together:
-
 ```
-+-----------------+     +-----------------+     +-----------------+
-|   MCP Client    |---->|   MCP Server    |<--->|  Penpot Plugin  |
-| (VS Code/Claude)|     |  (port 4401)    |     | (in browser)    |
-+-----------------+     +--------+--------+     +--------+--------+
-                                 |                       |
-                                 |    WebSocket          |
-                                 |    (port 4402)        |
-                                 +-----------------------+
+MCP client (Claude Code, Claude Desktop, Cursor, ...)
+        |  Streamable HTTP
+        v
+https://<penpot-host>/mcp/stream?userToken=<MCP key>
+        |  frontend nginx proxies to penpot-mcp:4401
+        v
+penpot-mcp service  <--- WebSocket /mcp/ws (penpot-mcp:4402) --->  Penpot browser tab
+                                                                   (File → MCP Server → Connect)
 ```
 
-1. **MCP Server** - Exposes tools to your AI client (HTTP on port 4401)
-2. **Plugin Server** - Serves the Penpot plugin files (HTTP on port 4400)
-3. **Penpot MCP Plugin** - Runs inside Penpot browser, executes design commands
+The MCP server runs code by sending it to a **Penpot browser tab with a design file open**. Without a connected tab, every tool call fails.
 
-## Prerequisites
+---
 
-- **Node.js v22+** - [Download](https://nodejs.org/)
-- **Git** - For cloning the repository
-- **Modern browser** - Chrome, Firefox, or Chromium-based browser
+## Server Side (Self-Hosted Admin)
 
-Verify Node.js installation:
+1. Add `enable-mcp` to `PENPOT_FLAGS` (it is not on by default). `disable-mcp` turns it off.
+2. Add the `penpot-mcp` service, as in the official compose file:
+   ```yaml
+   penpot-mcp:
+     image: penpotapp/mcp:${PENPOT_VERSION:-2.18}
+     networks: [penpot]
+   ```
+   Then make `penpot-frontend` depend on it. Reference: https://github.com/penpot/penpot/blob/main/docker/images/docker-compose.yaml
+3. When the flag is set, the frontend nginx proxies two paths:
+   - `/mcp/stream` → `PENPOT_MCP_URI` (default `http://penpot-mcp:4401`), query string kept
+   - `/mcp/ws` → `PENPOT_MCP_URI_WS` (default `http://penpot-mcp:4402`), WebSocket upgrade
+4. **An external reverse proxy** (Traefik, Caddy, another nginx) must forward both paths and allow the **WebSocket upgrade on `/mcp/ws`**.
+5. Useful server env vars (see mcp/README.md):
+
+| Variable | Purpose |
+|-|-|
+| `PENPOT_MCP_TOOL_TIMEOUT_S` | Per-tool execution timeout (default 120) |
+| `PENPOT_MCP_REDIS_URI` | Shared state when running several MCP instances |
+| `PENPOT_MCP_REMOTE_MODE` | Remote mode (the default for the built-in deployment) |
+
+The legacy SSE endpoint is not proxied on 2.18 and was removed in 2.19. Use `/mcp/stream` only.
+
+---
+
+## User Side
+
+### Step 1: Create the MCP Key
+
+**Your account → Integrations → MCP Server**
+1. Turn on the **Status** toggle.
+2. Create the MCP key and pick an expiry: never, 30, 60, 90 or 180 days.
+3. Copy the full server URL: `https://<penpot-host>/mcp/stream?userToken=<key>`
+
+There is one key per user. Regenerating it revokes the old key immediately. Since 2.18 the key is not accepted as a general API access token.
+
+**The key is a secret.** It grants write access to every file you can open. Keep it out of committed config and use local or user scope.
+
+### Step 2: Connect a Penpot Tab
+
+1. Open a design file in Penpot.
+2. **File → MCP Server → Connect.**
+3. MCP is active in **one tab only**. Choose that tab with the MCP status button. Tools act on the focused page of that file.
+4. Keep that tab open and in the foreground if you can. Browsers throttle or freeze background tabs, and tasks fail until the tab is focused again.
+
+### Step 3: Configure the MCP Client
+
+**Claude Code (CLI)**, using local scope so the key stays out of the repo:
 ```bash
-node --version  # Should be v22.x or higher
-npm --version
-npx --version
+claude mcp add --transport http --scope local penpot "https://<penpot-host>/mcp/stream?userToken=<key>"
+claude mcp get penpot   # should show: Status ✔ Connected, Type: http
 ```
 
-## Installation
-
-### Step 1: Clone and Install
-
-```bash
-# Clone the repository
-git clone https://github.com/penpot/penpot-mcp.git
-cd penpot-mcp
-
-# Install dependencies
-npm install
-```
-
-### Step 2: Build and Start Servers
-
-```bash
-# Build all components and start servers
-npm run bootstrap
-```
-
-This command:
-
-- Installs dependencies for all components
-- Builds the MCP server and plugin
-- Starts both servers (MCP on 4401, Plugin on 4400)
-
-**Expected output:**
-
-```txt
-MCP Server listening on http://localhost:4401
-Plugin server listening on http://localhost:4400
-WebSocket server listening on port 4402
-```
-
-### Step 3: Load Plugin in Penpot
-
-1. Open [Penpot](https://design.penpot.app/) in your browser
-2. Open or create a design file
-3. Go to **Plugins** menu (or press the plugins icon)
-4. Click **Load plugin from URL**
-5. Enter: `http://localhost:4400/manifest.json`
-6. The plugin UI will appear - click **"Connect to MCP server"**
-7. Status should change to **"Connected to MCP server"**
-
-> **Important**: Keep the plugin UI open while using MCP tools. Closing it disconnects the server.
-
-### Step 4: Configure Your MCP Client
-
-#### VS Code with GitHub Copilot
-
-Add to your VS Code `settings.json`:
-
+**Claude Desktop / claude.ai**: add a custom connector at claude.ai/customize/connectors with the URL above. Alternatively, use the stdio bridge:
 ```json
 {
-  "mcp": {
-    "servers": {
-      "penpot": {
-        "url": "http://localhost:4401/sse"
-      }
+  "mcpServers": {
+    "penpot": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://<penpot-host>/mcp/stream?userToken=<key>"]
     }
   }
 }
 ```
 
-Or use the HTTP endpoint:
+**Other clients (Cursor, VS Code, ...)**: the Penpot docs suggest `npx -y add-mcp -g -n penpot "<URL>"`. Or add an HTTP/streamable MCP server with the same URL in the client's MCP config.
 
-```json
-{
-  "mcp": {
-    "servers": {
-      "penpot": {
-        "url": "http://localhost:4401/mcp"
-      }
-    }
-  }
-}
-```
+Restart the client after changing its config.
 
-#### Claude Desktop
-
-Claude Desktop requires the `mcp-remote` proxy (stdio-only transport):
-
-1. Install the proxy:
-
-   ```bash
-   npm install -g mcp-remote
-   ```
-
-2. Edit Claude Desktop config:
-   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **Windows**: `%APPDATA%/Claude/claude_desktop_config.json`
-   - **Linux**: `~/.config/Claude/claude_desktop_config.json`
-
-3. Add the Penpot server:
-
-   ```json
-   {
-     "mcpServers": {
-       "penpot": {
-         "command": "npx",
-         "args": ["-y", "mcp-remote", "http://localhost:4401/sse", "--allow-http"]
-       }
-     }
-   }
-   ```
-
-4. **Fully quit** Claude Desktop (File → Quit, not just close window) and restart
-
-#### Claude Code (CLI)
-
-```bash
-claude mcp add penpot -t http http://localhost:4401/mcp
-```
-
-## Troubleshooting
-
-### Connection Issues
-
-#### "Plugin cannot connect to MCP server"
-
-**Symptoms**: Plugin shows "Not connected" even after clicking Connect
-
-**Solutions**:
-
-1. Verify servers are running:
-   ```bash
-   # Check if ports are in use
-   lsof -i :4401  # MCP server
-   lsof -i :4402  # WebSocket
-   lsof -i :4400  # Plugin server
-   ```
-
-2. Restart the servers:
-
-   ```bash
-   # In the penpot-mcp directory
-   npm run start:all
-   ```
-
-3. Check browser console (F12) for WebSocket errors
-
-#### Browser Blocks Local Connection
-
-**Symptoms**: Browser refuses to connect to localhost from Penpot
-
-**Cause**: Chromium 142+ enforces Private Network Access (PNA) restrictions
-
-**Solutions**:
-
-1. **Chrome/Chromium**: When prompted, allow access to local network
-2. **Brave**: Disable Shield for the Penpot website:
-   - Click the Brave Shield icon in address bar
-   - Toggle Shield off for this site
-3. **Try Firefox**: Firefox doesn't enforce these restrictions as strictly
-
-#### "WebSocket connection failed"
-
-**Solutions**:
-
-1. Check firewall settings - allow ports 4400, 4401, 4402
-2. Disable VPN if active
-3. Check for conflicting applications using the same ports
-
-### MCP Client Issues
-
-#### Tools Not Appearing in VS Code/Claude
-
-1. **Verify endpoint**:
-
-   ```bash
-   # Test the SSE endpoint
-   curl http://localhost:4401/sse
-   
-   # Test the MCP endpoint
-   curl http://localhost:4401/mcp
-   ```
-
-2. **Check configuration syntax** - JSON must be valid
-3. **Restart the MCP client** completely
-4. **Check MCP server logs**:
-
-   ```bash
-   # Logs are in mcp-server/logs/
-   tail -f mcp-server/logs/mcp-server.log
-   ```
-
-#### "Tool execution timed out"
-
-**Cause**: Plugin disconnected or operation took too long
-
-**Solutions**:
-
-1. Ensure plugin UI is still open in Penpot
-2. Verify plugin shows "Connected" status
-3. Try reconnecting: click Disconnect then Connect in plugin
-
-### Plugin Issues
-
-#### "Plugin failed to load"
-
-1. Verify plugin server is running on port 4400
-2. Try accessing `http://localhost:4400/manifest.json` directly in browser
-3. Clear browser cache and reload Penpot
-4. Remove and re-add the plugin
-
-#### "Cannot find penpot object"
-
-**Cause**: Plugin not properly initialized or design file not open
-
-**Solutions**:
-
-1. Make sure you have a design file open (not just the dashboard)
-2. Wait a few seconds after opening file before connecting
-3. Refresh Penpot and reload the plugin
-
-### Server Issues
-
-#### Port Already in Use
-
-```bash
-# Find process using the port
-lsof -i :4401
-
-# Kill the process if needed
-kill -9 <PID>
-```
-
-Or configure different ports via environment variables:
-```bash
-PENPOT_MCP_SERVER_PORT=4501 npm run start:all
-```
-
-#### Server Crashes on Startup
-
-1. Check Node.js version (must be v22+)
-2. Delete `node_modules` and reinstall:
-
-   ```bash
-   rm -rf node_modules
-   npm install
-   npm run bootstrap
-   ```
-
-## Configuration Reference
-
-### Environment Variables
-
-| Variable | Default | Description |
-|-|-|-|
-| `PENPOT_MCP_SERVER_PORT` | 4401 | HTTP/SSE server port |
-| `PENPOT_MCP_WEBSOCKET_PORT` | 4402 | WebSocket server port |
-| `PENPOT_MCP_SERVER_LISTEN_ADDRESS` | localhost | Server bind address |
-| `PENPOT_MCP_LOG_LEVEL` | info | Log level (trace/debug/info/warn/error) |
-| `PENPOT_MCP_LOG_DIR` | logs | Log file directory |
-| `PENPOT_MCP_REMOTE_MODE` | false | Enable remote mode (disables file system access) |
-
-### Example: Custom Configuration
-
-```bash
-# Run on different ports with debug logging
-PENPOT_MCP_SERVER_PORT=5000 \
-PENPOT_MCP_WEBSOCKET_PORT=5001 \
-PENPOT_MCP_LOG_LEVEL=debug \
-npm run start:all
-```
+---
 
 ## Verifying the Setup
 
-Run this checklist to confirm everything works:
-
-1. **Servers Running**:
-   ```bash
-   curl -s http://localhost:4401/sse | head -1
-   # Should return SSE stream headers
+1. `claude mcp get penpot` shows **Connected**. This proves only the HTTP endpoint and key work.
+2. Call `mcp__penpot__high_level_overview` once per session (the server asks for this).
+3. Run a smoke test through `execute_code`. It needs the browser tab:
+   ```javascript
+   return { version: penpot.version, file: penpot.currentFile?.name, page: penpot.currentPage?.name };
    ```
+   A version and file name back means the tab is connected.
 
-2. **Plugin Connected**: Plugin UI shows "Connected to MCP server"
+---
 
-3. **Tools Available**: In your MCP client, verify these tools appear:
-   - `mcp__penpot__execute_code`
-   - `mcp__penpot__export_shape`
-   - `mcp__penpot__import_image`
-   - `mcp__penpot__penpot_api_info`
+## Troubleshooting
 
-4. **Test Execution**: Ask your AI assistant to run a simple command:
-   > "Use Penpot to get the current page name"
+| Symptom | Cause / Fix |
+|-|-|
+| Client can't connect, 401/403 | Key wrong, expired or regenerated. Create a new key and update the client URL |
+| 404 on `/mcp/stream` | `enable-mcp` missing from `PENPOT_FLAGS`, `penpot-mcp` service not running, or the reverse proxy doesn't forward `/mcp/stream` |
+| Client connected, but `execute_code` says no plugin/instance is connected | No Penpot tab connected. Open a file → File → MCP Server → Connect |
+| Penpot tab can't connect | Reverse proxy doesn't forward the WebSocket upgrade on `/mcp/ws` |
+| Tool calls hang or time out | MCP tab is in the background or frozen. Focus it. Split long scripts. The timeout is `PENPOT_MCP_TOOL_TIMEOUT_S` |
+| `The Penpot plugin tab appears to be suspended by the browser (no heartbeat for Ns)` | Browser suspended the background tab. Ask the user to click or focus the Penpot tab, then retry. A script that was running may have executed partway, so check for leftovers |
+| Works, then stops after a while | Idle sessions close after ~60 min. Reconnect the tab and restart the client session |
+| Code acts on the wrong file/page | Another tab holds the MCP connection. Pick the right tab with the status button. Check `penpot.currentFile.name` |
+| `Permission user:read is not granted` | 2.18 manifest omits `user:read` (fixed in 2.19). Don't read `penpot.currentUser` / `activeUsers` |
+| `import_image` tool missing | Not registered in remote mode. Use `penpot.uploadMediaUrl()` or `createShapeFromSvg()` inside `execute_code` |
+| `export_shape` can't save to a path | Remote mode returns the image inline only |
+| Endless reconnects in an inactive tab | Known 2.18 bug (fixed in 2.19). Reload the tab and reconnect |
+
+---
 
 ## Getting Help
 
-- **GitHub Issues**: [penpot/penpot-mcp/issues](https://github.com/penpot/penpot-mcp/issues)
-- **GitHub Discussions**: [penpot/penpot-mcp/discussions](https://github.com/penpot/penpot-mcp/discussions)
-- **Penpot Community**: [community.penpot.app](https://community.penpot.app/)
+- Penpot MCP docs: https://help.penpot.app/mcp/
+- Server source and env vars: https://github.com/penpot/penpot/tree/develop/mcp
+- Community: https://community.penpot.app
+- API-level bugs and workarounds: [mcp-known-issues.md](mcp-known-issues.md)
+
+---
+
+## Old Patterns
+
+<details>
+<summary>Standalone penpot-mcp server (Penpot ≤2.14, archived)</summary>
+
+Before 2.15 the MCP server ran locally from `github.com/penpot/penpot-mcp` (`npm install && npm run bootstrap`). The Penpot plugin loaded from `http://localhost:4400/manifest.json`, MCP clients connected to `http://localhost:4401/sse` (or `/mcp`), the WebSocket ran on 4402 and a REPL on 4403. That server exposed an extra `import_image` tool. The repo is archived. Upgrade Penpot and use the built-in server instead.
+
+</details>
