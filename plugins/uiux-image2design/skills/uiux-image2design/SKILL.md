@@ -38,7 +38,11 @@ If neither is found, tell the user to install one and stop.
 **0c. Test design tool MCP connection.**
 Based on which tool skill was found in 0b, test the corresponding MCP connection:
 
-- **Penpot:** Call `mcp__penpot__penpot_api_info`. If it fails, refer to
+- **Penpot:** Call `mcp__penpot__execute_code` with
+  `return { version: penpot.version, file: penpot.currentFile?.name }`. Don't use
+  `penpot_api_info` for this: it answers from the server even when no Penpot tab is
+  connected. If no tab is connected, ask the user to open the target file and choose
+  File → MCP Server → Connect. For other failures, see
   `uiux-design-penpot/references/setup-troubleshooting.md`.
 - **Figma:** Call `mcp__figma__figma_get_status`. If it fails, refer to
   `uiux-design-figma/references/setup-troubleshooting.md`.
