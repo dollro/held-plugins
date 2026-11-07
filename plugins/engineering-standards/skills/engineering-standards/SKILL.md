@@ -1,6 +1,6 @@
 ---
 name: engineering-standards
-description: "Standards for how code gets into a repo: small reviewable pull requests (size check, split), CLAUDE.md structure, where plans and docs live (tracker, docs/, disposable plans/), agent sandboxes (sbx, native sandbox, dev containers) and unattended agent runs (checks, Stop hook, /goal, headless). Use when opening, splitting or reviewing a PR, writing a CLAUDE.md, setting up a repo or sandbox, letting an agent run on its own, or asking how the team builds software. Not for cutting a PRD into issues (prd2issues)."
+description: "Standards for how code gets into a repo: small reviewable pull requests (size check, split), review, merge and release discipline (high-risk review, one merge at a time, release pull request), CLAUDE.md structure, where plans and docs live (tracker, docs/, disposable plans/), agent sandboxes (sbx, native sandbox, dev containers) and unattended agent runs (checks, Stop hook, /goal, headless, rules for several agents on one repo). Use when opening, splitting, reviewing or merging a PR, preparing a release merge, writing a CLAUDE.md, setting up a repo or sandbox, letting an agent run on its own, or asking how the team builds software. Not for cutting a PRD into issues (prd2issues)."
 ---
 
 # Engineering Standards
@@ -11,7 +11,7 @@ This skill has two parts. **This file** is the method and is organisation-agnost
 
 **These standards win; the official docs are a check.** Anthropic's Claude Code docs change over time. When setting up a repo, a CLAUDE.md, a sandbox or an unattended run, look up the current pages listed in `references/sources.md` (best practices, `/goal`, hooks, skills, sandboxing). Follow this skill. If the docs now contradict it in a way that matters, tell the user what differs and let them decide; minor differences go into the final report as a note.
 
-Six jobs: **implement an issue**, **size** a change into reviewable pull requests, **write or review a CLAUDE.md**, **set up or check documentation**, **work in an agent sandbox**, **run an agent unattended**.
+Seven jobs: **implement an issue**, **size** a change into reviewable pull requests, **review, merge and release**, **write or review a CLAUDE.md**, **set up or check documentation**, **work in an agent sandbox**, **run an agent unattended**.
 
 These standards are guide values for most changes, not law. Where a rule is broken on purpose, the pull request says so and why.
 
@@ -42,6 +42,19 @@ A pull request is the unit of review. Agents write code fast; people still have 
 
 If a single issue keeps producing oversized pull requests, the issue was cut too large: say so, so the next cut is smaller.
 
+## Review, merge and release
+
+Rules for getting reviewed work into the default branch and out as a release. Branch names follow the repo (here: an integration branch such as `develop` and a release branch such as `main`; repos with one branch skip the release merge).
+
+1. **High-risk changes get a review pass before merge:** auth and login, mail, payments, deploy and CI, data migrations. The review checks behaviour, not style: failure paths (does a failing mail roll back a signup?), what an unknown or unauthorised caller gets, error messages. Blocking findings are fixed in the pull request; non-blocking ones go into **one** follow-up issue, not into code comments.
+2. **Merge the target branch into a feature branch** to bring it up to date; do not rebase and force-push a branch others or a CI pipeline already use. A plain merge gives the same tree with no rewritten history, and force pushes are often blocked by policy.
+3. **Merge one pull request at a time** and let the integration branch go green before the next. Three merges in a minute start three full pipelines that compete for runners and the registry, and each tests a state nobody looked at. Merge trains or merge queues do this automatically where the platform offers them; test jobs that a newer commit can cancel make bursts cheaper.
+4. **No standing release pull request.** Open the integration → release pull request when the release candidate is green, never earlier: a long-open one goes stale and can be merged by accident. Its description lists what is in the release and what was checked (tests, smoke test, migrations on real data).
+5. **Release often.** Months between releases pile up unreleased migrations and changes that nobody has run against production data; the release that finally ships them fails in ways no single pull request showed.
+6. **Flaky tests are fixed at the cause.** One retry to tell a flake from a failure, then an issue with the evidence (job, exact assertion, how often). Never a blanket retry setting.
+
+The release mechanics (tags, pipeline, deploy, rollback) belong to the stack's own guideline (e.g. `fullstack-engineering`); this section only covers how changes reach the branch that is released.
+
 ## Write or review a CLAUDE.md
 
 Follow `references/claude-md.md`. A CLAUDE.md is an index and a rulebook for agents, not documentation: short, commands and constraints an agent cannot infer from the code, and pointers into `docs/`. Review findings as `section · problem → fix`, missing sections first, then content that belongs in `docs/`, then wording.
@@ -64,7 +77,7 @@ Follow `references/agent-sandbox.md` (sources in `references/sources.md`). Name 
 
 ## Run an agent unattended
 
-Follow `references/autonomous-runs.md`. **Ask first:** before setting a `/goal`, switching to auto mode or skipped permissions, or starting a headless `claude -p` loop or fan-out, ask the human with AskUserQuestion where it runs (sandbox on a worktree branch recommended; supervised host session; unattended host only on explicit acceptance of the risks; or not autonomously), never decide alone, and record the choice in the report. Ask once at launch, never inside a run (sandbox launched for the task, `claude -p`, active `/goal`, or an approval line in the goal text); inside a run, decide within the spec, note it, and report open questions instead of asking. Preconditions: a check the agent runs itself, a self-contained spec written first, isolation, commits as rollback points. Enforce "done" with the check in the prompt, `/goal`, a Stop hook or a reviewer subagent; bound every loop; a person reviews diff and evidence before merge.
+Follow `references/autonomous-runs.md`. **Ask first:** before setting a `/goal`, switching to auto mode or skipped permissions, or starting a headless `claude -p` loop or fan-out, ask the human with AskUserQuestion where it runs (sandbox on a worktree branch recommended; supervised host session; unattended host only on explicit acceptance of the risks; or not autonomously), never decide alone, and record the choice in the report. Ask once at launch, never inside a run (sandbox launched for the task, `claude -p`, active `/goal`, or an approval line in the goal text); inside a run, decide within the spec, note it, and report open questions instead of asking. Preconditions: a check the agent runs itself, a self-contained spec written first, isolation, commits as rollback points. Enforce "done" with the check in the prompt, `/goal`, a Stop hook or a reviewer subagent; bound every loop; a person reviews diff and evidence before merge. Several agents on one shared repo follow the reference's agent rules: one branch and pull request per issue, agents never merge or push to shared branches, every agent has a time box and commits before long checks, and the tracker is the hand-off channel.
 
 ## Language
 
