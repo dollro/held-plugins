@@ -1,5 +1,9 @@
-# On a version tag: build and push production images tagged with the version.
-# Deploying is a separate, deliberate step (deploy.yml) after the APP_VERSION bump.
+# Thin wrapper (logic in Taskfile.yml and scripts/, checked by scripts/check_ci.py).
+# Release: annotated tag vX.Y.Z on main -> validate -> images -> smoke ->
+# staging -> production. Production waits for the reviewers configured on the
+# `production` environment (Settings > Environments). Protect the tag pattern
+# `v*` with a ruleset so only maintainers create releases.
+# Rollback or a manual deploy: run the deploy workflow (deploy.yml).
 name: release
 
 on:
@@ -8,11 +12,29 @@ on:
 
 permissions:
   contents: read
-  packages: write
+
+env:
+  # Where releases are pushed; the deploy preflight fails if a server pulls from elsewhere.
+  RELEASE_REGISTRY: ${{ vars.REGISTRY || format('ghcr.io/{0}', github.repository_owner) }}
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: go-task/setup-task@v2
+      - run: task release:validate VERSION="$GITHUB_REF_NAME"
+
   images:
     runs-on: ubuntu-latest
+    needs: [validate]
+    # Sized from measured cold builds; a stuck push fails instead of hanging.
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
       - uses: go-task/setup-task@v2
@@ -22,11 +44,46 @@ jobs:
           registry: ${{ vars.REGISTRY_HOST || 'ghcr.io' }}
           username: ${{ vars.REGISTRY_USER || github.actor }}
           password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
-      # Image names must be lowercase; GitHub owners often are not.
-      - run: |
-          registry="${REGISTRY:-ghcr.io/$OWNER}"
-          task release:build REGISTRY="${registry,,}" VERSION="$VERSION"
+      - run: task release:build REGISTRY="$RELEASE_REGISTRY" VERSION="$GITHUB_REF_NAME"
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: [images]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: go-task/setup-task@v2
+      # Same Compose as the GitLab job image (stack: docker:<v>-cli); keep the
+      # version equal in ci.yml, release.yml and deploy.yml.
+      - uses: docker/setup-compose-action@v2
+        with:
+          version: __COMPOSE_VERSION__
+      - run: task release:smoke REGISTRY="$RELEASE_REGISTRY" VERSION="$GITHUB_REF_NAME"
         env:
-          REGISTRY: ${{ vars.REGISTRY }}
-          OWNER: ${{ github.repository_owner }}
-          VERSION: ${{ github.ref_name }}
+          REGISTRY_USER: ${{ vars.REGISTRY_USER || github.actor }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+
+  staging:
+    needs: [smoke]
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      version: ${{ github.ref_name }}
+    secrets: inherit
+
+  production:
+    needs: [staging]
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: production
+      version: ${{ github.ref_name }}
+    secrets: inherit

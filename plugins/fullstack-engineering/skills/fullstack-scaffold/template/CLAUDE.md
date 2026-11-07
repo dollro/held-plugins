@@ -31,11 +31,11 @@ Access points (admin, Flower, mail catcher): `backend/CLAUDE.md`.
 
 ### Secrets & env files
 
-`.envs/<env>/app.env.enc` (SOPS + age) is committed for `local`, `staging` and `production`; plaintext `app.env` is gitignored and blocked by pre-commit. Edit with `task secrets:edit ENV=local|staging|production`; it regenerates `app.env.example`. Deploy state (pinned `APP_VERSION`, host) lives in `.envs/<env>/deploy.env`. How values reach Docker, Django and Vue: `docs/environments.md`.
+`.envs/<env>/app.env.enc` (SOPS + age) is committed for `local`, `staging` and `production`; plaintext `app.env` is gitignored and blocked by pre-commit. Edit with `task secrets:edit ENV=local|staging|production`; it regenerates `app.env.example`. Deploy targets (host, registry, SSH target) live in `.envs/<env>/deploy.env`. How values reach Docker, Django and Vue: `docs/environments.md`.
 
 ### Release & deploy
 
-Tag `vX.Y.Z` (CI builds images) → pin it in `.envs/staging/deploy.env` → `task deploy ENV=staging` → verify → pin the same version in `.envs/production/deploy.env` → `task deploy ENV=production`. Details: `docs/operations.md`.
+Before tagging: `task release:smoke` (production images and settings behind a throwaway proxy). An annotated tag `vX.Y.Z` on `main` runs the release pipeline: validate the tag → build and push → smoke test of the pushed images → deploy to staging → manual approval → production. Each deploy is `task deploy ENV=<env> VERSION=vX.Y.Z` (preflight, backup, pull, migrate, up, verify). Rollback: the deploy workflow/pipeline with the previous version and `ROLLBACK=1`. Details: `docs/operations.md`.
 
 ## Testing
 
@@ -46,6 +46,7 @@ Tag `vX.Y.Z` (CI builds images) → pin it in `.envs/staging/deploy.env` → `ta
 | Frontend type-check, eslint, vitest | `task check:frontend` |
 | Django<!-- >>> realtime --> + realtime<!-- <<< realtime --> (pytest, real Postgres/Redis), migration check | `task test:backend` |
 | End-to-end (Playwright, built assets) | `task test:e2e` |
+| Production smoke test (main and release tags) | `task release:smoke` |
 | All of the above, as CI runs them | `task ci` |
 
 ## Constraints
@@ -60,7 +61,7 @@ Tag `vX.Y.Z` (CI builds images) → pin it in `.envs/staging/deploy.env` → `ta
 <!-- >>> internal -->- Login: company SSO (OpenID Connect, e.g. Entra ID) where configured; local login only for development and tests.
 <!-- <<< internal --><!-- >>> external -->- External users: email verification by code, MFA (required in production), invite-only unless `SIGNUP_OPEN`.
 <!-- <<< external --><!-- >>> mixed -->- Staff and SSO-linked accounts log in via the company identity provider only (once configured); external users via verified accounts with MFA. Staff rights are never granted at signup.
-<!-- <<< mixed -->- Production deploys only a pinned `APP_VERSION`, never `latest`.
+<!-- <<< mixed -->- Deploys name an explicit release version (`VERSION=vX.Y.Z`), never `latest`; an older version than the running one needs `ROLLBACK=1`.
 
 ## Git
 

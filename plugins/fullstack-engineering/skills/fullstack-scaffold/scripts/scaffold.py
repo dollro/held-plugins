@@ -372,6 +372,8 @@ def main() -> int:
         "__CADDY_VERSION__": runtimes["caddy"],
         "__MAILPIT_VERSION__": runtimes["mailpit"],
         "__DOCKER_VERSION__": runtimes["docker"],
+        "__TRAEFIK_VERSION__": runtimes["traefik"],
+        "__COMPOSE_VERSION__": runtimes["compose"],
         "__UV_VERSION__": tool_version(["uv", "--version"]) if shutil.which("uv") else "latest",
         "__PNPM_VERSION__": tool_version(["pnpm", "--version"]) if shutil.which("pnpm") else "10.0.0",
         "__REALTIME_ENABLED__": "" if args.no_realtime else "true",

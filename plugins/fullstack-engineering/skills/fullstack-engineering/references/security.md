@@ -28,6 +28,7 @@ Baseline for web apps, internal or external. Sources: OWASP cheat sheets (sessio
 - **Uploads:** stored outside the static root, size- and type-checked, served with a safe content type; a dedicated volume when the root filesystem is read-only.
 - **Dependencies:** lockfiles, frozen installs, automated update PRs, SHA-pinned CI actions, explicit approval of package build scripts.
 - **Containers:** non-root, no capabilities, no privilege escalation, read-only root filesystem, no secrets in images.
+- **CI and deploy:** the CI runner never runs on a production server (a compromised job would own it); deploy credentials are scoped to their environment and need approval for production; release tags are protected. Admin accounts are created without a stored password (no admin password in env files) and get one through the password-reset mail.
 
 ## Review checklist
 
@@ -42,4 +43,5 @@ Baseline for web apps, internal or external. Sources: OWASP cheat sheets (sessio
 - [ ] Querysets scoped to the user; permissions explicit per endpoint
 - [ ] Production cookies Secure; HTTPS redirect and HSTS on
 - [ ] Containers hardened; Docker socket access treated as root
+- [ ] CI runner off production servers; deploy secrets per environment; release tags protected
 - [ ] Tests cover CSRF refusal, logout invalidation, cross-site refusal, fail-closed behaviour

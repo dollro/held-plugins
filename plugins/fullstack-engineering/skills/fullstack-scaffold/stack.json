@@ -9,10 +9,10 @@
       "django-vite>=3",
       "django-celery-beat",
       "whitenoise",
-      "gunicorn",
+      "gunicorn>=26",
       "argon2-cffi",
       "psycopg[binary]>=3",
-      "celery",
+      "celery[redis]",
       "redis"
     ],
     "allauth_extras": {
@@ -76,6 +76,7 @@
     ]
   },
   "floors": {
+    "gunicorn>=26": "start-django passes --no-control-socket (the control socket, new in 26, fails on the read-only production filesystem).",
     "django-vite>=3": "The DJANGO_VITE settings dict and {% vite_asset %} tags used by the templates arrived in 3.x.",
     "psycopg[binary]>=3": "psycopg2 is in maintenance; Django and the guideline use psycopg 3.",
     "sqlalchemy[asyncio]>=2": "The realtime service uses the 2.0 typed ORM (Mapped, mapped_column) and async engine.",
@@ -84,7 +85,7 @@
     "@playwright/test (exact)": "The Playwright Docker image tag must equal the installed @playwright/test version, so it is installed without a range."
   },
   "runtimes": {
-    "_comment": "Defaults for base images, set once at scaffold time and overridable. Rules, re-check at scaffold time: python = newest minor that every core package officially supports (Celery is usually last); node = current Active LTS; postgres = current major with at least one year of minor releases; redis = current stable major (Redis 8 offers AGPLv3 among its licenses; running the official image as a service is fine); debian = suite pinned on purpose, because the `-slim` tags switch suites on their own. caddy = current major (local/CI proxy that mirrors production routing); mailpit = current major tag (development mail catcher, accounts audiences only). docker = current Docker major (GitLab CI docker:<v>-cli / -dind images).",
+    "_comment": "Defaults for base images, set once at scaffold time and overridable. Rules, re-check at scaffold time: python = newest minor that every core package officially supports (Celery is usually last); node = current Active LTS; postgres = current major with at least one year of minor releases; redis = current stable major (Redis 8 offers AGPLv3 among its licenses; running the official image as a service is fine); debian = suite pinned on purpose, because the `-slim` tags switch suites on their own. caddy = current major (local/CI proxy that mirrors production routing); mailpit = current major tag (development mail catcher, accounts audiences only). docker = current exact Docker release (GitLab CI docker:<v>-cli / -dind images; exact, never major-only, so smoke test and deploy run the same Compose and Renovate/Dependabot can bump it); compose = the Compose version that docker:<v>-cli ships (GitHub jobs install it with docker/setup-compose-action, so GitHub and GitLab smoke-test and deploy with the same Compose); traefik = current major (throwaway proxy of the production smoke test, matching the shared server Traefik).",
     "python": "3.13",
     "node": "24",
     "postgres": "18",
@@ -92,9 +93,12 @@
     "debian": "trixie",
     "caddy": "2",
     "mailpit": "v1",
-    "docker": "29"
+    "docker": "29.9.3",
+    "compose": "v5.7.0",
+    "traefik": "3"
   },
   "pitfalls": {
+    "celery": "Install celery[redis], not plain celery: kombu's Redis transport imports packages (e.g. packaging in kombu 5.7) that only the redis extra installs. Seen as ModuleNotFoundError in the production worker, caught by the smoke test.",
     "typescript": "`typescript@latest` can be ahead of Vue tooling (vue-tsc, typescript-eslint). Use the TypeScript line create-vue currently generates.",
     "pnpm": "Recent pnpm blocks dependency build scripts by default: approve the ones you need (`pnpm approve-builds`). Corepack is removed from Node 25 on: install the exact pnpm from `packageManager` explicitly.",
     "fastapi": "FastAPI is still 0.x and ships breaking changes in minor releases: always install from the lockfile and read the release notes before upgrading.",
