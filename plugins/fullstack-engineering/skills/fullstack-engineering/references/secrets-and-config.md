@@ -4,7 +4,7 @@
 
 - Every environment-specific value comes from environment variables. One env file per environment feeds all services (`.envs/<env>/app.env`); each service ignores keys it does not know.
 - Required secrets have no defaults, so a missing value fails at startup instead of running with a placeholder.
-- Non-secret deploy state (the pinned `APP_VERSION`, host name, proxy network) lives in a separate, committed file per deployed environment (`.envs/staging/deploy.env`, `.envs/production/deploy.env`).
+- Non-secret deploy targets (host name, registry, SSH target, proxy network) live in a separate, committed file per deployed environment (`.envs/staging/deploy.env`, `.envs/production/deploy.env`); the version comes from the release pipeline, never from a file.
 - How values flow into Docker, Django, FastAPI and the Vue bundle, and what staging may and may not share with production: `environments.md`.
 
 ## SOPS + age

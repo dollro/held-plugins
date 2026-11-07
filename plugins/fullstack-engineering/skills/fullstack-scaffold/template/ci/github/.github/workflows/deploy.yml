@@ -1,10 +1,16 @@
-# Manual deploy of the APP_VERSION pinned in .envs/<environment>/deploy.env on the
-# selected ref (normally main after the bump PR is merged). Staging first, then
-# the same version on production. Each GitHub environment holds its own secrets
-# (SOPS_AGE_KEY, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS) and protection rules.
+# One deploy job, used by release.yml (staging, then production) and run by hand
+# for a manual deploy or a rollback (an older version needs `rollback`).
+# Each GitHub environment holds its own secrets (SOPS_AGE_KEY, DEPLOY_SSH_KEY,
+# DEPLOY_KNOWN_HOSTS) and protection rules (production: required reviewers).
+# Thin wrapper: the logic is `task deploy` (scripts/deploy.sh).
 name: deploy
 
 on:
+  workflow_call:
+    inputs:
+      environment: { type: string, required: true }
+      version: { type: string, required: true }
+      rollback: { type: boolean, default: false }
   workflow_dispatch:
     inputs:
       environment:
@@ -12,44 +18,48 @@ on:
         type: choice
         options: [staging, production]
         default: staging
+      version:
+        description: Release to deploy (vX.Y.Z)
+        type: string
+        required: true
+      rollback:
+        description: Allow a version older than the one running
+        type: boolean
+        default: false
 
 permissions:
   contents: read
   packages: read
 
-concurrency:
-  group: deploy-${{ inputs.environment }}
-  cancel-in-progress: false
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
+    # One deploy per environment at a time; never cancel a running deploy.
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: go-task/setup-task@v2
-      - name: Install sops
-        run: |
-          curl -fsSLo /usr/local/bin/sops \
-            "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64"
-          chmod +x /usr/local/bin/sops
+      # Same Compose as the GitLab job image (stack: docker:<v>-cli); keep the
+      # version equal in ci.yml, release.yml and deploy.yml.
+      - uses: docker/setup-compose-action@v2
+        with:
+          version: __COMPOSE_VERSION__
+      - run: scripts/ci/install-tools.sh sops
         env:
           SOPS_VERSION: ${{ vars.SOPS_VERSION || 'v3.10.2' }}
-      - uses: webfactory/ssh-agent@v0.10.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
-      - name: Trust the target host
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$KNOWN_HOSTS" >> ~/.ssh/known_hosts
+      - run: task deploy ENV="$DEPLOY_ENV" VERSION="$VERSION" ROLLBACK="$ROLLBACK"
         env:
-          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-      - run: task deploy ENV=${{ inputs.environment }}
-        env:
+          DEPLOY_ENV: ${{ inputs.environment }}
+          VERSION: ${{ inputs.version }}
+          ROLLBACK: ${{ inputs.rollback && '1' || '0' }}
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          RELEASE_REGISTRY: ${{ vars.REGISTRY || format('ghcr.io/{0}', github.repository_owner) }}
           # Pull access for the target host (ghcr.io: the workflow token)
           REGISTRY_USER: ${{ vars.REGISTRY_USER || github.actor }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
-      - run: task deploy:ps ENV=${{ inputs.environment }}
-        env:
-          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}

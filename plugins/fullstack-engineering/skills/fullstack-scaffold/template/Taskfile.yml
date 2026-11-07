@@ -187,25 +187,42 @@ tasks:
     cmds: ["python3 scripts/env_examples.py"]
 
   # ── Release and deploy ───────────────────────────────────────────────────
+  # CI calls these with the release tag as VERSION; nothing here knows the CI platform.
+  release:validate:
+    desc: Check a release tag before building (vX.Y.Z, annotated, newer than the last release)
+    requires: { vars: [VERSION] }
+    cmds: ["scripts/validate_release.sh {{.VERSION}}"]
+
   release:build:
     desc: Build and push production images, e.g. task release:build REGISTRY=ghcr.io/org VERSION=v1.2.3 [PLATFORMS=linux/amd64,linux/arm64]
     requires: { vars: [REGISTRY, VERSION] }
     vars: { PLATFORMS: '{{.PLATFORMS | default "linux/amd64"}}' }
     cmds:
-      - REGISTRY={{.REGISTRY}} IMAGETAG={{.VERSION}} PLATFORMS={{.PLATFORMS}} docker buildx bake --push
+      # Image names must be lowercase; registry owners often are not.
+      - REGISTRY={{.REGISTRY | lower}} IMAGETAG={{.VERSION}} PLATFORMS={{.PLATFORMS}} docker buildx bake --push
+
+  release:smoke:
+    desc: Production smoke test - production images and settings behind a throwaway proxy. Local build, or the pushed release with REGISTRY=... VERSION=...
+    cmds:
+      - '{{if .VERSION}}REGISTRY={{.REGISTRY | lower}} VERSION={{.VERSION}} {{end}}scripts/smoke.sh'
 
   deploy:
-    desc: Deploy the APP_VERSION pinned for ENV - pull, migrate, up. task deploy ENV=staging|production
-    requires: { vars: [ENV] }
+    desc: Deploy a release - preflight, backup, pull, migrate, up, verify. task deploy ENV=staging|production VERSION=vX.Y.Z [ROLLBACK=1]
+    requires: { vars: [ENV, VERSION] }
     # Inline on purpose: an exported DEPLOY_ENV in the shell must never win over ENV.
+    vars:
+      RUN: DEPLOY_ENV={{.ENV}} APP_VERSION={{.VERSION}} ROLLBACK={{.ROLLBACK | default "0"}} scripts/deploy.sh
     cmds:
-      - DEPLOY_ENV={{.ENV}} scripts/deploy.sh pull
-      - DEPLOY_ENV={{.ENV}} scripts/deploy.sh migrate
-      - DEPLOY_ENV={{.ENV}} scripts/deploy.sh up
+      - "{{.RUN}} preflight"
+      - "{{.RUN}} backup"
+      - "{{.RUN}} pull"
+      - "{{.RUN}} migrate"
+      - "{{.RUN}} up"
+      - "{{.RUN}} verify"
 
   deploy:*:
-    desc: Any deploy.sh verb, e.g. task deploy:ps ENV=staging, task deploy:logs ENV=production -- django
+    desc: Any deploy.sh verb, e.g. task deploy:preflight ENV=production VERSION=v1.2.3, task deploy:ps ENV=staging, task deploy:logs ENV=production -- django
     requires: { vars: [ENV] }
     vars:
       VERB: "{{index .MATCH 0}}"
-    cmds: ["DEPLOY_ENV={{.ENV}} scripts/deploy.sh {{.VERB}} {{.CLI_ARGS}}"]
+    cmds: ["DEPLOY_ENV={{.ENV}} APP_VERSION={{.VERSION}} scripts/deploy.sh {{.VERB}} {{.CLI_ARGS}}"]

@@ -27,7 +27,7 @@ This file holds the **principles and guardrails**. They change slowly. The `refe
 | `assets/traefik-host/` | Shared Traefik per server: compose, static and dynamic config, setup and operation |
 | `references/environments.md` | local/CI/staging/production, build once and promote, how values reach Docker, Django, FastAPI and Vue |
 | `references/secrets-and-config.md` | Env vars, SOPS + age, example files, rotation |
-| `references/ci-cd-and-deploy.md` | Pipeline contract, GitHub/GitLab wrappers, release, deploy, hardening, backups, observability |
+| `references/ci-cd-and-deploy.md` | Pipeline contract, platform mapping (GitHub, GitLab, others), release, deploy preflight, rollback, release runbook, hardening, backups, observability |
 | `references/identity.md` | Login audience (internal/external/mixed), company SSO over OpenID Connect (Entra ID as worked example), external accounts and MFA, data separation, personal data |
 | `references/security.md` | Auth flows, CSRF, cross-site checks, API keys, review checklist |
 | `references/testing.md` | Test layers, real services, end-to-end through the proxy |
@@ -52,9 +52,9 @@ Detect the stack from the lockfiles and manifests first. If the repo is not on t
 4. Internal service endpoints behind a secret, failing closed.
 5. One owner per table; migrations committed, backward compatible for one release, run as a deploy step.
 6. Secrets never in plaintext in git or images.
-7. Install only from lockfiles; CI actions pinned by SHA.
-8. CI runs the same commands developers run.
-9. Production runs an explicitly pinned, immutable image built once (the one staging ran, where staging exists); environment differences come only from runtime configuration; rollback is a revert.
+7. Install only from lockfiles; CI actions and base images pinned (commit SHA, image digest).
+8. CI runs the same commands developers run; CI files only add triggers, secrets, environments and approvals, so the CI platform stays replaceable.
+9. Production runs an explicitly named, immutable release image, built once and tested as built (smoke test with production settings; the one staging ran, where staging exists); environment differences come only from runtime configuration; rollback is a deliberate redeploy of the previous release.
 10. Hardened production containers; backups off the host.
 11. Tests against real database and cache, including the security behaviour above.
 12. Framework APIs checked against current docs, never written from memory.
@@ -135,8 +135,8 @@ Details and checklists: `references/identity.md`, `references/security.md`.
 ## 8. Environments, secrets and configuration
 
 - **Environments: local, CI, staging (recommended), production.** Settings modules describe the kind of runtime (development, test, production), not the environment: staging runs the production settings with its own values.
-- **Build once, promote the same image:** a version tag builds each image once; staging and production pull the same tag. No per-environment builds; build arguments carry only artifact properties (runtime versions, app version, platform).
-- **All configuration comes from the environment at runtime**; code has no environment-specific values. Per environment: encrypted `app.env` for secrets and config, plain `deploy.env` for the pinned version and host.
+- **Build once, promote the same image:** a version tag builds each image once; the smoke test, staging and production use that image. No per-environment builds; build arguments carry only artifact properties (runtime versions, app version, platform).
+- **All configuration comes from the environment at runtime**; code has no environment-specific values. Per environment: encrypted `app.env` for secrets and config, plain `deploy.env` for the deploy target (host, registry, SSH target).
 - **The frontend bundle holds nothing environment-specific:** relative API URLs, and runtime values rendered by Django into the page. `VITE_*` variables are public build constants.
 - **The environment name is a label** (logs, error reports, a badge outside production); behaviour differs only through settings and explicit variables.
 - **Staging has its own secrets and no production personal data.**
@@ -145,10 +145,11 @@ Details and checklists: `references/identity.md`, `references/security.md`.
 
 ## 9. CI/CD and deployment
 
-- **CI files are thin wrappers over Task targets,** so GitHub Actions and GitLab CI stay interchangeable.
-- **Third-party CI actions are pinned by commit SHA,** kept current by Dependabot or Renovate; jobs get least-privilege permissions.
-- **A version tag builds and pushes immutable images.** Production runs only an explicitly pinned version, set in a committed file; the git log of that file is the deploy history, and a rollback is a revert.
-- **A release is pull → migrate → up (wait for healthy).**
+- **Platform-neutral:** the rules name requirements, never platform features. Logic lives in Task targets and `scripts/`; CI files add only triggers, secrets, environments, approvals and concurrency, and a check keeps them that way. How each requirement maps to GitHub, GitLab or another platform: the mapping table in `references/ci-cd-and-deploy.md`.
+- **Third-party CI actions are pinned by commit SHA, base images by digest,** kept current by Renovate or Dependabot; jobs get least-privilege permissions.
+- **The release pipeline deploys what it built:** an annotated tag `vX.Y.Z` (protected pattern) is validated, builds and pushes the images once, smoke-tests them with production settings, deploys to staging, then to production after approval. The CI platform's environment history records what runs.
+- **A deploy is preflight → backup → pull → migrate → up → verify,** one at a time per environment. The preflight proves SSH as the deploy user, the remote Docker daemon, registry access and the images before anything changes; verify checks the version on the public URL.
+- **Rollback is a deliberate redeploy** of the previous release (an older version needs an explicit flag); migrations stay backward compatible for one release, so no restore is needed.
 - **Production containers are hardened:** non-root, no capabilities, no privilege escalation, read-only root filesystem.
 - **Backups leave the host** and restores are tested.
 
@@ -161,6 +162,7 @@ Every service has liveness and readiness endpoints used by healthchecks, logs to
 - **Backend tests run against real PostgreSQL and Redis** in the same containers as development, plus a check that no migration is missing.
 - **Frontend:** type-check, lint and unit tests.
 - **End-to-end tests run against built assets behind the proxy,** exactly like production routing.
+- **A production smoke test runs the release images with production settings behind a proxy** on main and on every release tag, with the deploy's Docker and Compose versions. Before a release, the release's migrations run against a restored production backup.
 - **Security behaviour is tested:** CSRF enforcement, logout invalidating sessions, cross-site refusal, fail-closed when a dependency is down.
 
 ## Dependencies and versions
@@ -200,7 +202,10 @@ repo/
 | Celery task enqueued inside the transaction | `transaction.on_commit` |
 | Blocking I/O inside `async def` | Async client, or run in a thread / Celery |
 | HTTP calls scattered across components | One `fetch` client module, lint-enforced |
-| Deploying `latest` or an unpinned tag | Pinned version in a committed file |
+| Deploying `latest`, or a deploy job that can run before its images exist | Deploy from the release pipeline, after build and smoke test, with the tag as version |
+| Only unit and e2e tests on development images | Production smoke test: release images, production settings, behind a proxy |
+| CI logic written in platform YAML (GitLab- or GitHub-only features in the rules) | Task targets and scripts; platform features only via the mapping table |
+| First deploy fails at SSH or registry pull | Deploy preflight once before release day; SSH user required in the target |
 | API URL or other per-environment value in a Vite `.env` file | Relative URLs; runtime config rendered by Django |
 | Separate staging build or `staging.py` settings | Same image and production settings; values from `.envs/staging/` |
 | CI logic that developers cannot run locally | CI calls the Task targets |

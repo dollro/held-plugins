@@ -1,6 +1,6 @@
 # Staging and production stack: same file, same images; DEPLOY_ENV picks the
 # env files. Never run directly: scripts/deploy.sh resolves secrets and the
-# pinned APP_VERSION on the caller and drives the remote Docker daemon over SSH.
+# the release APP_VERSION on the caller and drives the remote Docker daemon over SSH.
 #
 # A TLS-terminating Traefik runs once per server, shared by all stacks, and owns the
 # external network ${PROXY_NETWORK} (setup: docs/operations.md, "Server setup"). The Traefik labels below route
@@ -31,7 +31,7 @@ x-app: &app
 services:
   django:
     <<: *app
-    image: ${REGISTRY}/__PROJECT__-django:${APP_VERSION:?APP_VERSION must be pinned}
+    image: ${REGISTRY}/__PROJECT__-django:${APP_VERSION:?set by scripts/deploy.sh from the release tag}
     environment:
       DJANGO_INTERNAL_HOSTS: __PROJECT__-${DEPLOY_ENV}-django
     networks:
@@ -62,18 +62,32 @@ services:
 
   celeryworker:
     <<: *app
-    image: ${REGISTRY}/__PROJECT__-django:${APP_VERSION:?APP_VERSION must be pinned}
+    image: ${REGISTRY}/__PROJECT__-django:${APP_VERSION:?set by scripts/deploy.sh from the release tag}
     command: /docker/start-celery-worker
+    # Every long-running service has a real healthcheck: `up --wait` gates on it,
+    # and Compose versions differ in how they treat services without one.
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A backend.config.celery_app inspect ping -d celery@$$HOSTNAME --timeout 10"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
 
   celerybeat:
     <<: *app
-    image: ${REGISTRY}/__PROJECT__-django:${APP_VERSION:?APP_VERSION must be pinned}
+    image: ${REGISTRY}/__PROJECT__-django:${APP_VERSION:?set by scripts/deploy.sh from the release tag}
     command: /docker/start-celery-beat
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/celerybeat.pid && kill -0 $$(cat /tmp/celerybeat.pid)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # >>> realtime
   realtime:
     <<: *app
-    image: ${REGISTRY}/__PROJECT__-realtime:${APP_VERSION:?APP_VERSION must be pinned}
+    image: ${REGISTRY}/__PROJECT__-realtime:${APP_VERSION:?set by scripts/deploy.sh from the release tag}
     networks: [default, proxy]
     environment:
       DJANGO_INTERNAL_URL: http://__PROJECT__-${DEPLOY_ENV}-django:5000

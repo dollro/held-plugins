@@ -28,6 +28,8 @@ frontend/e2e-results.xml
 !.envs/**/app.env.enc
 .envs/**/app.env.enc.tmp
 .envs/**/app.env.tmp
+# Throwaway env of the production smoke test (scripts/smoke.sh)
+.envs/smoke/
 
 # Docs site build output
 site/

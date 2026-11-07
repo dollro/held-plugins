@@ -37,3 +37,10 @@ repos:
         language: system
         pass_filenames: false
         files: '^(\.envs/|scripts/env_examples\.py$)'
+      - id: ci-thin-wrappers
+        name: CI files only call Task targets, same targets on every platform
+        # PyYAML from the locked docs group (mkdocs depends on it).
+        entry: uv run --frozen --only-group docs python scripts/check_ci.py
+        language: system
+        pass_filenames: false
+        files: '^(\.gitlab-ci\.yml|\.github/workflows/.*\.ya?ml|scripts/check_ci\.py)$'

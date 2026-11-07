@@ -14,6 +14,14 @@ entryPoints:
           scheme: https
   websecure:
     address: ":443"
+    # Default readTimeout is 60s for the whole request body: large uploads (a
+    # registry push behind this proxy, file uploads) are cut at a minute. Set it
+    # here on websecure; on `web` it would not help. Not applied to HTTP/3
+    # (CVE-2026-88012), so leave HTTP/3 off unless that is fixed in your version.
+    transport:
+      respondingTimeouts:
+        readTimeout: 600s
+        idleTimeout: 180s
     http:
       aliasHeadersStrategy: delete
       # Applies to every route; see dynamic/middlewares.yml.
