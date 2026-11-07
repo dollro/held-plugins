@@ -163,3 +163,14 @@ security issues. No style preferences, no speculative hardening.
 
   A reviewer asked for gaps will find some; chasing every one leads to over-engineering. Fix correctness gaps, treat the rest as optional.
 - **A person reads the evidence and the diff** and runs the check once outside the run before merging. Evidence is faster to review than re-running everything; it does not replace reading the diff.
+
+## 9. Several agents on a shared repo
+
+Rules for every agent that works on a repo other people and agents also use. Put them in the hand-over prompt; the repo's CLAUDE.md can carry them once.
+
+- **One branch and one pull request per issue.** The branch name carries the issue key (`feat/ACME-123-short-name`).
+- **Agents never merge** and never push to shared branches (default, integration, release). A person merges after review.
+- **Report through the tracker:** when the pipeline is green, the agent moves the issue to the team's review column (e.g. "In Review") and links the pull request. Findings outside the issue become new issues with the evidence, not code comments and not changes in the same pull request.
+- **Time box and heartbeat.** Every agent gets an explicit time box in the prompt. It commits and pushes before it starts a long check, so finished work is never lost to a stalled session. Seen in practice: an agent finished its fix and then sat idle for hours, uncommitted and unreported.
+- **Check state, don't wait on the agent.** The person or orchestrator looks at the agent's worktree, branch and pipeline (`git -C <worktree> status`, `git log`, the pull request's checks) rather than waiting for a reply.
+- **The tracker is the hand-off channel to sandboxed agents.** A sandboxed session usually cannot receive messages from the host session; prompts go in by hand at launch, and from then on issue state, pull requests and pipelines are the shared state both sides read.

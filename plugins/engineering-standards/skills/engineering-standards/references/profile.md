@@ -43,4 +43,4 @@ Method in `agent-sandbox.md`. Default sandbox: Docker Sandboxes (`sbx`) with a v
 
 ## E5. Not yet covered
 
-Tech stack and approved tools, test and eval standards, Definition of Done in detail, code review rules, CI requirements, secrets handling. Until a profile adds them, look them up in the repo's own CLAUDE.md, or ask the team; never invent them.
+Tech stack and approved tools, test and eval standards, Definition of Done in detail, review roles and required approvals (the skill's "Review, merge and release" covers when a review pass is needed, not who approves), CI requirements, secrets handling. Until a profile adds them, look them up in the repo's own CLAUDE.md, or ask the team; never invent them.
