@@ -85,7 +85,7 @@
     "@playwright/test (exact)": "The Playwright Docker image tag must equal the installed @playwright/test version, so it is installed without a range."
   },
   "runtimes": {
-    "_comment": "Defaults for base images, set once at scaffold time and overridable. Rules, re-check at scaffold time: python = newest minor that every core package officially supports (Celery is usually last); node = current Active LTS; postgres = current major with at least one year of minor releases; redis = current stable major (Redis 8 offers AGPLv3 among its licenses; running the official image as a service is fine); debian = suite pinned on purpose, because the `-slim` tags switch suites on their own. caddy = current major (local/CI proxy that mirrors production routing); mailpit = current major tag (development mail catcher, accounts audiences only). docker = current exact Docker release (GitLab CI docker:<v>-cli / -dind images; exact, never major-only, so smoke test and deploy run the same Compose and Renovate/Dependabot can bump it); compose = the Compose version that docker:<v>-cli ships (GitHub jobs install it with docker/setup-compose-action, so GitHub and GitLab smoke-test and deploy with the same Compose); traefik = current major (throwaway proxy of the production smoke test, matching the shared server Traefik).",
+    "_comment": "Defaults for base images, set once at scaffold time and overridable. Rules, re-check at scaffold time: python = newest minor that every core package officially supports (Celery is usually last); node = current Active LTS; postgres = current major with at least one year of minor releases; redis = current stable major (Redis 8 offers AGPLv3 among its licenses; running the official image as a service is fine); debian = suite pinned on purpose, because the `-slim` tags switch suites on their own. caddy = current major (local/CI proxy that mirrors production routing); mailpit = current major tag (development mail catcher, accounts audiences only). docker = current exact Docker release (GitLab CI docker:<v>-cli / -dind images; exact, never major-only, so smoke test and deploy run the same Compose and Renovate/Dependabot can bump it); compose = the Compose version that docker:<v>-cli ships (GitHub jobs install it from scripts/ci/tools.txt, so GitHub and GitLab smoke-test and deploy with the same Compose); task, sops = major series, resolved at scaffold time to the newest release and pinned with its SHA-256 in scripts/ci/tools.txt (every tool CI downloads lives there, fetched through the optional mirror); traefik = current major (throwaway proxy of the production smoke test, matching the shared server Traefik).",
     "python": "3.13",
     "node": "24",
     "postgres": "18",
@@ -95,6 +95,8 @@
     "mailpit": "v1",
     "docker": "29.9.3",
     "compose": "v5.7.0",
+    "task": "v3",
+    "sops": "v3",
     "traefik": "3"
   },
   "pitfalls": {

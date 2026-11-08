@@ -31,6 +31,13 @@ permissions:
   contents: read
   packages: read
 
+# Pinned CI tools (scripts/ci/tools.txt) come from TOOL_MIRROR_URL first, then
+# from their original source; the SHA-256 is checked either way. The mirror is
+# optional: any HTTP store with GET and PUT (scripts/ci/tools-lib.sh).
+env:
+  TOOL_MIRROR_URL: ${{ vars.TOOL_MIRROR_URL }}
+  TOOL_MIRROR_HEADER: ${{ secrets.TOOL_MIRROR_HEADER }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -42,15 +49,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
-      - uses: go-task/setup-task@v2
-      # Same Compose as the GitLab job image (stack: docker:<v>-cli); keep the
-      # version equal in ci.yml, release.yml and deploy.yml.
-      - uses: docker/setup-compose-action@v2
-        with:
-          version: __COMPOSE_VERSION__
-      - run: scripts/ci/install-tools.sh sops
-        env:
-          SOPS_VERSION: ${{ vars.SOPS_VERSION || 'v3.10.2' }}
+      # Compose equals the GitLab job image's; all three from scripts/ci/tools.txt
+      - run: scripts/ci/install-tools.sh task docker-compose sops
       - run: task deploy ENV="$DEPLOY_ENV" VERSION="$VERSION" ROLLBACK="$ROLLBACK"
         env:
           DEPLOY_ENV: ${{ inputs.environment }}

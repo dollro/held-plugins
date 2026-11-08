@@ -4,8 +4,10 @@
    call or a known setup step (installing tools, registry login, env example).
    Logic belongs in Taskfile.yml and scripts/, where developers can run it.
 2. If both platforms are configured, both call the same Task targets.
-3. Every GitHub job that installs Compose installs the same version, so the
-   smoke test and the deploy cannot drift apart.
+3. Tools are installed from scripts/ci/tools.txt (pinned, SHA-256 checked,
+   mirrored), not by setup actions that download from a release page: one
+   place per tool, so the smoke test and the deploy cannot drift apart, and an
+   outage of the original source does not stop every job.
 
 Run by pre-commit; exits non-zero with the offending lines.
 """
@@ -65,15 +67,23 @@ def check(files: list[Path]) -> tuple[list[str], set[str]]:
     return errors, targets
 
 
-def compose_versions(files: list[Path]) -> set[str]:
-    versions = set()
+# Setup actions that download a tool from its release page at run time.
+DOWNLOADING_ACTIONS = ("go-task/setup-task", "docker/setup-compose-action")
+
+
+def unpinned_tools(files: list[Path]) -> list[str]:
+    errors = []
     for path in files:
         data = yaml.load(path.read_text(), Loader=Loader) or {}  # noqa: S506 (Loader is a SafeLoader)
         for job in (data.get("jobs") or {}).values():
             for step in (job or {}).get("steps") or []:
-                if str(step.get("uses", "")).startswith("docker/setup-compose-action"):
-                    versions.add(str((step.get("with") or {}).get("version")))
-    return versions
+                uses = str(step.get("uses", ""))
+                if uses.startswith(DOWNLOADING_ACTIONS):
+                    errors.append(
+                        f"{path.relative_to(ROOT)}: {uses.split('@')[0]} downloads at run time; "
+                        "pin the tool in scripts/ci/tools.txt and use scripts/ci/install-tools.sh"
+                    )
+    return errors
 
 
 def main() -> int:
@@ -88,10 +98,7 @@ def main() -> int:
             f"only GitLab {sorted(gitlab_targets - github_targets)}, "
             f"only GitHub {sorted(github_targets - gitlab_targets)}"
         )
-    if len(versions := compose_versions(github)) > 1:
-        errors.append(
-            f"GitHub jobs install different Compose versions: {sorted(versions)}"
-        )
+    errors += unpinned_tools(github)
     for error in errors:
         print(error, file=sys.stderr)
     return 1 if errors else 0

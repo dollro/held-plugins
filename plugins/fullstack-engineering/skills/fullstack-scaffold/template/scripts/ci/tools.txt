@@ -1,0 +1,7 @@
+# Every tool CI downloads, pinned: name version sha256 url ({version} is filled in).
+# scripts/ci/install-tools.sh checks the SHA-256 of every download; a version
+# bump changes the hash too: scripts/ci/pin-tool.sh <name> <version>.
+# Linux x86_64 runners; add a line per architecture if you need arm64.
+task __TASK_VERSION__ __TASK_SHA256__ https://github.com/go-task/task/releases/download/{version}/task_linux_amd64.tar.gz
+sops __SOPS_VERSION__ __SOPS_SHA256__ https://github.com/getsops/sops/releases/download/{version}/sops-{version}.linux.amd64
+docker-compose __COMPOSE_VERSION__ __COMPOSE_SHA256__ https://github.com/docker/compose/releases/download/{version}/docker-compose-linux-x86_64

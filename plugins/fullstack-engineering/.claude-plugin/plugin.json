@@ -1,5 +1,5 @@
 {
   "name": "fullstack-engineering",
   "description": "Guideline and reference implementation for web apps: Django system of record plus FastAPI realtime/streaming service, Vue 3 + Vite + TypeScript, PostgreSQL, Redis, Celery, login for internal staff (company SSO over OpenID Connect, e.g. Entra ID), external users (verified accounts with MFA) or both, Docker, Task, SOPS, MkDocs docs site, platform-neutral CI (thin GitHub/GitLab wrappers over Task, enforced by a check) and a release pipeline that validates the tag, builds once, smoke-tests the production images and deploys staging then production with preflight, backup and verify. Adds the /fullstack-engineering guideline, the /fullstack-scaffold repo generator and the fullstack-engineer agent.",
-  "version": "1.2.0"
+  "version": "1.3.0"
 }

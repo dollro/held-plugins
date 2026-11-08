@@ -15,12 +15,14 @@ Standard library only.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
@@ -158,6 +160,7 @@ def render(target: Path, values: dict[str, str], features: set[str] | None) -> N
             path.write_text(new)
 
 LATE_PLACEHOLDERS = {"__PLAYWRIGHT_VERSION__", "__PLAYWRIGHT_MCP_VERSION__"}  # known after install
+LATE_PLACEHOLDERS |= {"__TASK_SHA256__", "__SOPS_SHA256__", "__COMPOSE_SHA256__"}  # pin_ci_tools
 # Real identifiers that look like placeholders.
 LITERALS: set[str] = set()
 
@@ -295,6 +298,42 @@ def pin_actions(target: Path) -> None:
         workflow.write_text(text)
 
 
+def ci_tool_version(repo: str, series: str) -> str:
+    """Newest release tag of a tool CI downloads, within the series in stack.json."""
+    resolved = latest_tag_sha(repo, series)
+    if resolved is None:
+        log(f"could not resolve {repo}@{series}; fill in scripts/ci/tools.txt by hand")
+        return "REPLACE_WITH_VERSION"
+    return resolved[0]
+
+
+def pin_ci_tools(target: Path) -> None:
+    """Fill the SHA-256 of every tool in scripts/ci/tools.txt (what pin-tool.sh does
+    later on a bump), so CI verifies every download from the first run."""
+    lock = target / "scripts" / "ci" / "tools.txt"
+    lines = []
+    for line in lock.read_text().splitlines():
+        fields = line.split()
+        if len(fields) == 4 and re.fullmatch(r"__[A-Z]+_SHA256__", fields[2]):
+            name, version, _, url = fields
+            fields[2] = "REPLACE_WITH_SHA256"
+            if "REPLACE" not in version:
+                url = url.replace("{version}", version)
+                try:
+                    digest = hashlib.sha256()
+                    with urllib.request.urlopen(url, timeout=120) as response:  # noqa: S310 (https URL from the template)
+                        for chunk in iter(lambda: response.read(1 << 20), b""):
+                            digest.update(chunk)
+                    fields[2] = digest.hexdigest()
+                except OSError as exc:
+                    log(f"could not hash {name} {version} ({exc})")
+            if fields[2] == "REPLACE_WITH_SHA256":
+                log(f"{name}: run scripts/ci/pin-tool.sh {name} <version> in the new repo")
+            line = " ".join(fields)
+        lines.append(line)
+    lock.write_text("\n".join(lines) + "\n")
+
+
 def initial_migrations(target: Path) -> None:
     env = {
         "DJANGO_SETTINGS_MODULE": "backend.config.settings.test",
@@ -374,6 +413,8 @@ def main() -> int:
         "__DOCKER_VERSION__": runtimes["docker"],
         "__TRAEFIK_VERSION__": runtimes["traefik"],
         "__COMPOSE_VERSION__": runtimes["compose"],
+        "__TASK_VERSION__": ci_tool_version("go-task/task", runtimes["task"]),
+        "__SOPS_VERSION__": ci_tool_version("getsops/sops", runtimes["sops"]),
         "__UV_VERSION__": tool_version(["uv", "--version"]) if shutil.which("uv") else "latest",
         "__PNPM_VERSION__": tool_version(["pnpm", "--version"]) if shutil.which("pnpm") else "10.0.0",
         "__REALTIME_ENABLED__": "" if args.no_realtime else "true",
@@ -387,6 +428,8 @@ def main() -> int:
     copy_template(target, args.ci, features)
     render(target, values, features)
     assert_rendered(target, allow=LATE_PLACEHOLDERS)
+    log("pinning CI tools (version and SHA-256 in scripts/ci/tools.txt)")
+    pin_ci_tools(target)
     secrets(target, args.age_recipient)
     run(["git", "init", "-q", "-b", "main"], target)
 

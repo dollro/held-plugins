@@ -1,17 +1,23 @@
 #!/bin/sh
-# CI setup only: install the tools Task targets need, on any runner image
-# (Alpine docker:cli, Debian, GitHub ubuntu). Usage: scripts/ci/install-tools.sh [task] [sops]
+# CI setup only: install pinned tools from scripts/ci/tools.txt on any runner
+# image (Alpine docker:cli, Debian, Ubuntu), mirror first in CI, hash checked.
+# Usage: scripts/ci/install-tools.sh task [sops] [docker-compose]
 set -eu
-SOPS_VERSION="${SOPS_VERSION:-v3.10.2}"
+. "$(dirname "$0")/tools-lib.sh"
 BIN="${BIN:-/usr/local/bin}"
-for tool in "${@:-task}"; do
-  if command -v "$tool" >/dev/null 2>&1; then continue; fi
-  case "$tool" in
-    task) sh -c "$(curl -fsSL https://taskfile.dev/install.sh)" -- -d -b "$BIN" ;;
-    sops)
-      curl -fsSLo "$BIN/sops" \
-        "https://github.com/getsops/sops/releases/download/$SOPS_VERSION/sops-$SOPS_VERSION.linux.amd64"
-      chmod +x "$BIN/sops" ;;
-    *) echo "unknown tool: $tool" >&2; exit 1 ;;
+PLUGINS="${DOCKER_CONFIG:-$HOME/.docker}/cli-plugins"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+for tool in "$@"; do
+  fetch "$tool" "$tmp/$tool.download"
+  case "$FILE" in
+    *.tar.gz) tar -xzf "$tmp/$tool.download" -C "$tmp" "$tool" && src="$tmp/$tool" ;;
+    *) src="$tmp/$tool.download" ;;
   esac
+  case "$tool" in
+    docker-*) mkdir -p "$PLUGINS" && dest="$PLUGINS/$tool" ;;  # Docker CLI plugin
+    *) dest="$BIN/$tool" ;;
+  esac
+  chmod 0755 "$src"
+  if [ -w "$(dirname "$dest")" ]; then mv -f "$src" "$dest"; else sudo mv -f "$src" "$dest"; fi
 done
