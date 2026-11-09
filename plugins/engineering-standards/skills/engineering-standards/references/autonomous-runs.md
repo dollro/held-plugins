@@ -169,7 +169,7 @@ security issues. No style preferences, no speculative hardening.
 Rules for every agent that works on a repo other people and agents also use. Put them in the hand-over prompt; the repo's CLAUDE.md can carry them once.
 
 - **One branch and one pull request per issue.** The branch name carries the issue key (`feat/ACME-123-short-name`).
-- **Agents never merge** and never push to shared branches (default, integration, release). A person merges after review.
+- **Agents never merge** and never push to shared branches (default, integration, release). A person merges after review. An agent never removes Draft from its own pull request: after a review that asks for fixes it pushes them, waits for green and replies "Fixes applied in <commit>" under the review comment; the reviewer clears Draft.
 - **Report through the tracker:** when the pipeline is green, the agent moves the issue to the team's review column (e.g. "In Review") and links the pull request. Findings outside the issue become new issues with the evidence, not code comments and not changes in the same pull request.
 - **Shared docs are a merge hotspot.** Parallel branches that edit the same large doc file conflict, worst when one of them splits or moves it. Agents keep doc changes in a separate last commit (easy to redo on top of the other branch), and the pull request that moves or splits docs merges first.
 - **Time box and heartbeat.** Every agent gets an explicit time box in the prompt. It commits and pushes before it starts a long check, so finished work is never lost to a stalled session. Seen in practice: an agent finished its fix and then sat idle for hours, uncommitted and unreported.
