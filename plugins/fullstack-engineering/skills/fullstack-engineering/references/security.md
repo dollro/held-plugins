@@ -25,10 +25,10 @@ Baseline for web apps, internal or external. Sources: OWASP cheat sheets (sessio
 - **Authorization in querysets and permissions**, not in the UI. Every endpoint states its permission explicitly.
 - **Passwords** (where local accounts exist): Argon2, Django's validators.
 - **Security headers in production:** HTTPS redirect (health endpoints exempt), HSTS, secure cookies, `X-Content-Type-Options`, frame protection; a Content Security Policy where feasible (Django ships CSP support in recent releases).
-- **Uploads:** stored outside the static root, size- and type-checked, served with a safe content type; a dedicated volume when the root filesystem is read-only.
+- **Uploads:** stored outside the static root, size- and type-checked (the app's size limit just below the proxy's, which fits the largest multi-file request), served with a safe content type; a dedicated volume when the root filesystem is read-only.
 - **Dependencies:** lockfiles, frozen installs, automated update PRs, SHA-pinned CI actions, explicit approval of package build scripts.
 - **Containers:** non-root, no capabilities, no privilege escalation, read-only root filesystem, no secrets in images.
-- **CI and deploy:** the CI runner never runs on a production server (a compromised job would own it); deploy credentials are scoped to their environment and need approval for production; release tags are protected. Admin accounts are created without a stored password (no admin password in env files) and get one through the password-reset mail.
+- **CI and deploy:** CI works the same wherever its runner is (deploys only over SSH, never the production Docker socket); a runner on a production host is isolated (no privileged jobs, protected runners for jobs with secrets, CPU and memory caps), since a privileged job is root on the host; deploy credentials are scoped to their environment and need approval for production; release tags are protected. Admin accounts are created without a stored password (no admin password in env files) and get one through the password-reset mail.
 
 ## Review checklist
 
@@ -43,5 +43,5 @@ Baseline for web apps, internal or external. Sources: OWASP cheat sheets (sessio
 - [ ] Querysets scoped to the user; permissions explicit per endpoint
 - [ ] Production cookies Secure; HTTPS redirect and HSTS on
 - [ ] Containers hardened; Docker socket access treated as root
-- [ ] CI runner off production servers; deploy secrets per environment; release tags protected
+- [ ] No privileged CI jobs or Docker socket on a production host; deploy secrets per environment; release tags protected
 - [ ] Tests cover CSRF refusal, logout invalidation, cross-site refusal, fail-closed behaviour

@@ -9,13 +9,16 @@
 # - Operate > Environments > Protected: `staging`, `production` (approval for
 #   production); per environment SOPS_AGE_KEY, DEPLOY_SSH_KEY and
 #   DEPLOY_KNOWN_HOSTS (file variables), scoped to that environment
-# - CI/CD > General pipelines: "Prevent outdated deployment jobs" on
+# - CI/CD > General pipelines: "Prevent outdated deployment jobs" on, with
+#   "Allow job retries for rollback deployments" (the rollback path below)
 # - Deploy > Package registry available (default): pinned CI tools are mirrored
 #   into this project's generic packages (job mirror-tools)
 #
 # Release: annotated tag vX.Y.Z on main -> validate -> images -> smoke ->
-# staging -> (manual) production. Rollback or a manual deploy: Run pipeline on
-# main with DEPLOY_ENV, VERSION and ROLLBACK=1 (job deploy:manual).
+# staging -> (manual) production. Deploys run only from the tag's pipeline, so
+# the checkout (compose.deploy.yml) always matches the images. Rollback:
+# re-run the deploy job of the older tag's pipeline; the deploy logs it as a
+# rollback and verify is the gate. No variable to add, since a re-run cannot.
 stages: [check, test, release, verify, deploy]
 
 variables:
@@ -159,9 +162,9 @@ smoke:release:
   script:
     - task release:smoke REGISTRY=$RELEASE_REGISTRY VERSION=$CI_COMMIT_TAG
 
-# Never interruptible. One deploy per environment at a time (resource_group);
-# an older release than the running one is refused by the deploy script unless
-# ROLLBACK=1, on top of "Prevent outdated deployment jobs".
+# Never interruptible. One deploy per environment at a time (resource_group).
+# "Prevent outdated deployment jobs" stops a stale pipeline; only an explicit
+# re-run deploys an older tag, so ROLLBACK=1 here lets that re-run through.
 .deploy:
   stage: deploy
   extends: .docker
@@ -171,7 +174,7 @@ smoke:release:
     REGISTRY_USER: $CI_REGISTRY_USER
     REGISTRY_PASSWORD: $CI_REGISTRY_PASSWORD
     VERSION: $CI_COMMIT_TAG
-    ROLLBACK: "0"
+    ROLLBACK: "1"
   script:
     - task deploy ENV=$CI_ENVIRONMENT_NAME VERSION=$VERSION ROLLBACK=$ROLLBACK
 
@@ -189,12 +192,3 @@ deploy:production:
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
       when: manual
-
-# Run pipeline (main) with DEPLOY_ENV=staging|production, VERSION=vX.Y.Z and,
-# for an older version, ROLLBACK=1 (pipeline variables win over the job's).
-deploy:manual:
-  extends: .deploy
-  environment: $DEPLOY_ENV
-  resource_group: $DEPLOY_ENV
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web" && $DEPLOY_ENV && $VERSION

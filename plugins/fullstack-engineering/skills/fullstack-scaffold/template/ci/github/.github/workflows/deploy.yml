@@ -1,5 +1,8 @@
 # One deploy job, used by release.yml (staging, then production) and run by hand
-# for a manual deploy or a rollback (an older version needs `rollback`).
+# for a manual deploy or a rollback (an older version needs `rollback`: GitHub
+# has no setting that blocks outdated deploy jobs, so the deploy script's guard
+# does, and a manual run can pass the input). It checks out the release tag, so
+# compose.deploy.yml matches the images whatever ref the run starts from.
 # Each GitHub environment holds its own secrets (SOPS_AGE_KEY, DEPLOY_SSH_KEY,
 # DEPLOY_KNOWN_HOSTS) and protection rules (production: required reviewers).
 # Thin wrapper: the logic is `task deploy` (scripts/deploy.sh).
@@ -49,6 +52,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.version }}
       # Compose equals the GitLab job image's; all three from scripts/ci/tools.txt
       - run: scripts/ci/install-tools.sh task docker-compose sops
       - run: task deploy ENV="$DEPLOY_ENV" VERSION="$VERSION" ROLLBACK="$ROLLBACK"

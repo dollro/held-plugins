@@ -35,7 +35,7 @@ Access points (admin, Flower, mail catcher): `backend/CLAUDE.md`.
 
 ### Release & deploy
 
-Before tagging: `task release:smoke` (production images and settings behind a throwaway proxy). An annotated tag `vX.Y.Z` on `main` runs the release pipeline: validate the tag → build and push → smoke test of the pushed images → deploy to staging → manual approval → production. Each deploy is `task deploy ENV=<env> VERSION=vX.Y.Z` (preflight, backup, pull, migrate, up, verify). Rollback: the deploy workflow/pipeline with the previous version and `ROLLBACK=1`. Details: `docs/operations.md`.
+Before tagging: `task release:smoke` (production images and settings behind a throwaway proxy). An annotated tag `vX.Y.Z` on `main` runs the release pipeline: validate the tag → build and push → smoke test of the pushed images → deploy to staging → manual approval → production. Each deploy is `task deploy ENV=<env> VERSION=vX.Y.Z` (preflight, backup, pull, migrate, up, verify). Rollback: re-run the previous tag's deploy job (GitLab) or the deploy workflow with `rollback` (GitHub); from a laptop, at the previous tag with `ROLLBACK=1`. Details: `docs/operations.md`.
 
 ## Testing
 
@@ -61,7 +61,7 @@ Before tagging: `task release:smoke` (production images and settings behind a th
 <!-- >>> internal -->- Login: company SSO (OpenID Connect, e.g. Entra ID) where configured; local login only for development and tests.
 <!-- <<< internal --><!-- >>> external -->- External users: email verification by code, MFA (required in production), invite-only unless `SIGNUP_OPEN`.
 <!-- <<< external --><!-- >>> mixed -->- Staff and SSO-linked accounts log in via the company identity provider only (once configured); external users via verified accounts with MFA. Staff rights are never granted at signup.
-<!-- <<< mixed -->- Deploys name an explicit release version (`VERSION=vX.Y.Z`), never `latest`; an older version than the running one needs `ROLLBACK=1`.
+<!-- <<< mixed -->- Deploys name an explicit release version (`VERSION=vX.Y.Z`), never `latest`; deploy from a checkout at that tag; an older version than the running one needs `ROLLBACK=1` on a laptop.
 
 ## Git
 

@@ -82,6 +82,8 @@ Containers that write into the bind-mounted repo must not leave root-owned files
 
 `.pre-commit-config.yaml` with hygiene hooks, Ruff (`ruff-check --fix`, `ruff-format`) and local hooks that block plaintext env files and check that `.example` env files are current. Hook revisions are updated with `pre-commit autoupdate` (Dependabot does not cover them). The config also works with compatible runners such as prek.
 
+**Checkers that import app settings run in the app container,** not in pre-commit's isolated environment: mypy with the Django plugin needs the app's dependencies and settings, so it is a Task target (`check:types`) that runs where the app runs. When introducing or upgrading a checker, commit a baseline of the existing errors so only new ones fail, and file the burn-down as its own issue.
+
 ## Pitfalls
 
 - A `DJANGO_SETTINGS_MODULE` in the container env overrides pytest's ini setting; force test settings with `--ds`.

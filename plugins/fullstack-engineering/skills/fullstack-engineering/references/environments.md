@@ -13,7 +13,7 @@ How local, CI, staging and production differ, and how a value travels from an en
 
 Settings modules describe the *kind of runtime* (development, test, hardened production), not the environment name. Staging uses the production module so it exercises the production code path; a `staging.py` that differs from production defeats its purpose.
 
-Small apps may skip staging. Then the release pipeline's smoke test is the last gate before production, and the rollback path (redeploy the previous release with `ROLLBACK=1`) is tested once.
+Small apps may skip staging. Then the release pipeline's smoke test is the last gate before production, and the rollback path (re-run the previous tag's deploy) is tested once.
 
 ## Build once, promote the same artifact
 

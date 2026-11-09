@@ -13,9 +13,16 @@
 # Usage: DEPLOY_ENV=staging|production [APP_VERSION=vX.Y.Z] scripts/deploy.sh [--local] <verb> [args]
 #   DEPLOY_ENV    required (no default); Task passes it from ENV=... .
 #   APP_VERSION   the release to deploy (Task: VERSION=...; CI: the release tag).
-#                 Required for preflight, pull, migrate and up; the other verbs
-#                 default to the version that is running.
-#   ROLLBACK=1    allow a version older than the one running (deliberate rollback)
+#                 Required for preflight, pull, migrate and up (never a default);
+#                 the other verbs default to the version that is running. For
+#                 these four the checkout must be at that tag: compose.deploy.yml
+#                 comes from the checkout and has to match the images.
+#   ROLLBACK=1    allow a version older than the one running (deliberate rollback,
+#                 logged). Laptop deploys pass it by hand. CI deploy jobs of a
+#                 tag pipeline set it where the platform itself blocks outdated
+#                 deploy jobs (GitLab), so re-running an older tag's deploy job
+#                 is the rollback and needs no extra variable.
+#   BACKUP_RETENTION_DAYS   dumps older than this are deleted (default 14)
 #   REGISTRY_USER, REGISTRY_PASSWORD   pull credentials (never enter the containers)
 #   RELEASE_REGISTRY   where the release pipeline pushed; preflight fails if it
 #                 differs from REGISTRY in deploy.env
@@ -38,8 +45,10 @@
 #
 # A release is: preflight -> backup -> pull -> migrate -> up -> verify
 # (`task deploy ENV=... VERSION=...`), first on staging, then the same version on
-# production. Rollback: the same with the previous version and ROLLBACK=1;
-# migrations stay backward compatible for one release, so no restore is needed.
+# production. Rollback: re-run the older tag's deploy job in CI, or from a laptop
+# check out the previous tag and deploy it with ROLLBACK=1; migrations stay
+# backward compatible for one release, so no restore is needed. The verify step
+# after the deploy is the gate, not the version guard.
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd -P)"
@@ -142,14 +151,32 @@ running_version() {
 }
 
 # Fails when APP_VERSION is older than the running version, unless ROLLBACK=1.
-# Stops an old pipeline's deploy job from overwriting a newer release.
+# Stops a stale deploy from overwriting a newer release by accident. Never
+# refuses because the running version cannot be read: that happens exactly when
+# production is broken and a rollback is needed; verify gates the result.
 guard_version() {
   local running; running="$(running_version || true)"
-  [[ -z "$running" || "$running" == "$APP_VERSION" ]] && return
-  local newest; newest="$(printf '%s\n%s\n' "${running#v}" "${APP_VERSION#v}" | sort -V | tail -n1)"
-  if [[ "$newest" != "${APP_VERSION#v}" && "${ROLLBACK:-0}" != 1 ]]; then
-    die "$APP_VERSION is older than the running $running; set ROLLBACK=1 for a deliberate rollback"
+  if [[ -z "$running" ]]; then
+    info "warning: running version unknown in $DEPLOY_ENV (first deploy or stack down); not guarding"
+    return
   fi
+  [[ "$running" == "$APP_VERSION" ]] && return
+  local newest; newest="$(printf '%s\n%s\n' "${running#v}" "${APP_VERSION#v}" | sort -V | tail -n1)"
+  [[ "$newest" == "${APP_VERSION#v}" ]] && return
+  [[ "${ROLLBACK:-0}" == 1 ]] \
+    || die "$APP_VERSION is older than the running $running; set ROLLBACK=1 for a deliberate rollback"
+  info "ROLLBACK: deploying $APP_VERSION over the running $running in $DEPLOY_ENV"
+}
+
+# compose.deploy.yml and the scripts come from this checkout, so it must be the
+# commit the images were built from. Skipped with --local (deploy rehearsal).
+require_checkout() {
+  [[ "$LOCAL" == 1 ]] && return
+  local tagged
+  tagged="$(git -C "$ROOT" rev-parse -q --verify "refs/tags/$APP_VERSION^{commit}")" \
+    || die "tag $APP_VERSION is not in this checkout (git fetch --tags)"
+  [[ "$tagged" == "$(git -C "$ROOT" rev-parse HEAD)" ]] \
+    || die "checkout is not at $APP_VERSION; deploy from that tag (git switch --detach $APP_VERSION)"
 }
 
 registry_login() {
@@ -168,7 +195,7 @@ setup_ssh
 ensure_context
 
 case "$VERB" in
-  preflight|pull|migrate|up) require_version ;;
+  preflight|pull|migrate|up) require_version; require_checkout ;;
   *) APP_VERSION="${APP_VERSION:-$(running_version || true)}"
      APP_VERSION="${APP_VERSION:-none}" ;;
 esac
@@ -213,9 +240,15 @@ case "$VERB" in
     if [[ -z "$(dc ps -q postgres 2>/dev/null)" ]]; then
       info "no running database (first deploy): nothing to back up"
     else
-      dc exec -T postgres sh -c \
-        'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > /backups/$(date +%Y%m%d-%H%M%S).dump'
-      info "backup written to the postgres_backups volume"
+      # Temp file, renamed only on success: a failed dump never looks like a
+      # good backup. Dumps hold personal data (deleted users too): rotate them.
+      dc exec -T -e RETENTION="${BACKUP_RETENTION_DAYS:-14}" postgres sh -c '
+        set -e; f=/backups/$(date +%Y%m%d-%H%M%S).dump
+        pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > "$f.tmp"
+        mv "$f.tmp" "$f"
+        find /backups -name "*.dump" -mtime +"$RETENTION" -delete
+        find /backups -name "*.dump.tmp" -mmin +60 -delete'
+      info "backup written to the postgres_backups volume (off-host copies: scheduled backup)"
     fi
     ;;
   pull)
