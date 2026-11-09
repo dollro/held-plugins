@@ -15,6 +15,7 @@
 
 ## Rules
 
+- **The test cache runs on Redis like production,** so rate limits and cooldowns are tested on the real backend, on **its own database index**: clearing the cache between tests is a `FLUSHDB` and must never hit the Celery broker.
 - **Real services, not mocks, for the database and Redis.** Mock only external providers (model APIs, the identity provider, third-party HTTP) and the other service's internal API in unit tests.
 - **Test security behaviour explicitly:** CSRF refused without token, session invalid after logout, no login endpoint besides allauth, the login rules of the app's audience (`identity.md`, last section), cross-site refusal and fail-closed in the realtime service, SSO handshake not on GET, SSO routes absent when not configured. For external users: another user's object returns 404.
 - **Login in tests goes through the real login page** (POST to allauth's login view), not `force_login`, wherever the login rules themselves are under test. Clear the cache between tests (rate limits).

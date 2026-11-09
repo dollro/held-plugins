@@ -243,11 +243,11 @@ case "$VERB" in
       # Temp file, renamed only on success: a failed dump never looks like a
       # good backup. Dumps hold personal data (deleted users too): rotate them.
       dc exec -T -e RETENTION="${BACKUP_RETENTION_DAYS:-14}" postgres sh -c '
-        set -e; f=/backups/$(date +%Y%m%d-%H%M%S).dump
-        pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > "$f.tmp"
-        mv "$f.tmp" "$f"
-        find /backups -name "*.dump" -mtime +"$RETENTION" -delete
-        find /backups -name "*.dump.tmp" -mmin +60 -delete'
+        set -e; name=$(date +%Y%m%d-%H%M%S).dump; tmp=/backups/.$name.tmp
+        trap "rm -f \"$tmp\"" EXIT
+        pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > "$tmp"
+        mv "$tmp" "/backups/$name"
+        find /backups -name "*.dump" -mtime +"$RETENTION" -delete'
       info "backup written to the postgres_backups volume (off-host copies: scheduled backup)"
     fi
     ;;

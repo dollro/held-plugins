@@ -34,7 +34,7 @@ The rules in this skill name **requirements**; a CI platform is only a way to me
 | Test jobs cancelled by newer commits; deploys never | `interruptible: true` on test jobs only | `concurrency` with `cancel-in-progress: true` on CI workflows only |
 | Image-building jobs end instead of hanging | `timeout:` | `timeout-minutes:` |
 | Rollback | Re-run the deploy job of the older tag's pipeline (a re-run cannot add variables, so none is needed) | Run the deploy workflow with environment, version, `rollback`; it checks out the version's tag |
-| Test jobs in the app image, databases as services | `image:` the app image, `services:` Postgres/Redis/mail catcher; `FF_NETWORK_PER_BUILD: "true"` so services reach each other, `CI_DEBUG_SERVICES: "true"` for their logs. Services start before the checkout: one that reads code from the mounted `/builds` waits for its files. Images from the project's registry need no runner config (job token) | `container:` the app image, `services:` Postgres/Redis |
+| Test jobs in the app image, databases as services | `image:` the app image, `services:` Postgres/Redis/mail catcher; `FF_NETWORK_PER_BUILD: "true"` so services reach each other, `CI_DEBUG_SERVICES: "true"` for their logs. Services start before the checkout: one that reads code from the mounted `/builds` waits for its files. Images from the project's registry need no runner config (job token) | `container:` the app image, `services:` Postgres/Redis. Services do not get the workspace: an app that runs as a service needs its code baked into the image |
 | Deploy history | Operate > Environments | Deployments page of the environment |
 | Smoke test and deploy use the same Docker/Compose versions | One exact job image for all Docker jobs (`docker:29.9.3-cli` + the same `-dind`), never a major-only tag | Compose installed from `scripts/ci/tools.txt`, the version the GitLab job image ships (the check forbids setup actions that download their own) |
 | Third-party CI code pinned | Job images by digest, CI components by version | Actions by commit SHA |
@@ -121,6 +121,8 @@ The rules in this skill name **requirements**; a CI platform is only a way to me
 ## Production hardening
 
 - Containers run as a fixed high UID, `cap_drop: [ALL]`, `security_opt: no-new-privileges`, `read_only: true` with `tmpfs: /tmp`; anything that writes files gets an explicit volume (e.g. uploads).
+- **Before `read_only: true`, find every write path** on a run that exercises the code that writes, including libraries that write into the home directory (agent frameworks, document compilers). The smoke test usually does not reach them, so they fail first in production.
+- **The official Postgres and Redis images start as root** to chown their data directory, then drop to their own user. With `cap_drop: [ALL]` add back `CHOWN`, `SETUID`, `SETGID`, plus `DAC_OVERRIDE` and `FOWNER` for Postgres, and prove it with the smoke test.
 - Base images: Debian slim with the suite pinned on purpose (unsuffixed tags switch suites by themselves), and **pinned by digest** with the tag kept for readability (`FROM python:3.13-slim-trixie@sha256:...`): a floating tag can change twice a day and turn every build cold. Renovate (`docker:pinDigests`) or Dependabot opens the bump pull requests; where the same image is pinned in several files, a test keeps the copies in sync. Hardened images (distroless/DHI/Wolfi) are an option once the team has adapted healthchecks and debugging.
 - PostgreSQL and Redis are not published to the host network; only the proxy faces the internet.
 
