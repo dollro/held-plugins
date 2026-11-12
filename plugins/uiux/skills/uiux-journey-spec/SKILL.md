@@ -42,7 +42,7 @@ All files live in `specs/ux/` unless the PM names another folder.
 
 ## Interview contract
 
-1. Read the repo silently first: routes, models, roles, existing frontend and specs, design system location, `specs/ux/STATUS.md`. Never ask what the repo answers.
+1. Read the repo silently first: routes, models, roles, existing frontend and specs, design system location, `specs/ux/STATUS.md`. If a PRD and spec from `braindump2prd` exist (tracker project or `plans/`), read them too: take outcome, segments, results and non-goals from there instead of asking again. Never ask what the repo or the PRD answers.
 2. One decision per question. Use AskUserQuestion when available: 2 to 4 options, recommended option first with "(Recommended)". Batch at most 3 independent multiple-choice questions. Ask open topics (situations, workarounds, observations) one at a time in plain text.
 3. Give one line of why per question: what you observed and what the answer changes.
 4. After 2 to 3 answers, write a draft to the file and show a short excerpt. Files are the truth, not the chat.

@@ -93,6 +93,7 @@ merged without your confirmation.
 1. **prfaq-vision-builder** — why, for whom?
 2. **product-roadmap-3-layers** — what, in which order?
 3. **braindump2prd** — one feature → PRD + spec -> tracker project
+   - UI-heavy feature: **uiux-journey-spec** — PRD + spec → job stories, breadboards, Gherkin acceptance -> `specs/ux/`
 
 **Engineering**
 
@@ -109,6 +110,7 @@ merged without your confirmation.
 |1|Vision (new products, optional)|`prfaq-vision-builder`|One PR/FAQ document: future press release plus lean FAQ|
 |2|Order the work|`product-roadmap-3-layers`|Now/Next/Later roadmap: outcomes → features → tech enablers|
 |3|Specify one feature|`braindump2prd`|`braindump_final.md` (interview record) → `prd.md` + `spec.md`, handed to the tracker project|
+|3b|UI journey (features with several screens or states, optional)|`uiux` (`uiux-journey-spec`)|`specs/ux/`: job stories, journey, breadboards per flow, `.feature` acceptance, `AGENT_BRIEF.md` for coding agents|
 |4|Cut into issues — run in the product repo|`prd2issues`|1–3 issues per result, each one reviewable PR, with files, pattern to follow, check command, `Blocked by` and `Parallel`|
 |5a|Build one issue|`engineering-standards`|`/branch` (or `/sbx <type>/<name>` to build inside a Docker Sandbox) → short plan on the issue → code → checks, cheapest first → `docs/` update → PR|
 |5b|Build several issues at once|`agent-team`|Independent issues: one agent each in its own worktree. "Sync before merge" pairs: shared contract first|

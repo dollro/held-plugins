@@ -22,7 +22,7 @@ idea --> interview --> braindump_final.md --> prd.md + spec.md --> tracker
 2. **braindump_final.md.** The interview record. You review and correct it until it is right. Nothing else is written before you confirm it.
 3. **prd.md and spec.md.** Written from the reviewed record only, then checked.
 4. **Tracker,** only after your explicit confirmation: the PRD becomes the project description; spec and braindump_final become project documents on the same project.
-5. **Next:** once the PRD is Ready, engineering runs prd2issues in the repo to cut milestones and issues. PRD, spec and braindump_final stay in the tracker; coding agents read them there through the tracker connection.
+5. **Next:** once the PRD is Ready, engineering runs prd2issues in the repo to cut milestones and issues. If the feature adds UI with several screens or states, run `uiux-journey-spec` (uiux plugin) on the PRD and spec first: it adds job stories, breadboards and Gherkin acceptance in `specs/ux/` for the coding agents. PRD, spec and braindump_final stay in the tracker; coding agents read them there through the tracker connection.
 
 | File | Content | Reader | Destination |
 |-|-|-|-|
@@ -328,4 +328,4 @@ If tracker tools are connected, offer to write them into the tracker. Write noth
 - `spec.md` and `braindump_final.md` → project documents on the same project.
 - Results → milestones only if the user asks for them now; otherwise prd2issues creates them.
 
-Close with the next step: once the PRD is Ready, engineering runs prd2issues in the repo. PRD and spec stay in the tracker as the source of truth, and coding agents read them there through the tracker connection; only without that connection does a copy go to `plans/` in the repo. What the code finally does is documented in the repo's `docs/`, updated with each pull request.
+Close with the next step: once the PRD is Ready, engineering runs prd2issues in the repo. If the feature adds UI with several screens or states, suggest running `uiux-journey-spec` (uiux plugin) on the PRD and spec before that, so the UI journey, breadboards and acceptance scenarios exist before issues are cut. PRD and spec stay in the tracker as the source of truth, and coding agents read them there through the tracker connection; only without that connection does a copy go to `plans/` in the repo. What the code finally does is documented in the repo's `docs/`, updated with each pull request.
