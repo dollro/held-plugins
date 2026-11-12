@@ -67,14 +67,9 @@ built-in `/security-review`; this marketplace does not duplicate them.
 
 | Plugin | What it does |
 |-|-|
-| `uiux-design-system` | Design system architecture: component hierarchy, three-tier tokens (DTCG), theming, typography, accessibility (WCAG 2.2) |
+| `uiux` | One plugin for the UI/UX design space, with seven skills: `uiux-journey-spec` (PM interview → job stories, journey, breadboards, Gherkin acceptance, agent brief), `uiux-design-system` (component hierarchy, three-tier DTCG tokens, theming, typography, WCAG 2.2), `uiux-design-penpot` and `uiux-design-figma` (designing via MCP), `uiux-image2design` (screenshots → design system and screens), `pencil-pen-generator` (Pencil `.pen` files), `design-parity` (design-vs-implementation screenshot diffs with a fix plan) |
 | `uiux-design-tailwindv4` | Design systems in Tailwind CSS v4: CSS-first theme, semantic tokens, OKLCH colours, component variants, dark mode |
 | `uiux-design-vue3` | Vue 3 skills: Composition API, router, Pinia, composables, testing, debugging |
-| `uiux-image2design` | Turns UI screenshots into a design system and screens in Penpot or Figma |
-| `uiux-design-penpot` | Designing in Penpot via MCP: tokens, components, prototypes |
-| `uiux-design-figma` | Designing in Figma via MCP: variables, auto-layout, component variants |
-| `design-parity` | Closes the gap between a design spec and its implementation: screenshot diffs via Playwright or Chrome DevTools MCP, with a fix plan |
-| `pencil-pen-generator` | Generates and converts Pencil `.pen` design files |
 
 ### Analysis
 
@@ -168,8 +163,10 @@ service and stream to the browser.
 
 ### UI design
 
-From screenshots or a brief: `uiux-image2design` extracts a design system and
-builds it in Penpot or Figma (`uiux-design-penpot`, `uiux-design-figma`),
+All design skills ship in the `uiux` plugin. `uiux-journey-spec` turns a
+feature into job stories, breadboards and Gherkin acceptance before anything is
+drawn. From screenshots or a brief, `uiux-image2design` extracts a design system
+and builds it in Penpot or Figma (`uiux-design-penpot`, `uiux-design-figma`),
 following `uiux-design-system`. In code, tokens and components follow
 `uiux-design-tailwindv4` and `uiux-design-vue3`, which the fullstack frontend
 uses too. `design-parity` checks the built UI against the design.

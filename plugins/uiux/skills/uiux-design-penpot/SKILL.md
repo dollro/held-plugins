@@ -49,6 +49,8 @@ The server runs inside the user's Penpot instance at `https://<penpot-host>/mcp/
 
 ## Quick Reference
 
+Paths starting with `uiux-design-system/` point to the sibling skill in this `uiux` plugin: `../uiux-design-system/` from this skill's directory.
+
 | Task | Reference File |
 |-|-|
 | MCP server installation & troubleshooting | [setup-troubleshooting.md](references/setup-troubleshooting.md) |

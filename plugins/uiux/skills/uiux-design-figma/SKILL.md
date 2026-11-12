@@ -81,6 +81,8 @@ Create professional, user-centered designs in Figma using the `figma-console-mcp
 
 ## Quick Reference
 
+Paths starting with `uiux-design-system/` point to the sibling skill in this `uiux` plugin: `../uiux-design-system/` from this skill's directory.
+
 | Task | Reference File |
 |-|-|
 | Component specs (buttons, forms, nav) | `uiux-design-system/references/component-patterns.md` |

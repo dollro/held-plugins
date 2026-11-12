@@ -9,7 +9,7 @@ Architect production design systems from token foundations through component hie
 
 This file holds the method and the rules that always apply. Details live in `references/`; read the one that matches the job (index at the end). Naming advice or a quick token review usually needs nothing beyond this file and `references/token-architecture.md`.
 
-The `references/` here are the **shared, tool-agnostic source** for `uiux-design-penpot`, `uiux-design-figma` and `uiux-image2design`. Tool plugins read them from here; they are not duplicated.
+The `references/` here are the **shared, tool-agnostic source** for the sibling skills `uiux-design-penpot`, `uiux-design-figma` and `uiux-image2design` in this `uiux` plugin. They read them at `../uiux-design-system/references/`; nothing is duplicated.
 
 ## Mental model
 

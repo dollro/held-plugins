@@ -8,35 +8,36 @@ description: "Analyses UI screenshots, extracts a full design system (colours, t
 Analyze UI screenshots, extract a design system, confirm it with the user, then generate
 everything in Penpot or Figma: tokens, design system boards, reusable components, and
 a sample screen. Detects the available design tool at startup and delegates tool-specific
-work to the corresponding plugin.
+work to the corresponding sibling skill in this `uiux` plugin.
 
-This skill orchestrates shared knowledge and a tool-specific plugin:
+This skill orchestrates shared knowledge and a tool-specific skill, all in the same `uiux` plugin:
 - `uiux-design-system` — design system architecture, token format, naming, hierarchy, W3C DTCG spec, component naming, UX patterns, component patterns, accessibility, platform guidelines, color utilities
-- Tool plugin (detected at Step 0): `uiux-design-penpot` or `uiux-design-figma` — tool-specific MCP API, generation recipes, known issues
+- Tool skill (chosen at Step 0): `uiux-design-penpot` or `uiux-design-figma` — tool-specific MCP API, generation recipes, known issues
 
 ## Step 0: Verify Dependencies
 
 Run ALL checks before starting. Stop if any fail.
 
-**0a. Find `uiux-design-system` skill.**
-Search for its SKILL.md in the project's plugin directories. Confirm it exists along
-with its references: `design-system-template.md`, `dtcg-format.md`, `starter-template.md`,
+**0a. Locate the sibling skills.**
+`uiux-design-system`, `uiux-design-penpot` and `uiux-design-figma` ship in the same
+`uiux` plugin as this skill, next to it: paths written below as
+`uiux-design-system/references/x.md` resolve to `../uiux-design-system/references/x.md`
+from this skill's directory. Confirm these references exist there:
+`design-system-template.md`, `dtcg-format.md`, `starter-template.md`,
 `platform-mapping.md`, `component-patterns.md`, `accessibility.md`, `platform-guidelines.md`,
-`color-utilities.md`.
-If missing, tell the user to install it and stop.
+`color-utilities.md`. If any is missing, the plugin install is broken: tell the user to
+reinstall the `uiux` plugin and stop.
 
-**0b. Find a tool-specific skill.**
-Search for `uiux-design-penpot` or `uiux-design-figma` SKILL.md in the project's plugin
-directories. If `uiux-design-penpot` is found, confirm its references exist:
-`penpot-api-reference.md`, `penpot-color-patterns.md`, `prototyping-interactions.md`,
-`generation-recipes.md`, `mcp-known-issues.md`, `penpot-design-system-guide.md`.
-If `uiux-design-figma` is found, confirm its references exist:
+**0b. Pick the design tool.**
+Both tool skills are always present, so the tool is chosen by which MCP server answers
+(0c). Their references: `uiux-design-penpot` needs `penpot-api-reference.md`,
+`penpot-color-patterns.md`, `prototyping-interactions.md`, `generation-recipes.md`,
+`mcp-known-issues.md`, `penpot-design-system-guide.md`; `uiux-design-figma` needs
 `figma-api-reference.md`, `generation-recipes.md`, `variable-mapping.md`,
 `variable-binding.md`, `figma-design-system-guide.md`.
-If neither is found, tell the user to install one and stop.
 
 **0c. Test design tool MCP connection.**
-Based on which tool skill was found in 0b, test the corresponding MCP connection:
+Test the MCP connection of each design tool:
 
 - **Penpot:** Call `mcp__penpot__execute_code` with
   `return { version: penpot.version, file: penpot.currentFile?.name }`. Don't use
@@ -47,8 +48,8 @@ Based on which tool skill was found in 0b, test the corresponding MCP connection
 - **Figma:** Call `mcp__figma__figma_get_status`. If it fails, refer to
   `uiux-design-figma/references/setup-troubleshooting.md`.
 
-If both tool skills exist, prefer whichever has a working MCP connection. If both
-connect, ask the user which tool to target.
+Use whichever tool connects. If both connect, ask the user which tool to target. If
+neither connects, report the failure and stop.
 
 Set `TOOL = 'penpot' | 'figma'` for the rest of the workflow.
 

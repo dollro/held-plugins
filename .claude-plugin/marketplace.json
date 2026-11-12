@@ -100,22 +100,13 @@
       "keywords": ["equity", "stocks", "research", "valuation", "finance"]
     },
     {
-      "name": "pencil-pen-generator",
-      "source": "./plugins/pencil-pen-generator",
-      "description": "Generate and convert Pencil .pen design files — the JSON-based format used by pencil.dev for describing UI designs. Adds a /pencil-pen-generator skill.",
-      "version": "1.0.1",
+      "name": "uiux",
+      "source": "./plugins/uiux",
+      "description": "UI/UX from user journey to verified screen: journey specs (job stories, breadboards, Gherkin acceptance), tool-agnostic design system architecture (DTCG tokens, components, accessibility), design in Penpot or Figma via MCP, screenshot-to-design-system, Pencil .pen files, and design-vs-implementation parity checks. Adds the uiux-journey-spec, uiux-design-system, uiux-design-penpot, uiux-design-figma, uiux-image2design, pencil-pen-generator and design-parity skills.",
+      "version": "1.0.0",
       "category": "development",
-      "tags": ["pencil", "design", "pen-format", "ui", "design-as-code"],
-      "keywords": ["pencil", "pen", "design", "ui", "component", "design-file"]
-    },
-    {
-      "name": "uiux-design-penpot",
-      "source": "./plugins/uiux-design-penpot",
-      "description": "Professional UI/UX design in Penpot using its built-in MCP server (Penpot 2.15+, verified on 2.18). Covers Plugin API, design tokens with inline binding, generation recipes, prototyping, and known issues. References shared design knowledge from uiux-design-system. Adds a /uiux-design-penpot skill.",
-      "version": "3.0.0",
-      "category": "development",
-      "tags": ["penpot", "design", "ui-ux", "accessibility", "component-patterns", "mcp", "token-binding"],
-      "keywords": ["penpot", "design", "ui", "ux", "interface", "layout", "accessibility", "design-system"]
+      "tags": ["uiux", "user-journey", "breadboarding", "gherkin", "design-system", "tokens", "penpot", "figma", "mcp", "image-to-design", "pencil", "design-parity", "visual-diff", "accessibility"],
+      "keywords": ["user journey", "user flow", "UX spec", "breadboard", "acceptance criteria", "job story", "design system", "design tokens", "DTCG", "component naming", "penpot", "figma", "figma variables", "screenshot to design", "extract design system", "pencil.dev", ".pen", "design parity", "visual regression", "WCAG"]
     },
     {
       "name": "uiux-design-tailwindv4",
@@ -134,42 +125,6 @@
       "category": "development",
       "tags": ["vue3", "composition-api", "vue-router", "pinia", "vitest", "composables", "typescript"],
       "keywords": ["vue", "vue3", "vuejs", "composition-api", "options-api", "pinia", "vue-router", "composables"]
-    },
-    {
-      "name": "uiux-design-system",
-      "source": "./plugins/uiux-design-system",
-      "description": "Comprehensive design system architecture guide: component hierarchy (atoms/molecules/organisms/patterns/screens), 3-tier token system with mapped categories (text/icon/surface/border), W3C DTCG format, multi-brand theming, typography & type scale, 4px number scale, design-to-code pipeline, naming conventions, UX decision patterns, layout decisions, content voice, responsive rules, accessibility standards (WCAG 2.2 + EAA), and visual reference structuring. Adds a /uiux-design-system skill.",
-      "version": "4.1.0",
-      "category": "development",
-      "tags": ["design-system", "tokens", "css", "theming", "ui", "component-architecture", "ux-patterns", "token-binding", "atomic-design", "multi-brand", "typography", "design-to-code"],
-      "keywords": ["design system", "design tokens", "DTCG", "W3C", "CSS variables", "theme", "token naming", "style dictionary", "component naming", "UX patterns", "design architecture", "atomic design", "visual reference", "screenshot naming", "type scale", "multi-brand", "mapped tokens", "dark mode", "EAA"]
-    },
-    {
-      "name": "uiux-image2design",
-      "source": "./plugins/uiux-image2design",
-      "description": "Analyze UI screenshots with vision, extract a design system, confirm with the user, then generate tokens, component boards, and sample screens in Penpot or Figma via MCP. Detects available tool and delegates to the corresponding plugin. Adds a /uiux-image2design skill.",
-      "version": "3.0.3",
-      "category": "development",
-      "tags": ["penpot", "figma", "screenshots", "design-system", "vision", "mcp", "tokens", "components", "token-binding"],
-      "keywords": ["screenshots", "image to design", "reverse-engineer UI", "extract design", "design from images", "penpot", "figma", "design system"]
-    },
-    {
-      "name": "uiux-design-figma",
-      "source": "./plugins/uiux-design-figma",
-      "description": "Professional UI/UX design in Figma using figma-console-mcp. Covers 57+ tools, variable/collection tokens, auto-layout, component variants, variable binding, and design system implementation. Adds a /uiux-design-figma skill.",
-      "version": "1.1.1",
-      "category": "development",
-      "tags": ["figma", "design", "ui-ux", "accessibility", "component-patterns", "mcp", "variables", "token-binding"],
-      "keywords": ["figma", "design", "ui", "ux", "interface", "layout", "accessibility", "design-system", "variables"]
-    },
-    {
-      "name": "design-parity",
-      "source": "./plugins/design-parity",
-      "description": "Close the gap between a Claude Design spec and its implementation. Config-driven (parity.config.yaml) with runtime adapters for Playwright MCP, Chrome DevTools MCP, and a bundled Node runtime. Supports canvas-with-selector targets, non-interactive auth (form/cookie/storage-state), regex/region masks, fixtures, auto-matched viewports for PNG baselines, and operable fix_plan.json output. Adds a /design-parity skill.",
-      "version": "2.0.1",
-      "category": "development",
-      "tags": ["design-parity", "visual-diff", "claude-design", "playwright", "playwright-mcp", "chrome-devtools-mcp", "odiff", "screenshot", "vision", "config-driven"],
-      "keywords": ["design-parity", "visual-regression", "pixel-diff", "claude-design", "design-spec", "match-design", "mockup-parity", "playwright-mcp", "chrome-devtools-mcp", "fix-plan"]
     },
     {
       "name": "investment-memo",
