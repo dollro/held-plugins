@@ -1,6 +1,6 @@
 ---
 name: agentic-engineering
-description: "Architecture standards for production agentic AI systems on a reference stack: LangGraph orchestration, Pydantic AI single agents, CrewAI teams, Pydantic contracts, Langfuse/OpenTelemetry tracing. Covers state, model tiers, validation loops, human-in-the-loop, persistence, security, testing and evals. Use when someone designs, builds, reviews or debugs an agent, multi-agent system, graph, crew, agent tracing or evals, even if no framework is named. Not for PR size or CLAUDE.md (engineering-standards)."
+description: "Architecture standards for production agentic AI systems on a reference stack: LangGraph orchestration, Pydantic AI agents (single and in teams), optional CrewAI crews, Pydantic contracts, Langfuse/OpenTelemetry tracing. Covers state, model tiers, validation loops, human-in-the-loop, persistence, security, testing and evals. Use when someone designs, builds, reviews or debugs an agent, multi-agent system, graph, crew, agent tracing or evals, even if no framework is named. Not for PR size or CLAUDE.md (engineering-standards)."
 ---
 
 # Agentic Engineering
@@ -17,7 +17,7 @@ This file holds the **principles and guardrails**. They change slowly. The `refe
    |-|-|-|
    | LangGraph (+ langchain, langchain-core) | 1.x | Orchestration, state, persistence, human-in-the-loop |
    | Pydantic AI | 2.x | Single-agent execution |
-   | CrewAI | 1.x | Multi-agent teams, scoped memory |
+   | CrewAI (optional) | 1.x | Role-based crews and scoped memory, only when a project opts in (§1) |
    | Pydantic | 2.x | Contracts, validation, serialization |
    | Langfuse SDK | 4.x | Tracing, sessions, prompts, evals |
    | OpenTelemetry | 1.x | Transport for spans |
@@ -32,8 +32,8 @@ This file holds the **principles and guardrails**. They change slowly. The `refe
 |-|-|
 | `references/architecture.md` | Framework roles, node types, layering, project structure |
 | `references/langgraph.md` | State, graph topology, routing, human-in-the-loop, persistence, fault tolerance, streaming |
-| `references/pydantic-ai.md` | Single-agent nodes, capabilities, output validation, tool approval, MCP |
-| `references/crewai.md` | Crews as nodes, agent templates, scoped memory, guardrails |
+| `references/pydantic-ai.md` | Single-agent nodes, capabilities, output validation, tool approval, MCP, multi-agent teams |
+| `references/crewai.md` | Only when the project opts into CrewAI: crews as nodes, agent templates, scoped memory, guardrails |
 | `references/contracts-and-validation.md` | Inter-agent contracts, moderator shield, validator/fixer loop |
 | `references/observability.md` | Langfuse, OTel, session grouping, metrics |
 | `references/security.md` | Untrusted input, tool permissions, serialization, secrets |
@@ -48,7 +48,7 @@ This file holds the **principles and guardrails**. They change slowly. The `refe
 |-|-|-|
 | Control flow, loops, branching, cross-step state, persistence, human approval | **LangGraph** | Duplicate it with Pydantic AI graphs, CrewAI Flows or a second durable engine inside the same run |
 | One agent with tools and structured output | **Pydantic AI** (adapter node) | Let it own state across graph steps |
-| Several role-based agents collaborating | **CrewAI** (adapter node, fresh crew per call) | Reuse crews or agents across calls |
+| Several role-based agents collaborating | **LangGraph subgraph of Pydantic AI agents** (fan-out, moderator; `references/pydantic-ai.md`) | Add a second agent framework without one of the reasons below |
 | Data shape at every boundary | **Pydantic** models | Pass free text between pipeline stages |
 | Traces, sessions, cost, evals | **Langfuse** over OTel | Build custom logging for LLM calls |
 
@@ -58,9 +58,17 @@ Choose the node type by the task:
 |-|-|
 | Deterministic routing, validation, preprocessing | Plain LangGraph function |
 | One agent, structured output | Pydantic AI adapter node |
-| Several agents debating or dividing work | CrewAI adapter node |
+| Several agents debating or dividing work | Subgraph of Pydantic AI nodes (CrewAI adapter node only if the project opted in) |
 | Human decision | Node with one `interrupt()` |
 | Iterative refinement with its own state | Subgraph |
+
+**CrewAI is optional.** It brings a second model factory, a second test approach and version caps on shared packages (`references/operations.md`). Add it only when at least one of these holds:
+
+- The team needs CrewAI's scoped memory (hierarchical recall, scoring, consolidation) and does not want to build its own.
+- Working crews already exist and are being brought into a LangGraph pipeline.
+- A small project with no checkpointing or human approval steps uses CrewAI Flows instead of LangGraph (`references/operations.md`).
+
+Then it runs as an adapter node with a fresh crew per call, never reusing crews or agents across calls.
 
 Every framework agent sits behind an **adapter node**: read and inflate from state, run, validate, deflate back into state. The graph never sees framework objects. Organise code by **pipeline phase**, not by framework (`references/architecture.md`).
 
@@ -90,7 +98,7 @@ Every framework agent sits behind an **adapter node**: read and inflate from sta
 - **The prompt states the constraints (soft); code enforces them (hard).** Never rely on prompts alone. LLMs break stated constraints often enough to matter.
 - **Structured output guarantees syntax, not meaning.** Validate every LLM result client-side against its Pydantic model.
 - **Validation has three layers:**
-  1. Self-correction inside the agent: a Pydantic AI output validator, or a CrewAI guardrail.
+  1. Self-correction inside the agent: a Pydantic AI output validator (or a CrewAI guardrail, if crews are used).
   2. A separate **validator node** in the graph.
   3. A **fixer node** that turns precise errors ("the first dependency of the third task: …") into a correction prompt.
 - **Every loop has a budget:** `max_retries` in state, a retry limit inside the agent, and a usage or token limit per run. On exhaustion the graph routes to a defined end, never to an infinite loop.
@@ -130,7 +138,7 @@ Details in `references/security.md`.
 
 ## 8. Observability: one trace per run
 
-- **Initialize tracing once at startup** (idempotent). Pydantic AI and CrewAI emit OTel spans; LangGraph is traced through a callback handler created **per invocation**, never shared across threads.
+- **Initialize tracing once at startup** (idempotent). Pydantic AI (and CrewAI, if used) emits OTel spans; LangGraph is traced through a callback handler created **per invocation**, never shared across threads.
 - **One business ID ties a run together:** use it as the Langfuse session ID, the LangGraph `thread_id` and the agent conversation ID. Set trace attributes in a propagation context around the whole run, and create callback handlers inside that context.
 - **Short-lived processes flush** before they exit or acknowledge a task.
 - **Check what is exported.** Tracing SDKs filter spans by default. Non-LLM spans such as HTTP, database or worker spans can disappear and leave orphaned children.
@@ -144,12 +152,12 @@ Details in `references/observability.md`.
 - **Use `uv` with a committed lockfile.** Install from the lockfile only (`uv sync --frozen`). Never rely on install order.
 - **Put floor pins on the packages that matter,** so a resolver that would silently fall back to an old version fails loudly instead.
 - **Add a CI check** that compares resolved versions with the expected floors.
-- **Pick provider extras that avoid conflicts.** CrewAI and Pydantic AI can pull different major versions of shared SDKs. If they cannot share one environment at current versions, run the crews in their own process or service and call it from a LangGraph node.
+- **If the project opts into CrewAI, pick provider extras that avoid conflicts.** CrewAI caps shared packages (Pydantic, OpenAI and MCP SDKs, Python) below what current Pydantic AI uses. If they cannot share one environment at current versions, run the crews in their own process or service and call it from a LangGraph node.
 - **Re-check the conflict picture on every upgrade.** It moves with each release; the current state is in `references/operations.md`.
 
 ## 10. Testing and evals
 
-- **Unit tests never call a real model.** Block real requests globally, and use the framework's test models (Pydantic AI `TestModel`/`FunctionModel`) or mocks for crews. Test structure and routing, not wording.
+- **Unit tests never call a real model.** Block real requests globally, and use the framework's test models (Pydantic AI `TestModel`/`FunctionModel`), or mocks at the adapter boundary for crews. Test structure and routing, not wording.
 - **Test adapters, not frameworks:** state in, state out, JSON-serializable, errors land in `last_error`.
 - **Integration tests run the compiled graph** with an in-memory checkpointer and resume interrupts.
 - **Evals are part of the definition of done for agent behaviour.** Keep an eval dataset per agent or pipeline, run it in CI on prompt or model changes, calibrate LLM judges against human labels, and evaluate trajectories (tool calls, routing), not only final answers.
@@ -178,7 +186,7 @@ project/
     tracing.py       # idempotent Langfuse/OTel init
     research.py      # Pydantic AI agents + adapter nodes
     handlers/        # domain I/O adapters
-    refinement/      # multi-agent subpackage: schemas, prompts, crews, memory, subgraph
+    refinement/      # multi-agent subpackage: schemas, prompts, role agents, subgraph
   evals/             # datasets and evaluators
   tests/ (unit/, integration/, conftest.py)
 ```

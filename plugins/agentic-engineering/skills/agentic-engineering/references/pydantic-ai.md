@@ -33,9 +33,9 @@ def get_model(tier: str = "workhorse") -> str:
 
 - Provider credentials come from the environment (`ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, …), never from code.
 - When a project routes through a gateway (OpenRouter, a corporate proxy), only the strings and the provider change. Agents stay untouched.
-- **Choose the provider extra with the CrewAI conflict in mind:** some extras pull a major SDK version that CrewAI caps (`operations.md`).
+- **If the project uses CrewAI, choose the provider extra with its caps in mind:** some extras pull a major SDK version that CrewAI caps (`operations.md`).
 - **Durable agents** need their models at construction: register them via the factory, not as literals.
-- `get_crewai_llm(tier)` in `crewai.md` reads the same `TIERS`, so a model change is one configuration change for both frameworks.
+- With CrewAI, `get_crewai_llm(tier)` in `crewai.md` reads the same `TIERS`, so a model change is one configuration change for both frameworks.
 
 ## 3. The adapter node
 
@@ -199,3 +199,93 @@ Check the deferred-tools docs for the current types and parameters. The rule sta
 - `models.ALLOW_MODEL_REQUESTS = False` blocks real calls.
 
 Details in `testing-and-evals.md`.
+
+## 8. Multi-agent teams: a subgraph of role agents
+
+The default for several agents debating or dividing work. Each role is a Pydantic AI agent; LangGraph owns fan-out, ordering and state. No second framework, model factory or test approach.
+
+```python
+# pipeline/refinement/roles.py
+import operator
+from dataclasses import dataclass
+from typing import Annotated, TypedDict
+from pydantic import BaseModel, Field
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Send
+from pydantic_ai import Agent
+from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
+from pydantic_ai.usage import UsageLimits
+
+class ExpertView(BaseModel):                  # contract between experts and moderator
+    role: str
+    points: list[str] = Field(min_length=1)
+    concerns: list[str] = Field(default_factory=list)
+
+class Ruling(BaseModel):
+    decision: str
+    rationale: str
+    open_issues: list[str] = Field(default_factory=list)
+
+@dataclass(frozen=True)
+class Role:                                   # what CrewAI calls role/goal/backstory
+    name: str
+    instructions: str
+    tier: str = "bolt"
+
+ROLES = {r.name: r for r in (
+    Role("legal", "You review drafts for legal and compliance risk. Be specific."),
+    Role("tech", "You review drafts for technical feasibility and missing steps."),
+)}
+EXPERTS = {r.name: Agent(name=f"expert-{r.name}", output_type=ExpertView, instructions=r.instructions)
+           for r in ROLES.values()}
+moderator = Agent(name="moderator", output_type=Ruling,
+                  instructions="Weigh the expert views, resolve conflicts, decide. Name what stays open.")
+
+class PanelState(TypedDict, total=False):
+    draft: str
+    expert_views: Annotated[list[dict], operator.add]     # parallel writers need reducers
+    expert_errors: Annotated[list[str], operator.add]
+    ruling: dict
+
+def fan_out(state: PanelState) -> list[Send]:
+    return [Send("expert", {"role": name, "draft": state["draft"]}) for name in ROLES]
+
+async def expert_node(payload: dict) -> dict:
+    role = ROLES[payload["role"]]
+    try:
+        result = await EXPERTS[role.name].run(payload["draft"], model=get_model(role.tier),
+                                              usage_limits=UsageLimits(request_limit=4))
+    except (UnexpectedModelBehavior, UsageLimitExceeded) as e:
+        return {"expert_errors": [f"{role.name}: {type(e).__name__}"]}
+    return {"expert_views": [result.output.model_dump(mode="json")]}
+
+async def moderator_node(state: PanelState) -> dict:
+    views = inflate_list(state.get("expert_views", []), ExpertView)   # moderator shield: only views
+    if not views:
+        return {"last_error": "No expert views", "current_step": "panel"}
+    digest = "\n\n".join(v.model_dump_json() for v in views)
+    result = await moderator.run(f"Draft:\n{state['draft']}\n\nViews:\n{digest}",
+                                 model=get_model("brain"), usage_limits=UsageLimits(request_limit=4))
+    return {"ruling": result.output.model_dump(mode="json")}
+
+builder = StateGraph(PanelState)
+builder.add_node("expert", expert_node)
+builder.add_node("moderator", moderator_node)
+builder.add_conditional_edges(START, fan_out, ["expert"])
+builder.add_edge("expert", "moderator")
+builder.add_edge("moderator", END)
+panel = builder.compile()                     # add as a subgraph node in the main graph
+```
+
+How CrewAI features map onto this:
+
+| CrewAI | Here |
+|-|-|
+| Agent role, goal, backstory | `Role` spec + agent `instructions` |
+| Sequential tasks, task context | Edges; downstream nodes read only the contract fields they need |
+| Parallel experts | `Send` fan-out with reducers (checkpointed and traced per branch) |
+| Hierarchical process, delegation | A moderator agent with a tool that runs a role agent (pass `usage=ctx.usage` so the budget is shared) |
+| Task guardrail, `output_pydantic` | `output_type` + `@agent.output_validator` raising `ModelRetry` |
+| Scoped memory | A nudge in state for what must always be present, plus a retrieval tool whose deps carry the role's scope |
+
+When the memory requirement is heavy (consolidation, composite scoring across many rounds), that is the point to consider CrewAI instead (`crewai.md`).

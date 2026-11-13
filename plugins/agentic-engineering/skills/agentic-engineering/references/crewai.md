@@ -1,5 +1,7 @@
 # CrewAI: crews as nodes, templates, scoped memory
 
+**Optional.** The default for teams is a LangGraph subgraph of Pydantic AI agents (`pydantic-ai.md` §8). Use CrewAI only when the project opted in for one of the reasons in `SKILL.md` §1 (scoped memory, existing crews, Flows-only deployment), and accept the dependency caps in `operations.md`.
+
 Patterns for the CrewAI 1.x line. CrewAI releases roughly weekly and its docs sometimes lag the code. Check the changelog and, where the docs and the behaviour disagree, the installed source (`sources.md`).
 
 ## 1. LLM factory for CrewAI

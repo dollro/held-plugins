@@ -12,8 +12,8 @@
     {
       "name": "agentic-engineering",
       "source": "./plugins/agentic-engineering",
-      "description": "Architecture standards and guardrails for production agentic AI on LangGraph, Pydantic AI, CrewAI and Langfuse: framework roles, state, model tiers, validation, human-in-the-loop, persistence, security, dependencies, testing and evals. Includes /agentic-engineering skill and agentic-engineer agent.",
-      "version": "2.0.1",
+      "description": "Architecture standards and guardrails for production agentic AI on LangGraph, Pydantic AI and Langfuse, with optional CrewAI: framework roles, state, model tiers, validation, human-in-the-loop, persistence, security, dependencies, testing and evals. Includes /agentic-engineering skill and agentic-engineer agent.",
+      "version": "2.1.0",
       "category": "ai-agent-dev-tools",
       "tags": ["agentic-ai", "langgraph", "pydantic-ai", "crewai", "langfuse", "standards"],
       "keywords": ["agents", "agentic engineering", "langgraph", "pydantic-ai", "crewai", "langfuse", "opentelemetry", "multi-agent", "human-in-the-loop", "evals", "mcp", "a2a"]

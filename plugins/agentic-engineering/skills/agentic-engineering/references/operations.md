@@ -16,7 +16,7 @@
 
 4. **Raise floors to the latest security fix,** not just to the version that happened to work.
 5. **Upgrade deliberately:** one framework at a time, reading its changelog and migration guide, with the eval suite run before merging.
-6. **Isolate when versions cannot coexist.** If CrewAI and Pydantic AI need different major versions of a shared SDK, choose provider extras that avoid the clash. If that is not possible, run the crews in their own process or service (HTTP or A2A) called from a LangGraph node. Never accept a silent downgrade of one framework to make room for the other.
+6. **Isolate when versions cannot coexist.** This mostly concerns the optional CrewAI: without it the conflict table below shrinks to the Logfire row. If CrewAI and Pydantic AI need different major versions of a shared SDK, choose provider extras that avoid the clash. If that is not possible, run the crews in their own process or service (HTTP or A2A) called from a LangGraph node. Never accept a silent downgrade of one framework to make room for the other.
 
 ### Packages
 
@@ -24,13 +24,15 @@
 |-|-|-|
 | LangGraph orchestration | `langgraph` with an explicit floor, plus `langchain` if you use `create_agent`, middleware or the Langfuse callback | Relying on transitive versions only |
 | Langfuse + LangGraph | `langfuse` + full `langchain` (the callback imports it) | `langchain-core` alone |
-| Langfuse + CrewAI | `openinference-instrumentation-crewai` | — |
+| Langfuse + CrewAI (optional) | `openinference-instrumentation-crewai` | — |
 | Pydantic AI | `pydantic-ai-slim[<provider>]` with only the providers you use (extras exist on both packages in 2.x) | The full package: it pulls default extras including logfire, which conflicts with current Langfuse (in 1.x it pulled every provider SDK, ~500 MB) |
-| CrewAI | `crewai` (+ the provider extra, for example `anthropic`) | `crewai-tools` unless you need specific tools; LangChain tool wrappers unless needed |
+| CrewAI (optional) | `crewai` (+ the provider extra, for example `anthropic`) | `crewai-tools` unless you need specific tools; LangChain tool wrappers unless needed |
 | Postgres checkpointer | `langgraph-checkpoint-postgres` + `psycopg[pool]` | — |
-| Python | 3.12 | 3.10 (async context issues); versions above CrewAI's supported range |
+| Python | 3.12 | 3.10 (async context issues); with CrewAI, versions above its supported range |
 
 ### Current conflict picture (checked 2026-10-08, re-check on every upgrade)
+
+All rows except Logfire apply only when CrewAI is installed.
 
 | Topic | State | Consequence |
 |-|-|-|

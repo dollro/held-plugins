@@ -6,16 +6,16 @@ A deterministic harness around probabilistic engines. In this picture:
 
 - **LangGraph** is the nervous system: workflow control.
 - **Pydantic** is the immune system: data integrity.
-- **Pydantic AI** is the specialist: one agent, typed.
-- **CrewAI** is team dynamics: several agents collaborating.
+- **Pydantic AI** is the specialist: one agent, typed. Several of them in a subgraph form a team.
+- **CrewAI** (optional) is a packaged alternative for teams with scoped memory (`SKILL.md` §1 lists when to opt in).
 - **Langfuse** is the flight recorder.
 
 ```
 +-----------------------------------------------------------------+
 |                    LangGraph (control plane)                    |
 |  +----------+    +----------+    +----------+    +----------+  |
-|  |  Router  |--->| Pydantic |--->|  CrewAI  |--->| Validator|  |
-|  |   node   |    | AI node  |    |   node   |    |   node   |  |
+|  |  Router  |--->| Pydantic |--->|  Team    |--->| Validator|  |
+|  |   node   |    | AI node  |    | subgraph |    |   node   |  |
 |  +----------+    +----------+    +----------+    +----------+  |
 |        +--------------+---------------+---------------+         |
 |                 Shared typed state (TypedDict + Pydantic)        |
@@ -29,10 +29,10 @@ A deterministic harness around probabilistic engines. In this picture:
 | Control flow | LangGraph | Sequence, loops, branches, cross-step state, persistence, interrupts | Routes to retry, fixer or end by edge logic; node retry/timeout/error-handler policies |
 | Data integrity | Pydantic | State payloads, contracts, validation, serialization | `ValidationError` feeds the validator/fixer loop |
 | Single-agent execution | Pydantic AI | Typed agent with dependency injection, tools, structured output | Output validators and an output retry budget inside the agent |
-| Multi-agent collaboration | CrewAI | Role-based teams, task dependencies, delegation, scoped memory | Task guardrails, structured-output parsing with raw fallback, crew-level error → `last_error` |
+| Multi-agent collaboration | LangGraph subgraph of Pydantic AI agents (CrewAI optional) | Role agents, fan-out, moderator, delegation via agent-as-tool | Output validators per role agent, failed roles collected in state, moderator works with what arrived |
 | Cognition | LLM | Content, reasoning, tool calls | Raw material, always shaped by validation |
 | Persistence | Checkpointer | State snapshot at every step, time travel, resume after interrupt or crash | Hardened serializer, durability mode |
-| Memory | CrewAI memory | Hierarchical scoped recall, composite scoring, consolidation | Graceful degradation: memory LLM failure → defaults |
+| Memory | Nudge in state + a scoped retrieval tool (CrewAI memory if opted in) | Deterministic context plus semantic recall, scoped per role | Graceful degradation: memory failure → defaults |
 | Observability | Langfuse over OTel (LangSmith as an alternative) | Traces, sessions, cost, latency, prompts, evals | Async export, no LLM cost |
 
 ## Adapter pattern
@@ -43,7 +43,8 @@ LangGraph owns the workflow; framework agents are wrapped as node functions.
 LangGraph node types
   Standard nodes      → pure functions: routing, validation, preprocessing
   Pydantic AI nodes   → single-agent tasks with typed output
-  CrewAI nodes        → multi-agent collaborative tasks
+  Team subgraphs      → several Pydantic AI role agents (fan-out, moderator)
+  CrewAI nodes        → only if opted in: crews as one node
   Interrupt nodes     → human decisions (one interrupt per node)
   Subgraphs           → iterative sub-flows with their own state
 ```
@@ -75,12 +76,12 @@ Alternatives inside a node, under the same adapter rules:
 |  Langfuse (observability)                                           |
 |  - session = business ID (e.g. document_id) groups all rounds       |
 |  - LangGraph nodes via callback handler                             |
-|  - Pydantic AI and CrewAI via OTel                                  |
+|  - Pydantic AI (and CrewAI, if used) via OTel                       |
 |  +-------------------------------------------------------------+    |
 |  |  LangGraph (orchestration)                                  |    |
 |  |  - owns iteration loop, global state, routing, persistence  |    |
 |  |  +-------------------------------------------------------+  |    |
-|  |  |  CrewAI / Pydantic AI (execution), fresh per call     |  |    |
+|  |  |  Pydantic AI / optional CrewAI (execution)            |  |    |
 |  |  |  memory scoped per pipeline run                       |  |    |
 |  |  +-------------------------------------------------------+  |    |
 |  +-------------------------------------------------------------+    |
@@ -123,7 +124,7 @@ project/
     graph.py         # StateGraph builder + node adapters, node defaults
     state.py         # TypedDict graph state
     schemas.py       # Pydantic output models and contracts
-    models.py        # model factory (get_model, get_crewai_llm)
+    models.py        # model factory (get_model; get_crewai_llm if CrewAI is used)
     research.py      # Pydantic AI agents + adapters
     tracing.py       # Langfuse/OTel init
     handlers/        # domain I/O adapters (extract/apply)
@@ -132,8 +133,8 @@ project/
     refinement/      # multi-agent refinement subpackage
       schemas.py     # inter-agent contracts
       prompts.py     # prompt builders
-      crews.py       # crew builders + agent templates
-      memory.py      # scoped memory factory
+      roles.py       # role specs + Pydantic AI role agents
+      memory.py      # scoped retrieval (or CrewAI memory factory if opted in)
       loop.py        # refinement subgraph
     prompts/
   evals/             # datasets, evaluators, judge prompts
@@ -152,15 +153,15 @@ Keep files and functions within the length limits of `engineering-standards`. Sp
 STATE        TypedDict(total=False) envelope + Pydantic payloads as model_dump(mode="json")
              reducers on parallel keys; domain fields only in task pipelines
 INFLATE      Model.model_validate(data) at node entry; errors → last_error (+ ErrorSnapshot)
-MODELS       TIERS (brain / workhorse / bolt) → get_model() for Pydantic AI, get_crewai_llm() for CrewAI
-NODES        plain function | Pydantic AI adapter | CrewAI adapter (fresh crew, akickoff)
-             | interrupt node (one interrupt) | subgraph
+MODELS       TIERS (brain / workhorse / bolt) → get_model() (+ get_crewai_llm() if CrewAI is used)
+NODES        plain function | Pydantic AI adapter | team subgraph (Send fan-out → moderator)
+             | interrupt node (one interrupt) | subgraph | CrewAI adapter (optional, fresh crew)
 VALIDATION   in-agent validator/guardrail → validator node → fixer → source; budgets everywhere
 HITL         one interrupt() per node, typed answer, loop via edge; tool approval = deferred → interrupt
 PERSISTENCE  InMemorySaver (tests) | AsyncPostgresSaver (prod) | None (stateless); thread_id always
              strict msgpack, encryption at rest, durability mode, node retry/timeout/error handler
-TRACING      init once: Agent.instrument_all() + CrewAIInstrumentor; CallbackHandler per invocation
+TRACING      init once: Agent.instrument_all() (+ CrewAIInstrumentor if used); CallbackHandler per invocation
              inside propagate_attributes(session_id=business id); flush in short-lived processes
-DEPENDENCIES uv.lock + floors + CI drift check; isolate crews if SDK majors clash
+DEPENDENCIES uv.lock + floors + CI drift check; with CrewAI: isolate crews if SDK majors clash
 TESTING      ALLOW_MODEL_REQUESTS=False; TestModel/FunctionModel; InMemorySaver; evals in CI
 ```
