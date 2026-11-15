@@ -34,6 +34,7 @@ Use this file as the review checklist for agentic code. Each row names the mista
 | Reusing `Crew` or `Agent` across rounds | They mutate during kickoff | Frozen templates, fresh instances per call |
 | Crew in a module-level singleton | Shared mutable state across requests | Build inside the node |
 | Blocking `kickoff()` inside an async node | Blocks the event loop | Native async kickoff or `asyncio.to_thread` |
+| Several `asyncio.run()` calls in one process (per round, per retry) with the framework's shared, pooled HTTP client (e.g. Pydantic AI's default provider client) | Pooled connections stay bound to closed loops; the OpenAI SDK then retries silently, so requests are sent twice: billed, slow, and missing from token counts and traces | One event loop per Celery task (`asyncio.run` once around the whole flow), or a client per loop that is closed with it; a test that counts requests over two rounds |
 | Two async CrewAI tasks on the same agent | Known crash | One agent per async task, or LangGraph fan-out |
 | `max_iter` left at the default | Expensive reasoning loops | 5–10 |
 
