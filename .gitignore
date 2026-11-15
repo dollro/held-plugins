@@ -1,2 +1,6 @@
 # Local-only: superpowers skills, docs, planning
 /docs/
+
+# Python bytecode
+__pycache__/
+*.pyc
