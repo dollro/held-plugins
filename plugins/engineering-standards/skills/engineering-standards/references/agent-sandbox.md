@@ -236,12 +236,25 @@ The `gitlab-ssh` kit only pins a host key, so it serves any SSH git host on port
 - wire GitLab git over HTTPS with `sbx secret set-custom`, `url.<base>.insteadOf`, `http.extraHeader` or a credential helper: the placeholder is never substituted, or the real token sits inside the sandbox;
 - accept a host key that differs from the one you trusted before without asking the server's admin.
 
+### Merge request and pipeline status from the sandbox
+
+Push is not enough. An agent that moves its issue to review "when the pipeline is green" (`autonomous-runs.md`, Several agents) has to read merge requests and pipelines through the git host's API. Without a route it stops with the issue left "In Progress", or it guesses at a fix it cannot run. Set the route up when the sandbox is created:
+
+| Route | Setup | Notes |
+|-|-|-|
+| Git host's own MCP server through the gateway (preferred) | On the host: `sbx mcp add gitlab --url https://git.example.com/api/v4/mcp` (GitLab) or `sbx mcp add github --url https://api.githubcopilot.com/mcp/`; OAuth consent in the browser. Enable it in the harness selection so `--static-mcp` carries it | No token enters the sandbox. `sbx mcp load <server> --sandbox <name>` adds it to a running sandbox without a restart |
+| `gitlab` / `github` kit (glab, gh) | Docker's contributed kit, token as an `sbx` secret at the proxy | API only, never git (Why HTTPS fails for GitLab); handy for `glab ci status`, `gh pr checks` |
+
+`sandbox.sh check` warns when none of the gateway servers points at the remote's host. Verify inside: the agent lists the open merge request and its pipeline.
+
 ## MCP servers and secrets
 
 - **Committed `.mcp.json` holds placeholders only.** Claude Code expands `${VAR}` and `${VAR:-default}` in `command`, `args`, `env`, `url` and `headers`; an unset variable without a default stays as literal text. Example: `"url": "${ATLAS_MCP_URL:-http://localhost:8090/mcp}"`, `"Authorization": "Bearer ${ATLAS_MCP_BEARER}"`.
 - **Values** come from the environment Claude Code starts in: shell, or the `env` key of `.claude/settings.local.json` (applied once the workspace is trusted). For short-lived tokens use `headersHelper`; a repo-supplied helper gets no `*TOKEN*`/`*SECRET*`/`*KEY*` variables and must read a file or credential store.
 - **Every repo whose `.mcp.json` points at a host service sets that URL in its own kit environment** (`ATLAS_MCP_URL: "http://host.docker.internal:8090/mcp"`). Without it the placeholder default `localhost` is the sandbox itself (`ECONNREFUSED`). A second repo using the same server needs the same entry.
 - **In `sbx`, the intended route is the MCP gateway:** `sbx mcp add` on the host, OAuth and secrets stay on the host, `--static-mcp` fixes the set at creation. Use `.mcp.json` placeholders for servers that are not in the gateway.
+- **The gateway inside a sandbox is `sbx`'s own, managed with `sbx mcp` on the host** (`ls`, `add`, `inspect`, `load`). It is not the Docker MCP Toolkit: `docker mcp server enable` and `docker mcp secret set` do not apply and usually do not exist on the host. An agent inside sees the gateway's tool list but cannot change it; it names the missing server and hands the `sbx mcp` commands to the human.
+- **`sbx mcp load` is for the running sandbox only.** A recreated sandbox gets the `--static-mcp` set again, so a server that should stay goes into that set (harness selection) as well.
 - **Remote MCP with OAuth** (MCP authorization spec 2026-07-28: OAuth 2.1 for HTTP, client ID metadata documents preferred) needs a browser. In a headless sandbox, sign in with `claude mcp login <name> --no-browser`, use a pre-registered client, or fall back to a bearer token through the proxy.
 - **stdio servers via `uvx`/`npx`** download on first start. Pin versions (`pkg@1.2.3`, `git+https://...@<tag>`) rather than `@latest`, and pre-install them in the kit's install step so the first session neither waits nor hits the policy.
 - **Serena rewrites `.serena/project.yml`** from the template of the installed version (new keys, refreshed comments) whenever that version changes. Pin the same version for host and sandbox (one `.mcp.json` does that) and commit the refreshed file once; two versions rewrite it back and forth.
@@ -335,7 +348,7 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 7. **Ownership now:** `find . -xdev ! -user "$(id -u)" -not -path '*/node_modules/*'`, worktrees included; list the paths and the repair command.
 8. **MCP:** committed `.mcp.json` has placeholders only, no literal tokens or internal hosts that belong in env; `uvx`/`npx`/`git+` servers pinned; servers that write repo-local state run on one side or have it moved out; URLs to host services configurable (`${VAR:-http://localhost:<port>}`) and set in this repo's kit environment; app state and the venv pointed outside the workspace.
 9. **Secrets:** none in the kit, `.mcp.json` or committed settings; sandbox values through `sbx secret` or the MCP gateway.
-10. **Git push from the sandbox:** remote type matches a route in Git hosts (SSH remote plus host-key kit, or GitHub HTTPS with the `github` secret); no mounted `~/.ssh`, no token in `.git/config`, no `insteadOf`/`extraHeader` for the git host; the host key was verified out of band.
+10. **Git push from the sandbox:** remote type matches a route in Git hosts (SSH remote plus host-key kit, or GitHub HTTPS with the `github` secret); no mounted `~/.ssh`, no token in `.git/config`, no `insteadOf`/`extraHeader` for the git host; the host key was verified out of band. If agents must check pipelines before handing over, a route to the git host's API exists (Merge request and pipeline status); `sandbox.sh check` reports it.
 11. **Stack inside the sandbox** (if the agent should run integration tests itself): a compose overlay passes the sandbox proxy and CA to the containers; external APIs the stack calls are in the kit; services that need migrations wait for a healthy backend.
 12. **CLAUDE.md:** says which sandbox kind the repo uses, which commands run in the sandbox (one task per test suite, unit tests included), which the human runs on the host, and the URLs of host services; holds the facts that otherwise live only in a host's memory.
 13. **Branch:** `sandbox.sh check` reports `WARN branch: … lacks` when the base branch has sandbox setup (kit, overlays, Taskfiles, CLAUDE.md) the working branch does not; merge the base first.

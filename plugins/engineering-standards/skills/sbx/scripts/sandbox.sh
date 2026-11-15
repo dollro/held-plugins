@@ -208,6 +208,31 @@ git_check() {
   esac
 }
 
+# api_check <dir>: can the agent read pull/merge requests and pipelines? Agents
+# move an issue to review only on a green pipeline, so the sandbox needs the git
+# host's API, not just git push. Looks for a gateway server (harness static-mcp)
+# whose URL points at the remote's host; a stdio server or a host API kit
+# (gitlab/github kit with glab/gh) cannot be detected and is mentioned instead.
+api_check() {
+  local ri proto host port r path s url hit="" servers
+  ri=$(remote_info "$1") || return 0
+  read -r proto host port r path <<<"$ri"
+  [ "$host" = - ] && return 0
+  servers=$(paste -sd, "$HARNESS_KIT/static-mcp.txt" 2>/dev/null)
+  for s in ${servers//,/ }; do
+    url=$(sbx mcp inspect "$s" 2>/dev/null | awk '/^URL:/{print $2; exit}')
+    case $url in
+      *"://$host"/*|*"://$host":*) hit=$s ;;
+      *githubcopilot.com*|*api.github.com*) [ "$host" = github.com ] && hit=$s ;;
+    esac
+    [ -n "$hit" ] && break
+  done
+  if [ -n "$hit" ]; then ok "git host API: MCP server $hit reaches $host (merge request and pipeline status)"; return 0; fi
+  local add="sbx mcp add <name> --url https://$host/api/v4/mcp"
+  [ "$host" = github.com ] && add="sbx mcp add github --url https://api.githubcopilot.com/mcp/"
+  warn "git host API: no gateway MCP server for $host (static-mcp: ${servers:-none}), so the agent cannot read merge request or pipeline status before moving an issue to review. On the host: $add (OAuth stays on the host), enable it in $HARNESS_KIT/harness.selection.json and run sandbox.sh harness --yes; for the running sandbox now: sbx mcp load <name> --sandbox <sandbox>. Ignore if a stdio server or the gitlab/github kit covers it."
+}
+
 # branch_check <dir>: does the checked-out branch lack sandbox setup (kit, compose
 # overlays, Taskfiles, CLAUDE.md) that the base branch already has? Then the agent
 # inside works around tasks its CLAUDE.md does not mention yet.
@@ -461,6 +486,7 @@ cmd_check() {
     done < <(kit_env "$kit")
   fi
   git_check "$name" "$ws"
+  api_check "$ws"
   branch_check "$ws"
   harness_check "$name"
   echo "ATTACH: sbx run --name $name"
