@@ -52,6 +52,8 @@ Conventions:
   ```
 
   `!reset` is a custom YAML tag, so pre-commit's `check-yaml` needs `args: [--unsafe]` (syntax check only) or an `exclude` for that file.
+
+  The network is not the only shared name. A fixed top-level `name:` puts every worktree into one project (same containers, same Postgres and test database), and a fixed `image:` tag is one image for all of them: rebuilding it from a worktree with another lockfile changes the image under the other session, and two `pytest` runs at once collide on the test database. For a second worktree pass `-p <name>` (or `COMPOSE_PROJECT_NAME`), and override `image:` as well as the network; when another session is already testing on the shared stack, let CI test instead of starting a second run.
 - **`compose.ci.yml`** overlays the local stack for end-to-end tests: built assets instead of the Vite server, a Playwright container, base URL through the proxy.
 - Compose files have no `version:` key (obsolete).
 - `develop.watch` is an option for the Node service on macOS/Windows file sharing; bind mounts remain fine for Python reload.
