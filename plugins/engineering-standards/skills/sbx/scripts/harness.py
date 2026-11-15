@@ -20,6 +20,7 @@ candidates get a default and are marked "new": true until reviewed.
 Output lines start with OK, WARN, INFO or FAIL (like sandbox.sh).
 """
 import base64
+import gzip
 import hashlib
 import io
 import json
@@ -289,8 +290,11 @@ def effective(sel, ctx):
 
 
 def skills_tar(skills):
+    # gzip header mtime fixed at 0: "w:gz" stamps the current time, so the
+    # archive (and the kit's drift hash) changed on every run.
     buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w:gz", format=tarfile.PAX_FORMAT) as tf:
+    with gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as gz, \
+            tarfile.open(fileobj=gz, mode="w", format=tarfile.PAX_FORMAT) as tf:
         for name, d in sorted(skills.items()):
             for f in sorted(Path(d).rglob("*")):
                 if f.is_symlink() or not f.is_file():
