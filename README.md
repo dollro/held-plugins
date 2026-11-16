@@ -67,7 +67,7 @@ built-in `/security-review`; this marketplace does not duplicate them.
 
 | Plugin | What it does |
 |-|-|
-| `uiux` | One plugin for the UI/UX design space, with seven skills: `uiux-journey-spec` (PM interview → job stories, journey, breadboards, Gherkin acceptance, agent brief), `uiux-design-system` (component hierarchy, three-tier DTCG tokens, theming, typography, WCAG 2.2), `uiux-design-penpot` and `uiux-design-figma` (designing via MCP), `uiux-image2design` (screenshots → design system and screens), `pencil-pen-generator` (Pencil `.pen` files), `design-parity` (design-vs-implementation screenshot diffs with a fix plan) |
+| `uiux` | One plugin for the UI/UX design space, with seven skills: `uiux-journey-spec` (PM interview → job stories, journey, breadboards, Gherkin acceptance, agent brief), `uiux-design-system` (component hierarchy, three-tier DTCG tokens, theming, typography, WCAG 2.2, agent-ready handoff via `DESIGN.md` + `AGENTS.md`), `uiux-design-penpot` and `uiux-design-figma` (designing via MCP), `uiux-image2design` (screenshots → design system and screens), `pencil-pen-generator` (Pencil `.pen` files), `design-parity` (design-vs-implementation screenshot diffs with a fix plan) |
 | `uiux-design-tailwindv4` | Design systems in Tailwind CSS v4: CSS-first theme, semantic tokens, OKLCH colours, component variants, dark mode |
 | `uiux-design-vue3` | Vue 3 skills: Composition API, router, Pinia, composables, testing, debugging |
 

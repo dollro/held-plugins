@@ -177,8 +177,10 @@ output is available — but never make it a required step.
    Include both Light and Dark mode values. See `uiux-design-system/references/mapped-tokens.md` for the complete reference.
 
 5. **Output token files** — as defined by `uiux-design-system`:
-   `tokens.json` (W3C DTCG), `design-tokens.css` (CSS custom properties),
-   `main.css` (Tailwind v4 `@theme`).
+   `*.tokens.json` (W3C DTCG, source of truth), `design-tokens.css` (CSS custom properties),
+   `main.css` (Tailwind v4 `@theme`), and `DESIGN.md` for coding agents, generated from
+   the tokens plus the style analysis and decisions confirmed in Phase 2
+   (see `uiux-design-system/references/design-md.md`).
 
 6. **Apply tokens/variables in design tool** — delegate to the detected tool plugin.
    Follow its sequencing rules and API patterns for token creation.

@@ -1,11 +1,11 @@
 ---
 name: uiux-design-system
-description: "Tool-agnostic design system architecture: component tiers and naming (atoms to screens), 3-tier tokens (primitive, semantic, mapped text/icon/surface/border) as W3C DTCG, type scale and 4px grid, dark mode and multi-brand theming, UX and content patterns, WCAG 2.2 tokens, code pipeline. Use when architecting, naming, auditing or extending a design system, tokens or component inventory. Not for Tailwind v4 code (uiux-design-tailwindv4) or drawing in Penpot/Figma (uiux-design-penpot/figma)."
+description: "Tool-agnostic design system architecture: component tiers and naming (atoms to screens), 3-tier tokens (primitive, semantic, mapped text/icon/surface/border) as W3C DTCG, type scale and 4px grid, dark mode and multi-brand theming, UX and content patterns, WCAG 2.2 tokens, code pipeline, and agent-ready handoff (DESIGN.md, AGENTS.md, lint gates) so any coding agent builds on-spec UI. Use when architecting, naming, auditing or extending a design system, tokens or component inventory, writing or reviewing a DESIGN.md, or packaging corporate design specs for AI coding agents. Not for Tailwind v4 code (uiux-design-tailwindv4) or drawing in Penpot/Figma (uiux-design-penpot/figma)."
 ---
 
 # Design System Architecture
 
-Architect production design systems from token foundations through component hierarchy, UX patterns, theming and accessibility. Follows W3C DTCG, atomic design, and practice from Brad Frost, UI Collective, IBM Carbon, Salesforce Lightning and Atlassian.
+Architect production design systems from token foundations through component hierarchy, UX patterns, theming and accessibility. Follows W3C DTCG 2025.10, the DESIGN.md format for coding agents, atomic design, and practice from Brad Frost, UI Collective, IBM Carbon, Salesforce Lightning and Atlassian.
 
 This file holds the method and the rules that always apply. Details live in `references/`; read the one that matches the job (index at the end). Naming advice or a quick token review usually needs nothing beyond this file and `references/token-architecture.md`.
 
@@ -25,6 +25,7 @@ A design system is a tree. **Roots** are primitive tokens (raw values nobody see
 6. **Patterns and screens.** Compose layouts, sections, state patterns, product screens; apply UX decision patterns and content voice.
 7. **Verify.** Contrast for every text/surface pair in every mode, focus rings, touch targets, naming consistency, completeness checklist (`references/design-system-template.md` §13).
 8. **Ship to code.** DTCG `.tokens.json` as the single source, transformed to CSS custom properties, Tailwind `@theme`, SCSS or native platforms.
+9. **Hand off to agents.** Generate `DESIGN.md` from the tokens, add an `AGENTS.md` design section that points to it, and gate everything with one `design:check` script. Plain files and CLI checks, so it works with any coding agent; MCP is optional.
 
 ## Rules that always apply
 
@@ -37,6 +38,12 @@ A design system is a tree. **Roots** are primitive tokens (raw values nobody see
 - All spacing, sizing, radius and border values are multiples of 4; the only exceptions are 1px borders and 2px focus rings. Color scales are solid hex, never opacity-based.
 - Body text stays 16px on every breakpoint; only headings scale down. Nothing readable below 12px. Font sizes in `rem`.
 - Start lean. A semantic token that only aliases a primitive without adding meaning is skipped. Version token sets like code: new token = minor, rename/remove = major.
+
+**Agent handoff**
+- One source of truth: DTCG. `DESIGN.md`, CSS, Tailwind and native outputs are generated from it, never edited in parallel.
+- `DESIGN.md` stays short and lists the tokens agents should use (semantic, mapped, core components), not primitive ramps; every rule names the CSS variable or class to use.
+- Instructions live once, in `AGENTS.md`; agents that read another file get a one-line pointer to it, not a copy.
+- Every rule that matters has a check an agent can run (`design:check`); instructions alone drift.
 
 **Components**
 - Name `{tier}/{component}/{variant-type}/{variant-value}`; prefer variant properties for multi-axis components; internal building blocks get a `.` prefix.
@@ -59,6 +66,7 @@ A design system is a tree. **Roots** are primitive tokens (raw values nobody see
 ## Output
 
 - Tokens: DTCG JSON (`.tokens.json`) with `$value`/`$type`, aliases as `{path.to.token}`, grouped by tier; scaffold from `references/starter-template.md` when nothing exists.
+- Agent handoff: `DESIGN.md` per `references/design-md.md` (YAML tokens + the eight sections in spec order), `AGENTS.md` design section and `design:check` per `references/agent-handoff.md`.
 - Reviews: findings as `token or component · problem → fix`, tier violations and missing states first, then naming, then gaps against the completeness checklist.
 - Mirror the user's language; token names, file names and code in English.
 
@@ -74,6 +82,8 @@ A design system is a tree. **Roots** are primitive tokens (raw values nobody see
 | `references/dtcg-format.md` | Writing or validating `.tokens` / `.tokens.json` files |
 | `references/starter-template.md` | New project with no tokens: complete DTCG starter set (primitives, semantics, mapped) |
 | `references/platform-mapping.md` | Turning tokens into code: pipeline, CSS three layers, Tailwind v4 `@theme`, SCSS, Style Dictionary, native |
+| `references/design-md.md` | Writing, generating, reviewing or linting a `DESIGN.md`: schema, section order, DTCG mapping, template, CLI checks |
+| `references/agent-handoff.md` | Making a design system usable by any coding agent: repo layout, `AGENTS.md` snippet, lint gates, optional MCP/skills, handover checklist |
 | `references/component-architecture.md` | Component tiers, naming, internal vs published, state variants, component properties |
 | `references/componentization-guide.md` | Component boundaries: register or not, split vs monolithic, variants, instances, scaling, anti-patterns, build order |
 | `references/component-patterns.md` | Building or reviewing a specific component: structure, token bindings, variant matrix, page-level patterns |

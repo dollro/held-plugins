@@ -7,11 +7,12 @@ How to transform design tokens from the abstract DTCG format into platform-speci
 ```
 Figma Variables / Penpot Tokens
         ↓ (export JSON)
-  tokens.json (W3C DTCG format)
+  *.tokens.json (W3C DTCG format, source of truth)
         ↓ (Style Dictionary / Token Transformer)
   design-tokens.css  (CSS Custom Properties)
   main.css           (Tailwind v4 @theme)
   tokens.ts          (TypeScript constants, optional)
+  DESIGN.md          (agent-facing spec: key tokens + prose, see design-md.md)
 ```
 
 ### Three Layers in CSS
@@ -243,27 +244,34 @@ Native platforms receive resolved values (not `var()` references) since CSS cust
 
 ## Style Dictionary
 
-[Style Dictionary](https://amzn.github.io/style-dictionary/) is the standard pipeline tool for multi-platform token generation. It reads DTCG-compatible JSON and outputs platform-specific code.
+[Style Dictionary](https://styledictionary.com/) is the standard pipeline tool for multi-platform token generation. It auto-detects DTCG JSON (`usesDtcg` is rarely needed). v5 requires Node 22+ and fails the build on unresolved token references, which is what you want: an invented or renamed token breaks CI instead of shipping.
 
-```json
-{
-  "source": ["tokens/**/*.json"],
-  "platforms": {
-    "css": {
-      "transformGroup": "css",
-      "buildPath": "dist/css/",
-      "files": [{ "destination": "tokens.css", "format": "css/variables" }]
+```js
+// sd.config.mjs — run with: node sd.config.mjs
+import StyleDictionary from 'style-dictionary';
+
+const sd = new StyleDictionary({
+  source: ['tokens/**/*.tokens.json'],
+  platforms: {
+    css: {
+      transformGroup: 'css',
+      buildPath: 'dist/css/',
+      files: [{ destination: 'tokens.css', format: 'css/variables' }],
     },
-    "js": {
-      "transformGroup": "js",
-      "buildPath": "dist/js/",
-      "files": [{ "destination": "tokens.js", "format": "javascript/es6" }]
-    }
-  }
-}
+    js: {
+      transformGroup: 'js',
+      buildPath: 'dist/js/',
+      files: [{ destination: 'tokens.js', format: 'javascript/es6' }],
+    },
+  },
+});
+
+await sd.buildAllPlatforms();
 ```
 
-Add additional platform entries (android, ios, scss) to generate all outputs from one token source.
+Add additional platform entries (android, ios, scss) to generate all outputs from one token source. Add a custom format here that writes the YAML front matter of `DESIGN.md` from an allowlist of semantic and mapped tokens (see `design-md.md`), so the agent-facing spec is generated in the same build.
+
+If your tokens use the 2025.10 object forms (`color` as `{ colorSpace, components }`, `dimension` as `{ value, unit }`), check that the installed version outputs them correctly for CSS; otherwise add a value transform.
 
 For Tokens Studio projects, add `@tokens-studio/sd-transforms` to handle Tokens Studio–specific formats (math expressions, color modifiers, multi-value composites) before Style Dictionary processes them:
 

@@ -88,7 +88,7 @@ renders as collapsible groups in the Variables panel.
 
 ## Mode Mapping (Light/Dark Themes)
 
-DTCG tokens handle themes via separate token sets or `$extensions` with mode overrides.
+DTCG tokens handle themes via separate token sets, `$extensions` with mode overrides, or (DTCG 2025.10) a Resolver Module file that combines sets into modes and themes.
 In Figma, themes map to **modes** within a collection.
 
 | DTCG Approach | Figma Equivalent |

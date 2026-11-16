@@ -167,7 +167,7 @@ After each debrief, propose upstream changes (job, step, breadboard state) for f
 Checklist:
 - [ ] `acceptance/<flow>.feature`: first-person Gherkin tagged `@J1 @J1.3 @P2`, covering happy path, every state and confirmed edge cases; verifiable through the real UI end-to-end, never via API or database shortcuts
 - [ ] Slices: at most 9, each with visible UI and a one-line demo statement; V1 is the smallest demo of the core job
-- [ ] `AGENT_BRIEF.md`, one screen at most: read order (jobs, journey, breadboard, feature), slices with demos, rules (design system only, every state implemented, no silent mocks for backend gaps, ambiguity goes to STATUS.md as a question)
+- [ ] `AGENT_BRIEF.md`, one screen at most: read order (jobs, journey, breadboard, feature), slices with demos, rules (design system only: follow its `DESIGN.md` and components if it has them, every state implemented, no silent mocks for backend gaps, ambiguity goes to STATUS.md as a question)
 - [ ] No `[STALE]` items left; open assumptions listed as risks
 
 ```gherkin

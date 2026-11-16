@@ -728,6 +728,8 @@ Before considering the design system complete:
 - [ ] Transform to CSS custom properties via Style Dictionary
 - [ ] Integrate with Tailwind v4 `@theme` block
 - [ ] Document the token API for developers
+- [ ] Generate `DESIGN.md` from the tokens, `designmd lint` passes (`design-md.md`)
+- [ ] `AGENTS.md` design section and `design:check` gate for consuming repos (`agent-handoff.md`)
 - [ ] Cover page has current version and changelog
 - [ ] Design principles documented on getting-started page
 - [ ] Voice and tone guidelines documented

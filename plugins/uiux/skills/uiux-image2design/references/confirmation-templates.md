@@ -221,7 +221,7 @@ Present this clean summary after all adjustments. Require explicit "go ahead" be
 [decisions made during confirmation — hover rules, missing states, confirmed fonts, etc.]
 
 ### Output Plan
-- Token files: tokens.json, design-tokens.css, main.css
+- Token files: *.tokens.json (DTCG), design-tokens.css, main.css, DESIGN.md (for coding agents)
 - Penpot pages: cover, foundations, atoms [+ molecules, organisms, patterns, screens-* as needed]
 - Estimated MCP calls: ~[N]
 

@@ -2,6 +2,12 @@
 
 The W3C Design Token Community Group (DTCG) defines a standard JSON format for exchanging design tokens between tools. This specification ensures interoperability across design tools, code generators, and token management platforms.
 
+**Status:** first stable version **2025.10** (October 2025): the Format Module plus a separate **Resolver Module** for combining token sets into modes, themes and brands. It is a Community Group report, not a W3C Recommendation, and still evolves. Tool support lags: Style Dictionary's DTCG support is first-class since v4, but the docs state that support for every 2025.10 detail is still in progress in v5, and design tools differ. Check what your toolchain actually reads and writes before relying on a 2025.10-only feature.
+
+**Default in this skill:** colors as hex strings (`"#2563eb"`), as in `starter-template.md`, because that is what design tools and Style Dictionary exchange reliably today. Switch to the 2025.10 color object when the whole toolchain reads it; it is a mechanical conversion.
+
+DTCG is the source of truth. `DESIGN.md` (agent-facing summary, see `design-md.md`) and all platform outputs are generated from it.
+
 ## File Structure
 
 Token files use the `.tokens` or `.tokens.json` extension with media type `application/design-tokens+json`.
@@ -36,7 +42,7 @@ The DTCG spec defines both simple (single-value) and composite (multi-value) tok
 
 | Type | Value Format | Example |
 |-|-|-|
-| `color` | Hex string or object `{ colorSpace, components, alpha }` | `"#2563eb"` |
+| `color` | Object `{ colorSpace, components, alpha, hex }` (2025.10 form) or hex string (older drafts, still read by most tools) | `"#2563eb"` |
 | `dimension` | Object `{ value, unit }` where unit is `px` or `rem` | `{ "value": 16, "unit": "px" }` |
 | `fontFamily` | String or array of strings | `["Inter", "sans-serif"]` |
 | `fontWeight` | Number 1–1000 or named string | `600` or `"semibold"` |
