@@ -19,7 +19,7 @@ plugins/<name>/
 - **ai-agent-dev-tools** — agentic-engineering, prompt-engineering
 - **workflows** — agent-team, brainstorming, engineering-standards
 - **product-management** — braindump2prd, prd2issues, prfaq-vision-builder, product-roadmap-3-layers
-- **development** — electron-dev, fullstack-engineering, uiux (skills: uiux-journey-spec, uiux-design-system, uiux-design-penpot, uiux-design-figma, uiux-image2design, pencil-pen-generator, design-parity), uiux-design-tailwindv4, uiux-design-vue3
+- **development** — electron-dev, fullstack-engineering, uiux (skills: uiux-journey-spec, uiux-design-system, uiux-visual-uplift, uiux-visual-review, uiux-design-penpot, uiux-design-figma, uiux-image2design, pencil-pen-generator, design-parity), uiux-design-tailwindv4, uiux-design-vue3
 - **analysis** — equity-research, investment-memo
 
 ## Conventions

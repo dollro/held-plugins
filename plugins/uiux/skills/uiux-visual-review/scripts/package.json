@@ -1,0 +1,21 @@
+{
+  "name": "uiux-visual-review-scripts",
+  "version": "1.0.0",
+  "description": "Measured layer of the uiux-visual-review skill: captures, metrics, contact sheets",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "review": "./review.mjs"
+  },
+  "scripts": {
+    "review": "node review.mjs"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "playwright": "^1.47.0",
+    "yaml": "^2.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

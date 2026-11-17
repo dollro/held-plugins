@@ -207,6 +207,11 @@ Next: apply 2 fixes in fix_plan.json, re-run. ETA: 1-2 iterations.
 
 Full JSON to `.parity/runs/<screen>/iteration_N/{deltas,fix_plan}.json`.
 
+## Related skills
+
+- `uiux-visual-uplift` produces HTML targets (`design/targets/<place>.html`) for this skill; HTML targets beat PNGs.
+- `uiux-visual-review` judges quality without a target (token conformance, hierarchy, states, accessibility); use it when there is no mockup, or after parity converges to check the result as a whole.
+
 ## Related files
 
 - `references/workflow.md` — detailed config-driven procedure

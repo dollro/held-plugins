@@ -1,0 +1,117 @@
+# review.config.yaml: committed next to the app, the contract for a visual review run.
+# Places and states come from the journey-spec breadboard (specs/ux/breadboards/<flow>.md):
+# one place per P#, one state per row of its States table.
+
+base_url: http://localhost:5173
+timeout_ms: 30000
+settle_ms: 300            # wait after load and steps before measuring
+wait_for: networkidle     # load | domcontentloaded | networkidle
+grid: 4                   # spacing rhythm in px
+
+# Optional shell commands around the run (seed and clean test data). Run from this folder.
+# setup: npm run seed:review
+# teardown: npm run seed:review -- --cleanup
+
+# Authentication: same block as design-parity's parity.config.yaml.
+auth:
+  mode: none              # form | cookie | storage-state | none
+  # login_url: /login
+  # fields:
+  #   "input[name=email]": ${env:REVIEW_EMAIL}
+  #   "input[name=password]": ${env:REVIEW_PASSWORD}
+  # submit_selector: "button[type=submit]"
+  # success_match: "/\\/app\\//"
+
+# Where the tokens come from for the conformance checks.
+#   css  : read CSS custom properties the page defines (default). Use prefixes to
+#          limit to your design tokens, so framework palettes don't count as tokens.
+#   dtcg : read W3C DTCG files (colours and dimensions).
+#   none : skip token checks.
+tokens:
+  source: css
+  prefixes: ["--color-", "--surface-", "--text-", "--border-", "--icon-", "--radius-", "--font-size-", "--shadow-"]
+  exclude: ["--tw-"]
+  # source: dtcg
+  # files: [tokens/semantic.tokens.json, tokens/mapped.tokens.json]
+
+viewports:
+  - { id: mobile, size: [375, 812] }
+  - { id: tablet, size: [768, 1024] }
+  - { id: desktop, size: [1440, 900] }   # the last one is the "widest": states and focus run here
+
+schemes: [light]          # add dark to run every default state twice
+dark_mode: media          # media | { class: dark } | { attribute: data-theme, value: dark } | { local_storage: { theme: dark } }
+
+# The one primary action per view. Without it, a heuristic counts saturated filled buttons.
+# primary_action: "[data-variant=primary]"
+
+# Excluded from all metrics (third-party widgets, embedded maps).
+ignore: []
+# Hidden in screenshots only (changing timestamps, avatars).
+mask:
+  - { text: "/\\d{1,2}:\\d{2}|\\d+ (min|hours?|days?) ago/i" }
+
+axe: true
+focus_stops: 12           # tab stops checked per place
+
+places:
+  - id: P1-deck-list                 # breadboard place ID + short name
+    path: /app/decks
+    states:
+      - id: default
+      - id: empty
+        mock:
+          - { url: "**/api/decks*", status: 200, json: [] }
+      - id: error
+        mock:
+          - { url: "**/api/decks*", status: 500, json: { detail: "Server error" } }
+      - id: loading
+        mock:
+          - { url: "**/api/decks*", hang: true }
+        capture_after_ms: 800
+      - id: offline
+        offline: true
+        steps:
+          - click: "role=button[name='Refresh']"
+          - wait_ms: 500
+
+  - id: P2-upload-dialog
+    path: /app/decks
+    steps:                           # place-level steps run before every state
+      - click: "role=button[name='Upload deck']"
+      - wait_for: "role=dialog"
+    states:
+      - id: default
+      - id: validation-error
+        steps:
+          - click: "role=button[name='Upload']"
+          - wait_ms: 300
+      - id: uploading
+        mock:
+          - { url: "**/api/decks", hang: true }
+        steps:
+          - upload: { selector: "input[type=file]", file: fixtures/sample-deck.pdf }
+          - click: "role=button[name='Upload']"
+        capture_after_ms: 500
+        viewports: [mobile, desktop]
+
+# Gate. A key set to null is not checked. With review.baseline.json present,
+# each limit becomes max(threshold, baseline value): no regressions, no demand
+# beyond the threshold (the ratchet for an MVP that starts far from it).
+thresholds:
+  off_token_colors: 0
+  off_token_font_sizes: 0
+  off_grid_spacing: 0
+  font_sizes_max: 8
+  font_weights_max: 4
+  font_families_max: 3
+  filled_actions_max: 1
+  alignment_near_misses: 0
+  axe_serious: 0
+  targets_below_24: 0
+  horizontal_scroll: 0
+  missing_focus: 0
+  tiny_text: 0
+  cls_max: 0.1
+  overshoot_easing: 0
+  infinite_animations: 0

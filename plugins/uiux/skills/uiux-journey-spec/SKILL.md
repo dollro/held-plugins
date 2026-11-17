@@ -167,7 +167,8 @@ After each debrief, propose upstream changes (job, step, breadboard state) for f
 Checklist:
 - [ ] `acceptance/<flow>.feature`: first-person Gherkin tagged `@J1 @J1.3 @P2`, covering happy path, every state and confirmed edge cases; verifiable through the real UI end-to-end, never via API or database shortcuts
 - [ ] Slices: at most 9, each with visible UI and a one-line demo statement; V1 is the smallest demo of the core job
-- [ ] `AGENT_BRIEF.md`, one screen at most: read order (jobs, journey, breadboard, feature), slices with demos, rules (design system only: follow its `DESIGN.md` and components if it has them, every state implemented, no silent mocks for backend gaps, ambiguity goes to STATUS.md as a question)
+- [ ] `AGENT_BRIEF.md`, one screen at most: read order (jobs, journey, breadboard, feature; plus `design/screens/<place>.md` when a visual uplift exists), slices with demos, rules (design system only: follow its `DESIGN.md` and components if it has them, every state implemented, no silent mocks for backend gaps, ambiguity goes to STATUS.md as a question)
+- [ ] Visual layer: this spec stays functional. If the UI must look and feel production-grade (not just work), name `uiux-visual-uplift` as the next step in STATUS.md; its screen specs bind to these place and affordance IDs, and `uiux-visual-review` uses the breadboard's places and states as its capture list
 - [ ] No `[STALE]` items left; open assumptions listed as risks
 
 ```gherkin

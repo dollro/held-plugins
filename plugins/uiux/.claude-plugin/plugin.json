@@ -1,5 +1,5 @@
 {
   "name": "uiux",
-  "description": "UI/UX from user journey to verified screen: journey specs (job stories, breadboards, Gherkin acceptance), tool-agnostic design system architecture (DTCG tokens, components, accessibility) with agent-ready handoff via DESIGN.md and AGENTS.md, design in Penpot or Figma via MCP, screenshot-to-design-system, Pencil .pen files, and design-vs-implementation parity checks. Adds the uiux-journey-spec, uiux-design-system, uiux-design-penpot, uiux-design-figma, uiux-image2design, pencil-pen-generator and design-parity skills.",
-  "version": "1.1.0"
+  "description": "UI/UX from user journey to verified, production-grade screen: journey specs (job stories, breadboards, Gherkin acceptance), tool-agnostic design system architecture (DTCG tokens, components, accessibility) with agent-ready handoff via DESIGN.md and AGENTS.md, art direction and visual uplift of an MVP (direction, signature, competing HTML prototypes on real screens, screen specs), automated look-and-feel review of a running app (token conformance, rhythm, alignment, axe, focus, motion, scored vision rubric, CI ratchet), design in Penpot or Figma via MCP, screenshot-to-design-system, Pencil .pen files, and design-vs-implementation parity checks. Adds the uiux-journey-spec, uiux-design-system, uiux-visual-uplift, uiux-visual-review, uiux-design-penpot, uiux-design-figma, uiux-image2design, pencil-pen-generator and design-parity skills.",
+  "version": "1.2.0"
 }

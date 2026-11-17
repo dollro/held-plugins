@@ -67,7 +67,7 @@ built-in `/security-review`; this marketplace does not duplicate them.
 
 | Plugin | What it does |
 |-|-|
-| `uiux` | One plugin for the UI/UX design space, with seven skills: `uiux-journey-spec` (PM interview → job stories, journey, breadboards, Gherkin acceptance, agent brief), `uiux-design-system` (component hierarchy, three-tier DTCG tokens, theming, typography, WCAG 2.2, agent-ready handoff via `DESIGN.md` + `AGENTS.md`), `uiux-design-penpot` and `uiux-design-figma` (designing via MCP), `uiux-image2design` (screenshots → design system and screens), `pencil-pen-generator` (Pencil `.pen` files), `design-parity` (design-vs-implementation screenshot diffs with a fix plan) |
+| `uiux` | One plugin for the UI/UX design space, with nine skills: `uiux-journey-spec` (PM interview → job stories, journey, breadboards, Gherkin acceptance, agent brief), `uiux-design-system` (component hierarchy, three-tier DTCG tokens, theming, typography, WCAG 2.2, agent-ready handoff via `DESIGN.md` + `AGENTS.md`), `uiux-visual-uplift` (art direction for an MVP: direction and signature, competing HTML prototypes on real screens, screen specs, pre-flight gate), `uiux-visual-review` (automated look-and-feel review of a running app: token conformance, rhythm, alignment, axe, focus, motion, scored vision rubric, before/after compare, CI ratchet), `uiux-design-penpot` and `uiux-design-figma` (designing via MCP), `uiux-image2design` (screenshots → design system and screens), `pencil-pen-generator` (Pencil `.pen` files), `design-parity` (design-vs-implementation screenshot diffs with a fix plan) |
 | `uiux-design-tailwindv4` | Design systems in Tailwind CSS v4: CSS-first theme, semantic tokens, OKLCH colours, component variants, dark mode |
 | `uiux-design-vue3` | Vue 3 skills: Composition API, router, Pinia, composables, testing, debugging |
 
@@ -102,7 +102,7 @@ merged without your confirmation.
    - one issue: **engineering-standards** — /branch → plan → build → check → docs → PR
    - several in parallel: **agent-team** — one worktree agent per issue, or a team for one large issue
    - in both cases, domain skills while building: fullstack-engineering, agentic-engineering, electron-dev, uiux-*, prompt-engineering
-6. review: official code-review plugin, /security-review (+ design-parity for UI)
+6. review: official code-review plugin, /security-review (+ design-parity and uiux-visual-review for UI)
 7. merge, one PR at a time
 
 |#|Step|Plugin|Output|
@@ -111,10 +111,11 @@ merged without your confirmation.
 |2|Order the work|`product-roadmap-3-layers`|Now/Next/Later roadmap: outcomes → features → tech enablers|
 |3|Specify one feature|`braindump2prd`|`braindump_final.md` (interview record) → `prd.md` + `spec.md`, handed to the tracker project|
 |3b|UI journey (features with several screens or states, optional)|`uiux` (`uiux-journey-spec`)|`specs/ux/`: job stories, journey, breadboards per flow, `.feature` acceptance, `AGENT_BRIEF.md` for coding agents|
+|3c|Visual uplift (MVP to production-grade UI, optional)|`uiux` (`uiux-visual-uplift`, `uiux-visual-review`)|Audit of the running app, art direction in `DESIGN.md`, chosen direction as HTML targets in `design/targets/`, screen specs per place, review baseline for CI|
 |4|Cut into issues — run in the product repo|`prd2issues`|1–3 issues per result, each one reviewable PR, with files, pattern to follow, check command, `Blocked by` and `Parallel`|
 |5a|Build one issue|`engineering-standards`|`/branch` (or `/sbx <type>/<name>` to build inside a Docker Sandbox) → short plan on the issue → code → checks, cheapest first → `docs/` update → PR|
 |5b|Build several issues at once|`agent-team`|Independent issues: one agent each in its own worktree. "Sync before merge" pairs: shared contract first|
-|6|Review|`code-review` from `claude-plugins-official`, `/security-review`, `design-parity`|Confidence-filtered findings on the PR (incl. CLAUDE.md compliance); security review; design-vs-implementation diff for UI|
+|6|Review|`code-review` from `claude-plugins-official`, `/security-review`, `design-parity`, `uiux-visual-review`|Confidence-filtered findings on the PR (incl. CLAUDE.md compliance); security review; design-vs-implementation diff and look-and-feel gate for UI|
 
 **Principles**
 
@@ -169,9 +170,14 @@ All design skills ship in the `uiux` plugin. `uiux-journey-spec` turns a
 feature into job stories, breadboards and Gherkin acceptance before anything is
 drawn. From screenshots or a brief, `uiux-image2design` extracts a design system
 and builds it in Penpot or Figma (`uiux-design-penpot`, `uiux-design-figma`),
-following `uiux-design-system`. In code, tokens and components follow
+following `uiux-design-system`. To take a working MVP to a production-grade
+interface, `uiux-visual-uplift` audits it, commits to an art direction, renders
+competing directions as HTML prototypes of real screens and locks the chosen one
+into the tokens and `DESIGN.md`. In code, tokens and components follow
 `uiux-design-tailwindv4` and `uiux-design-vue3`, which the fullstack frontend
-uses too. `design-parity` checks the built UI against the design.
+uses too. `design-parity` checks the built UI against the design;
+`uiux-visual-review` checks the look and feel of the running app without a
+mockup and gates it in CI.
 
 ## Organisation profile
 

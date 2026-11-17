@@ -58,6 +58,15 @@ All `##`, optional ones may be dropped, the order is fixed:
 
 Extra sections (`## Iconography`, `## Motion`, `## Voice & Tone`, `## Accessibility`) are allowed and preserved; place them after the eight core sections.
 
+### Art direction
+
+A design system defines what values exist; the art direction defines what the product should feel like and how boldly to use them. Without it, agents fall back to their own defaults and every new screen drifts toward a template look. Write it in two places (produced by `uiux-visual-uplift`):
+
+- **Overview** (core section 1): the Design Read (one line: the feeling plus the bet), audience and usage frequency, density, and what the product is not.
+- **`## Art Direction`** (extra section, first after the eight core sections): register (`product` or `brand`), the named direction with its reason, the signature element and where it appears, dials (variance, motion, density on 1 to 10), colour strategy, inspiration as took/rejected, and the lock sentence: "Every screen must read as the same product if placed side by side. New values go through the tokens, never into components."
+
+The reflex defaults this product rejects go into Do's and Don'ts as concrete rules ("Don't use cards for list rows; use `Table` rows with `--border-subtle` dividers").
+
 ## Mapping the 3-tier DTCG system to DESIGN.md
 
 DESIGN.md token groups are flat. Map like this:
@@ -204,6 +213,6 @@ Recommended gates: `design:lint` passes; `design:fresh` shows `DESIGN.md` matche
 - **Two sources of truth.** Hand-editing YAML in `DESIGN.md` while DTCG also changes. Generate or check, always.
 - **Dumping primitives.** 120 ramp colors in `DESIGN.md` invite the agent to pick `blue-600` instead of `surface-action`.
 - **Prose without variable names.** The agent copies hex values into code. Name the CSS variable or Tailwind class in every rule.
-- **Vague Overview.** "Modern and clean" decides nothing. State audience, density, tone and what the brand is *not*.
+- **Vague Overview.** "Modern and clean" decides nothing. State audience, density, tone and what the brand is *not*; add the Art Direction section when a direction exists.
 - **No Do's and Don'ts.** This section is where most corporate-design violations are prevented; write the rules a brand reviewer would reject a page for.
 - **Alpha drift.** Re-run `lint` after upgrading the CLI; pin the version.

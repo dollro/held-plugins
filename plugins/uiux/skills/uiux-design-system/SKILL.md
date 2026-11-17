@@ -66,7 +66,8 @@ A design system is a tree. **Roots** are primitive tokens (raw values nobody see
 ## Output
 
 - Tokens: DTCG JSON (`.tokens.json`) with `$value`/`$type`, aliases as `{path.to.token}`, grouped by tier; scaffold from `references/starter-template.md` when nothing exists.
-- Agent handoff: `DESIGN.md` per `references/design-md.md` (YAML tokens + the eight sections in spec order), `AGENTS.md` design section and `design:check` per `references/agent-handoff.md`.
+- Agent handoff: `DESIGN.md` per `references/design-md.md` (YAML tokens + the eight sections in spec order, plus the Art Direction section once `uiux-visual-uplift` has locked a direction), `AGENTS.md` design section and `design:check` per `references/agent-handoff.md`.
+- The look and feel itself (direction, signature, prototypes) is `uiux-visual-uplift`; checking a running UI against the system is `uiux-visual-review`.
 - Reviews: findings as `token or component · problem → fix`, tier violations and missing states first, then naming, then gaps against the completeness checklist.
 - Mirror the user's language; token names, file names and code in English.
 
@@ -84,6 +85,7 @@ A design system is a tree. **Roots** are primitive tokens (raw values nobody see
 | `references/platform-mapping.md` | Turning tokens into code: pipeline, CSS three layers, Tailwind v4 `@theme`, SCSS, Style Dictionary, native |
 | `references/design-md.md` | Writing, generating, reviewing or linting a `DESIGN.md`: schema, section order, DTCG mapping, template, CLI checks |
 | `references/agent-handoff.md` | Making a design system usable by any coding agent: repo layout, `AGENTS.md` snippet, lint gates, optional MCP/skills, handover checklist |
+| `references/component-library-choice.md` | Choosing a component library (Vue: shadcn-vue/Reka UI, PrimeVue, Nuxt UI, Vuetify; React equivalents) and theming it with tokens instead of re-implementing it |
 | `references/component-architecture.md` | Component tiers, naming, internal vs published, state variants, component properties |
 | `references/componentization-guide.md` | Component boundaries: register or not, split vs monolithic, variants, instances, scaling, anti-patterns, build order |
 | `references/component-patterns.md` | Building or reviewing a specific component: structure, token bindings, variant matrix, page-level patterns |
