@@ -29,6 +29,7 @@ SOPS + age fits small teams with one or a few hosts. Move to a secrets manager (
 
 ## At runtime
 
+- **Agents read env values by exact key, never by prefix.** To check a setting in an env file or CI variable, print only the named keys (`grep -E '^(APP_LLM_MODEL|APP_LLM_FALLBACK)='`), not everything under a common prefix: `APP_LLM_` also matched `APP_LLM_API_KEY` and printed the key into the session. If a secret was printed, say so and rotate it.
 - Secrets reach containers as environment variables at deploy time. They never get baked into images (`.dockerignore` excludes env files; build steps that need settings use dummy values).
 - Values passed as env are visible in the container config to anyone with access to the host's Docker socket (`docker inspect`). Treat Docker socket access as secret access; for the most sensitive values consider Compose `secrets:` (files under `/run/secrets`).
 - Logs, traces and error reports must not contain secrets or tokens; scrub before sending.
