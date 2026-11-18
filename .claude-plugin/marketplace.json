@@ -49,7 +49,7 @@
       "name": "engineering-standards",
       "source": "./plugins/engineering-standards",
       "description": "Small reviewable pull requests, review, merge and release discipline, rules for several agents on one repo, CLAUDE.md structure and where documentation and plans live, and how agents work in a sandbox (code in the sandbox, Docker stack on the host), with a swappable organisation profile. Includes /engineering-standards, /branch and /sbx (Claude in a Docker Sandbox on a new worktree, optionally with the full stack inside for self-run tests) skills.",
-      "version": "1.14.1",
+      "version": "1.14.2",
       "category": "workflows",
       "tags": ["engineering", "pull-requests", "documentation", "sandbox"],
       "keywords": ["pull request", "pr size", "code review", "claude.md", "documentation", "docs", "plans", "coding standards", "branch", "sandbox", "sbx", "docker sandboxes", "worktree"]
@@ -85,7 +85,7 @@
       "name": "fullstack-engineering",
       "source": "./plugins/fullstack-engineering",
       "description": "Guideline and reference implementation for web apps: Django system of record, optional FastAPI realtime service, Vue 3 + Vite + TypeScript, PostgreSQL, Redis, Celery, company SSO over OpenID Connect and/or external accounts with MFA, Docker, Task, SOPS, platform-neutral CI, staging and production from the same images. Includes /fullstack-engineering, /fullstack-scaffold and the fullstack-engineer agent.",
-      "version": "1.5.0",
+      "version": "1.5.1",
       "category": "development",
       "tags": ["fullstack", "django", "fastapi", "vue", "scaffold", "sso", "docker", "ci-cd"],
       "keywords": ["fullstack", "full-stack", "django", "fastapi", "vue", "oidc", "scaffold"]
