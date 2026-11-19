@@ -169,7 +169,7 @@ Repair is the fallback. Fix the compose file or the kit that produced the files,
 
 ### A git worktree in a sandbox
 
-The `/sbx` skill does all of this (worktree, mounts, kit, checks) and prints the line to attach; what follows is what it does and why.
+The `/sbx` skill does all of this (worktree, mounts, kit, checks) and prints the line to attach; what follows is what it does and why. Plain `/sbx` from the main checkout never mounts the main checkout: it creates or reuses the worktree `../<repo>-sbx` on an idle branch `sbx/idle` (no upstream, never pushed) with the sandbox `claude-<repo>-sbx`, so branch switches inside never touch the host's checkout.
 
 A linked worktree has no repository of its own: its `.git` is a one-line file (`gitdir: <main repo>/.git/worktrees/<name>`). Mount the main repo's `.git` as a second, writable workspace; sbx mounts every workspace at its host path, so the pointer resolves. Run it from the main checkout so the kit is the current one, not an older copy on the worktree's branch:
 

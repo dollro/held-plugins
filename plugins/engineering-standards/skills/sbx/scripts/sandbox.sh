@@ -6,6 +6,8 @@
 #   sandbox.sh preflight
 #   sandbox.sh harness [--out <dir>] [--yes]
 #   sandbox.sh create [--branch <type>/<name>] [--base <branch>] [--path <dir>]
+#                     (no --branch/--path from the main checkout: worktree
+#                      ../<repo>-sbx on branch sbx/idle, reused if it exists)
 #                     [--kit <dir>] [--clone] [--recreate]
 #                     [--stack [--docker-size 40g] [--memory 12g]]
 #                     [--no-git-auth] [--host-key '<alg> <base64>'] [--no-harness]
@@ -454,7 +456,26 @@ cmd_create() {
         git -C "$root" worktree add -q -b "$branch" "$ws" "$base" || die "git worktree add failed"
         ok "worktree $ws on new branch $branch from $base"
       fi
+    elif [ -z "$path" ] && [ "$(abspath "$(git rev-parse --show-toplevel)")" = "$(abspath "$root")" ]; then
+      # From the main checkout: one sandbox, one worktree. The idle branch has
+      # no upstream and is never pushed; issues get their own branches inside.
+      ws="$(dirname "$root")/${repo}-sbx"
+      if [ -e "$ws" ]; then
+        git -C "$root" worktree list --porcelain | grep -qxF "worktree $(abspath "$ws")" \
+          || die "$ws exists and is not a worktree of this repo; move it or pass --path <dir>"
+        ws=$(abspath "$ws")
+        ok "worktree $ws exists (on $(git -C "$ws" branch --show-current 2>/dev/null || echo 'detached HEAD')): reusing it"
+      elif git -C "$root" show-ref -q --verify refs/heads/sbx/idle; then
+        git -C "$root" worktree add -q "$ws" sbx/idle || die "git worktree add failed"
+        ok "worktree $ws on existing branch sbx/idle"
+      else
+        base=${base:-$(cd "$root" && default_base)}
+        git -C "$root" worktree add -q --no-track -b sbx/idle "$ws" "$base" || die "git worktree add failed"
+        ok "worktree $ws on new branch sbx/idle from $base (no upstream, never pushed)"
+      fi
     else
+      # --path, or plain create from inside a linked worktree. --path <main
+      # checkout> is the only way to mount the main checkout itself (check warns).
       ws=${path:-$(git rev-parse --show-toplevel)}
       ws=$(cd "$ws" && pwd)
     fi
@@ -584,5 +605,5 @@ case "${1:-}" in
   create) shift; cmd_create "$@" ;;
   check) shift; cmd_check "$@" ;;
   done) shift; cmd_done "$@" ;;
-  *) sed -n '2,18p' "$0"; exit 1 ;;
+  *) sed -n '2,21p' "$0"; exit 1 ;;
 esac
