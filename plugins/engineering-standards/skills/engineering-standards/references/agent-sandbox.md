@@ -169,7 +169,7 @@ Repair is the fallback. Fix the compose file or the kit that produced the files,
 
 ### A git worktree in a sandbox
 
-The `/sbx` skill does all of this (worktree, mounts, kit, checks) and prints the line to attach; what follows is what it does and why.
+The `/sbx` skill does all of this (worktree, mounts, kit, checks) and prints the line to attach; what follows is what it does and why. Plain `/sbx` from the main checkout never mounts the main checkout: it creates or reuses the worktree `../<repo>-sbx` on an idle branch `sbx/idle` (no upstream, never pushed) with the sandbox `claude-<repo>-sbx`, so branch switches inside never touch the host's checkout.
 
 A linked worktree has no repository of its own: its `.git` is a one-line file (`gitdir: <main repo>/.git/worktrees/<name>`). Mount the main repo's `.git` as a second, writable workspace; sbx mounts every workspace at its host path, so the pointer resolves. Run it from the main checkout so the kit is the current one, not an older copy on the worktree's branch:
 
@@ -323,7 +323,7 @@ The built-in `claude` agent starts bare: no plugins or marketplaces, no user `CL
 | Files | `~/.claude/CLAUDE.md`, `agents/`, `commands/`, `output-styles/`, the status line script | Written to `/home/agent/.claude/`; the status line path is rewritten |
 | Settings | An allowlist: `model`, `effortLevel`, `autoCompactEnabled`, `attribution`, `outputStyle`, `statusLine`, … | Merged key by key into the `settings.json` the agent image already has (python3 or jq), never overwritten |
 
-**It also appends an "Inside a Docker Sandbox" section to the sandbox's `CLAUDE.md`** (even when the host's is left out): read this reference before working around a missing tool, use the repo's sandbox-aware tasks, run missing tools in containers, mind `~/.local/bin` on PATH, and propose CLAUDE.md lines for facts it had to rediscover. Without it the agent inside had the skill loaded but never opened this file, and found every item here again by trial and error.
+**It also appends an "Inside a Docker Sandbox" section to the sandbox's `CLAUDE.md`** (even when the host's is left out): read this reference before working around a missing tool, use the repo's sandbox-aware tasks, run missing tools in containers, mind `~/.local/bin` on PATH, report `Host key verification failed` to the human (sandbox name and workspace) instead of running `ssh-keyscan`, and propose CLAUDE.md lines for facts it had to rediscover. Without it the agent inside had the skill loaded but never opened this file, and found every item here again by trial and error.
 
 **Memory stays on the host.** Facts the host's auto-memory holds about the repo (a `PYTHONPATH` for single-file tests, a restart command) are missing inside; anything an agent in the sandbox needs goes into the repo's CLAUDE.md.
 
@@ -378,7 +378,7 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | `no space left on device` while building images in the sandbox | Docker disk default 10 GB | Recreate with `DOCKER_SANDBOXES_DOCKER_SIZE=40g` (`/sbx --stack`) |
 | `sbx daemon start` stays in the foreground ("not daemonized") | Foreground is the default | `sbx daemon start -d` |
 | `sbx ls` or `run`: not authenticated | Docker login expired | `sbx login` |
-| `git push` inside: `Host key verification failed` | No known_hosts entry for the git host in the sandbox, no TTY to accept one | Host-key kit (Git hosts); existing sandbox: `sbx kit add` |
+| `git push` inside: `Host key verification failed` | No known_hosts entry for the git host in the sandbox, no TTY to accept one | Host-key kit (Git hosts); existing sandbox: `sbx kit add`. Inside, never `ssh-keyscan`: the agent may be in a stale sandbox without git auth; `sandbox.sh check <name>` on the host warns about other sandboxes on the same worktree or the main checkout |
 | `git push` inside: `Permission denied (publickey)` | Host's ssh-agent empty or not running in the terminal that attached | `ssh-add ~/.ssh/<key>`, check `ssh-add -l`, attach again |
 | `git push` over HTTPS to GitLab inside: `HTTP Basic: Access denied` or a prompt for a password | The proxy cannot inject Basic auth for GitLab | SSH remote plus `gitlab-ssh` kit (Git hosts) |
 | `sbx create`/`kit add` refuses a kit from `github.com/docker/…` | `kit.allowedSources` does not list it | `sbx settings set kit.allowedSources '["docker.io/","github.com/docker/"]'` |

@@ -1,6 +1,6 @@
 ---
 name: sbx
-description: "Moves Claude Code work into a Docker Sandbox (sbx): by default on the current checkout and branch, or on a new worktree branch or a private clone; the sandbox with the repo's kit and git push over SSH, checks it and prints the line to attach; can carry the user's Claude Code harness; tears it down after the merge. Invoke as /sbx, /sbx <type>/<name>, /sbx --clone, /sbx harness, /sbx --done <name>. Background: engineering-standards references/agent-sandbox.md."
+description: "Moves Claude Code work into a Docker Sandbox (sbx): by default on a worktree (from the main checkout: ../<repo>-sbx on branch sbx/idle; from a linked worktree: that worktree), or on a new worktree branch or a private clone; the sandbox with the repo's kit and git push over SSH, checks it and prints the line to attach; can carry the user's Claude Code harness; tears it down after the merge. Invoke as /sbx, /sbx <type>/<name>, /sbx --clone, /sbx harness, /sbx --done <name>. Background: engineering-standards references/agent-sandbox.md."
 disable-model-invocation: true
 ---
 
@@ -14,7 +14,7 @@ The script is `<this skill>/scripts/sandbox.sh`. Its lines start with `OK`, `WAR
 
 Argument `$ARGUMENTS`, one of:
 
-- empty (the default): a sandbox for the current checkout or worktree, on the branch that is checked out. No new branch or worktree: the sandbox mounts the same files, so work just moves into it. Do not ask for a branch name
+- empty (the default): one sandbox on one worktree. From the main checkout: the worktree `../<repo>-sbx` on the idle branch `sbx/idle` (cut from the base branch, no upstream, never pushed) and the sandbox `claude-<repo>-sbx`, both reused when they exist; issues then get their own branches inside it. From a linked worktree: that worktree, on the branch checked out there. Never the main checkout itself. Do not ask for a branch name
 - `<type>/<short-name>`: new worktree on a new branch, plus its sandbox (parallel work next to the current checkout)
 - `--clone`: a sandbox on a private clone of the repo, nothing on the host checkout changes
 - `--done <sandbox-name>`: tear down after the work is merged
@@ -30,7 +30,7 @@ Argument `$ARGUMENTS`, one of:
 1. **Preflight.** `bash <this skill>/scripts/sandbox.sh preflight`. On `FAIL`, stop and give the user the one fix from the output: install sbx, `sbx daemon start -d`, or `sbx login` in their own terminal (device code in the browser, confirm promptly). Continue when preflight passes. Its harness line: `INFO no Claude Code harness kit` or `WARN … stale` / `new since the last selection`: run the Harness flow below **before creating** (one question, "Build the harness kit first" recommended; skip only on the user's no or `--no-harness`). Kits are fixed at creation: adding the harness later takes `sbx kit add`, which recreates the container and ends a running session. Without it the sandbox gets a bare Claude Code.
 2. **Branch name** (only for `<type>/<short-name>`): the same rules as `/branch`: `<type>` is a commit type of the engineering-standards profile, `<short-name>` lowercase kebab-case; propose a correction and ask once if needed. Base branch: the one the repo's CLAUDE.md names; otherwise the script uses `develop` if it exists, else the remote default. Pass `--base <branch>` when the CLAUDE.md names one.
 3. **Create.**
-   - Current checkout (no argument): `bash <this skill>/scripts/sandbox.sh create` (from inside it), or `--path <dir>`.
+   - Default (no argument): `bash <this skill>/scripts/sandbox.sh create`. From the main checkout it creates or reuses `../<repo>-sbx` on `sbx/idle` (pass `--base <branch>` as below); a folder of that name that is not a worktree of this repo is refused. From a linked worktree it mounts that worktree. `--path <dir>` mounts a given checkout; `--path` on the main checkout is the only way to mount it directly, and `check` then warns about it, so offer it only when the user insists.
    - New branch: `bash <this skill>/scripts/sandbox.sh create --branch <type>/<short-name> [--base <branch>]`. The worktree goes next to the main checkout as `../<repo>-<short-name>`.
    - Clone: `bash <this skill>/scripts/sandbox.sh create --clone`.
 
@@ -53,6 +53,8 @@ Argument `$ARGUMENTS`, one of:
    - `WARN host service … nothing listening`: a service the kit points at is not running on the host. Name the host command that starts it (from the repo's CLAUDE.md), for the user to run; the sandbox itself is fine.
    - `WARN host service … blocked by policy`: the port is missing from the kit's allow list.
    - `WARN branch: <base> has N commit(s) touching the kit, … that this branch lacks`: the branch was cut before sandbox setup (kit, compose overlays, Taskfile tasks, CLAUDE.md) reached the base, so the agent inside would improvise around tasks it cannot see. Offer to merge the base branch into it before attaching; never merge without the user's agreement.
+   - `WARN sandbox <other> also mounts <worktree>`: a second sandbox works in the same worktree, so two agents overwrite each other's files. On create this is `FAIL sandbox <other> already mounts <worktree>` with exit code 6 and nothing is created: offer to attach to that sandbox instead. Either way the fix is the printed `sbx rm <other>`, once its work is committed and pushed (check `git status` and `git log @{upstream}..` in that worktree with the user first).
+   - `WARN sandbox <name> mounts the main checkout <path> directly, not a worktree`: that sandbox's branch switches and commits change the host's own checkout. Ask the user to make sure its work is committed and pushed, then hand over the printed `sbx rm <name>`, and move the work to a worktree (`/sbx <type>/<name>`). `/sbx` creates such sandboxes only with an explicit `--path <main checkout>`; otherwise it is an older sandbox.
    - `WARN sandbox … already exists`: kit and mounts are fixed at creation; offer `--recreate` if the kit or mounts changed, otherwise just attach.
    - A new worktree has no ignored files (`.env`, decrypted secrets, local settings). If the repo needs them, name which ones, and copy them from the main checkout once the user agrees; they are then readable inside the sandbox.
    - `WARN host key … from ssh-keyscan (trust on first use)`: show the fingerprint and ask the user to compare it with the server's (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the server, or the fingerprint the git host publishes). On a mismatch: `sandbox.sh done <name> --force` and create again with `--host-key`. `OK host key … from your known_hosts` means the user's machine already trusts it.
@@ -64,7 +66,7 @@ Argument `$ARGUMENTS`, one of:
    - With `--stack`: `WARN no compose overlay` means containers inside will not reach external services. Offer to add the overlay from engineering-standards `references/agent-sandbox.md` (Stack inside the sandbox) and the external hosts to the kit, committed on the base branch with the owner's agreement.
 7. **Hand over** in a short block:
    - The attach line from `ATTACH:` alone in a code block, for a terminal (not with `!`, it is interactive). The first start inside may ask for `/login`.
-   - Where it runs: branch and folder; commits made inside land on that branch on the host at once.
+   - Where it runs: worktree folder and branch (by default `../<repo>-sbx` on `sbx/idle`; the agent switches to a new branch per issue there, the main checkout stays on its branch); commits made inside land on that branch on the host at once.
    - The split, briefly. Without `--stack`: inside the sandbox the agent edits, lints, type-checks and runs unit tests; the Docker stack, migrations and end-to-end tests run on the host, and a stack started from a worktree uses the same compose project and database as the main checkout unless started with its own `-p` and ports. With `--stack`: the agent builds, starts and tests the stack inside the sandbox with the overlay (the commands from the repo's CLAUDE.md); the first build takes minutes, later test rounds are fast, and the host stack is untouched.
    - Git: with the git setup `OK`, the agent pushes and pulls inside with plain `git`; first test inside: `ssh -T git@<host>` (SSH) or `git ls-remote origin`. Otherwise `git push` runs on the host.
    - Back later: the same `sbx run --name …` line. Done: `/sbx --done <name>`.
@@ -113,7 +115,7 @@ The sandbox's Claude Code starts bare: no plugins, no user CLAUDE.md, default se
    - `FAIL local kits are disabled`: the printed `sbx settings set kit.allowLocalKits true`, for the user's terminal.
 5. New sandboxes get it on create. Existing ones: `sbx kit add <name> <kit-dir>` (recreates the container, keeps state). `check` reports a stale kit, new candidates and a sandbox older than the kit.
 
-What it carries: an "Inside a Docker Sandbox" section appended to the sandbox's `CLAUDE.md` (pointer to `references/agent-sandbox.md`, tools in containers, `~/.local/bin` on PATH, memory stays on the host), always, even when the host's `CLAUDE.md` is left out; marketplaces (`claude plugin marketplace add`) and enabled plugins (`claude plugin install --scope user`) as the agent user at creation; `~/.claude/CLAUDE.md`, user agents, commands and output styles; the status line script; selected skills; an allowlist of settings keys merged into the agent's existing `settings.json`. Never: credentials, `~/.claude.json`, history, projects or memory, `env`, `permissions`, `hooks`, MCP configs. Files that look like they hold a secret are refused.
+What it carries: an "Inside a Docker Sandbox" section appended to the sandbox's `CLAUDE.md` (pointer to `references/agent-sandbox.md`, tools in containers, `~/.local/bin` on PATH, memory stays on the host, report `Host key verification failed` instead of trusting a scanned key), always, even when the host's `CLAUDE.md` is left out; marketplaces (`claude plugin marketplace add`) and enabled plugins (`claude plugin install --scope user`) as the agent user at creation; `~/.claude/CLAUDE.md`, user agents, commands and output styles; the status line script; selected skills; an allowlist of settings keys merged into the agent's existing `settings.json`. Never: credentials, `~/.claude.json`, history, projects or memory, `env`, `permissions`, `hooks`, MCP configs. Files that look like they hold a secret are refused.
 
 Troubleshooting: `WARN harness install: marketplace … SSH host key is not in your known_hosts`: Claude Code fell back from HTTPS to SSH after the HTTPS clone failed, usually git submodules on a host the kit does not allow, or a very large clone. `sbx policy log <name>` names the host; add it to `networkAllow` in the selection, or leave the marketplace off (marketplaces without an enabled plugin are off by default). A plugin whose install runs a marketplace-declared command is not confirmed automatically (no `-y`); it shows up as failed and is installed by hand inside.
 
@@ -123,7 +125,7 @@ Troubleshooting: `WARN harness install: marketplace … SSH host key is not in y
 
 ## Rules
 
-- One sandbox per worktree. Two agents in one worktree overwrite each other's files.
+- One sandbox per worktree, and none on the main checkout (plain `/sbx` makes a worktree for that reason). Two agents in one worktree overwrite each other's files. `create` refuses a worktree another sandbox already mounts (exit 6), and `check` compares every sandbox's workspaces, not just the named one's, so a stale sandbox on the same worktree or the main checkout shows up as a `WARN`.
 - Never mount the host Docker socket; never put secrets into the kit or the command line.
 - The harness kit is personal: it stays outside every repo, and it is rebuilt from the user's host config, never edited by hand except `harness.selection.json`.
 - Never mount `~/.ssh` or copy a private key into a sandbox; SSH goes through the forwarded agent. For git over HTTPS to a host other than github.com, no custom secret, `insteadOf`, `http.extraHeader` or credential helper: they cannot work through the proxy or put the token inside.

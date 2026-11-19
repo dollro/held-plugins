@@ -6,6 +6,8 @@
 #   sandbox.sh preflight
 #   sandbox.sh harness [--out <dir>] [--yes]
 #   sandbox.sh create [--branch <type>/<name>] [--base <branch>] [--path <dir>]
+#                     (no --branch/--path from the main checkout: worktree
+#                      ../<repo>-sbx on branch sbx/idle, reused if it exists)
 #                     [--kit <dir>] [--clone] [--recreate]
 #                     [--stack [--docker-size 40g] [--memory 12g]]
 #                     [--no-git-auth] [--host-key '<alg> <base64>'] [--no-harness]
@@ -15,7 +17,8 @@
 # Output lines start with OK, WARN, FAIL, INFO or ATTACH. Exit codes:
 # 0 ok, 1 usage/error, 2 preflight failed, 3 no kit found,
 # 4 git auth prerequisite missing (fix printed; or pass --no-git-auth),
-# 5 harness selection needs review (edit harness.selection.json, then --yes).
+# 5 harness selection needs review (edit harness.selection.json, then --yes),
+# 6 another sandbox already mounts the worktree (create only).
 set -uo pipefail
 
 # Docker's contributed kits that pin a git host's SSH key in the sandbox; the
@@ -40,6 +43,58 @@ sbx_workspace() {  # first (primary) workspace of a sandbox
 n=sys.argv[1]
 for b in json.load(sys.stdin).get("sandboxes",[]):
     if b["name"]==n and b.get("workspaces"): print(b["workspaces"][0])' "$1"
+}
+
+# sbx_mounts: "<sandbox>\t<workspace>" per workspace of every sandbox; nothing
+# when sbx ls fails or its JSON does not parse.
+sbx_mounts() {
+  sbx ls --json 2>/dev/null | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: sys.exit(0)
+for b in d.get("sandboxes") or []:
+    for w in b.get("workspaces") or []: print(b.get("name",""), w, sep="\t")' 2>/dev/null
+}
+
+abspath() { (cd "$1" 2>/dev/null && pwd -P) || printf '%s\n' "${1%/}"; }
+
+# mounts_check <sandbox> <workspace> [create]: one sandbox per worktree, checked
+# against all sandboxes, not just the named one. Warns when another sandbox
+# mounts the same worktree (create refuses: FAIL, return 1) and when any sandbox
+# mounts this repo's main checkout directly instead of a worktree. A workspace
+# equal to the repo's .git is the shared second mount of every linked worktree,
+# no conflict; clone-mode sandboxes (remote sandbox-<name>) work on a private
+# copy and are skipped. Prints an OK only in check mode.
+mounts_check() {
+  local self=$1 mode=${3:-check} ws root n w hit=0 k v
+  ws=$(abspath "$2")
+  root=$(cd "$ws" 2>/dev/null && main_root) || return 0
+  root=$(abspath "$root")
+  local -A checkout=(["$root"]=1)
+  while read -r k v; do
+    [ "$k" = worktree ] && checkout[$(abspath "$v")]=1
+  done < <(git -C "$root" worktree list --porcelain 2>/dev/null)
+  while IFS=$'\t' read -r n w; do
+    [ -n "$n" ] && [ -n "$w" ] || continue
+    w=$(abspath "$w")
+    [ "$w" = "$root/.git" ] && continue
+    [ -n "${checkout[$w]:-}" ] || continue
+    git -C "$root" remote get-url "sandbox-$n" >/dev/null 2>&1 && continue
+    local fix="Make sure its work is committed and pushed, then: sbx rm $n"
+    if [ "$n" != "$self" ] && [ "$w" = "$ws" ]; then
+      hit=1
+      if [ "$mode" = create ]; then
+        fail "sandbox $n already mounts $w: two agents in one worktree overwrite each other's files. $fix; or attach to it: sbx run --name $n"
+        return 1
+      fi
+      warn "sandbox $n also mounts $w: two agents in one worktree overwrite each other's files. $fix"
+    fi
+    if [ "$w" = "$root" ]; then
+      hit=1
+      warn "sandbox $n mounts the main checkout $w directly, not a worktree: its branch switches and commits change the host's checkout. $fix (work in a worktree: /sbx <type>/<name>)"
+    fi
+  done < <(sbx_mounts)
+  [ $hit -eq 0 ] && [ "$mode" = check ] && ok "workspace: no other sandbox mounts $ws, none mounts the main checkout"
+  return 0
 }
 
 main_root() {
@@ -401,7 +456,26 @@ cmd_create() {
         git -C "$root" worktree add -q -b "$branch" "$ws" "$base" || die "git worktree add failed"
         ok "worktree $ws on new branch $branch from $base"
       fi
+    elif [ -z "$path" ] && [ "$(abspath "$(git rev-parse --show-toplevel)")" = "$(abspath "$root")" ]; then
+      # From the main checkout: one sandbox, one worktree. The idle branch has
+      # no upstream and is never pushed; issues get their own branches inside.
+      ws="$(dirname "$root")/${repo}-sbx"
+      if [ -e "$ws" ]; then
+        git -C "$root" worktree list --porcelain | grep -qxF "worktree $(abspath "$ws")" \
+          || die "$ws exists and is not a worktree of this repo; move it or pass --path <dir>"
+        ws=$(abspath "$ws")
+        ok "worktree $ws exists (on $(git -C "$ws" branch --show-current 2>/dev/null || echo 'detached HEAD')): reusing it"
+      elif git -C "$root" show-ref -q --verify refs/heads/sbx/idle; then
+        git -C "$root" worktree add -q "$ws" sbx/idle || die "git worktree add failed"
+        ok "worktree $ws on existing branch sbx/idle"
+      else
+        base=${base:-$(cd "$root" && default_base)}
+        git -C "$root" worktree add -q --no-track -b sbx/idle "$ws" "$base" || die "git worktree add failed"
+        ok "worktree $ws on new branch sbx/idle from $base (no upstream, never pushed)"
+      fi
     else
+      # --path, or plain create from inside a linked worktree. --path <main
+      # checkout> is the only way to mount the main checkout itself (check warns).
       ws=${path:-$(git rev-parse --show-toplevel)}
       ws=$(cd "$ws" && pwd)
     fi
@@ -412,6 +486,7 @@ cmd_create() {
     fi
   fi
   name=$(echo "$name" | tr -c 'A-Za-z0-9.\n-' '-')
+  if [ $clone -eq 0 ]; then mounts_check "$name" "$ws" create || exit 6; fi
 
   if sbx_exists "$name"; then
     if [ $recreate -eq 1 ]; then
@@ -485,6 +560,7 @@ cmd_check() {
       fi
     done < <(kit_env "$kit")
   fi
+  mounts_check "$name" "$ws"
   git_check "$name" "$ws"
   api_check "$ws"
   branch_check "$ws"
@@ -529,5 +605,5 @@ case "${1:-}" in
   create) shift; cmd_create "$@" ;;
   check) shift; cmd_check "$@" ;;
   done) shift; cmd_done "$@" ;;
-  *) sed -n '2,18p' "$0"; exit 1 ;;
+  *) sed -n '2,21p' "$0"; exit 1 ;;
 esac

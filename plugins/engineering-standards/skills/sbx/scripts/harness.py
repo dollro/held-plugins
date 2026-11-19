@@ -43,6 +43,7 @@ You run inside an `sbx` sandbox (`$SANDBOX_NAME` is set). Before working around 
 - Use the repo's sandbox-aware tasks (CLAUDE.md, Taskfile) before composing commands by hand. If the repo's CLAUDE.md names tasks this branch lacks, the branch predates them: say so, and merge the base branch only with the user's agreement.
 - Tools the sandbox lacks (pnpm, Playwright browsers, a newer runtime) run in containers, not installed here: the image CI uses, pinned to the project's version. Node tools already installed run from `node_modules/.bin/<tool>`.
 - Tools installed with uv or pipx land in `~/.local/bin`; git hooks and non-login shells may not have it on PATH. Call them by full path and tell the user the kit should link them into `/usr/local/bin`.
+- `git push`/`fetch` fails with `Host key verification failed`: do not run `ssh-keyscan` or trust a key you cannot verify. Tell the user `$SANDBOX_NAME` and your workspace path, since this may be a sandbox created without git auth or a stale one; they run `sandbox.sh check <name>` on the host.
 - The host's auto-memory does not exist here. A fact you had to rediscover belongs in the repo's CLAUDE.md: propose the line.
 """
 KIT_NAME = "claude-harness"
