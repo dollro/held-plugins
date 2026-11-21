@@ -3,7 +3,8 @@
 # compose.deploy.yml behind a throwaway Traefik, on the local Docker daemon.
 # Catches what tests on development images miss (static files missing from the
 # image, 500 instead of 404 with DEBUG off, dead account pages, a missing user
-# or group in the image, hosts or secure-cookie settings).
+# or group in the image, hosts or secure-cookie settings, a volume the app
+# user cannot write to).
 #
 # Usage (Task: task release:smoke [REGISTRY=... VERSION=...]):
 #   scripts/smoke.sh                         build the images locally, then test
@@ -128,4 +129,19 @@ docker run --rm -i --network "$NETWORK" --entrypoint python \
   -e SMOKE_HOST="$HOST" -e SMOKE_PROXY="$TRAEFIK" -e SMOKE_VERSION="$APP_VERSION" \
   -e SMOKE_ADMIN=smoke-admin/ \
   "$REGISTRY/__PROJECT__-django:$APP_VERSION" - < scripts/smoke_checks.py
+
+# ── Volumes: every writable named volume takes a write as the container's user
+# Health checks pass while a volume is root-owned (mount point missing in the
+# image): nothing writes there until the first upload. Read-only mounts skipped.
+info "checking that writable volumes accept writes"
+for cid in $(dc ps -q); do
+  name="$(docker inspect --format '{{.Name}}' "$cid")"
+  user="$(docker inspect --format '{{.Config.User}}' "$cid")"
+  while read -r dest; do
+    [[ -n "$dest" ]] || continue
+    docker exec "$cid" sh -c 'p="$1/.smoke-write-check"; : > "$p" && rm -f "$p"' sh "$dest" \
+      || die "${name#/}: user ${user:-root} cannot write to volume $dest (create the mount point in the image owned by that user: install -d)"
+    info "  ${name#/}: $dest writable as ${user:-root}"
+  done < <(docker inspect --format '{{range .Mounts}}{{if and (eq .Type "volume") .RW}}{{println .Destination}}{{end}}{{end}}' "$cid")
+done
 info "smoke test passed"
