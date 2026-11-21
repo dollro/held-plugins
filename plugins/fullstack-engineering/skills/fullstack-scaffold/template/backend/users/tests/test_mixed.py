@@ -1,6 +1,7 @@
 import pytest
-from allauth.account.internal.flows.login import AUTHENTICATION_METHODS_SESSION_KEY
+from allauth.account.internal.flows.login import record_authentication
 from allauth.socialaccount.models import SocialAccount
+from django.test import RequestFactory
 
 from backend.conftest import log_in, logged_in_as, make_user
 
@@ -46,16 +47,18 @@ def test_staff_password_login_works_without_sso(client, staff, settings):
     assert logged_in_as(client) == staff.email
 
 
-def mark_session(client, method: str) -> None:
-    session = client.session
-    session[AUTHENTICATION_METHODS_SESSION_KEY] = [{"method": method, "at": 0}]
-    session.save()
+def mark_session(client, user, method: str) -> None:
+    """Record the login method the way allauth does, bound to this user."""
+    request = RequestFactory().get("/")
+    request.session = client.session
+    record_authentication(request, user, method)
+    request.session.save()
 
 
 def test_sso_sessions_get_mfa_from_the_provider(client, linked, settings):
     settings.MFA_REQUIRED = True
     client.force_login(linked)
-    mark_session(client, "socialaccount")
+    mark_session(client, linked, "socialaccount")
     assert logged_in_as(client) == linked.email
 
 
@@ -63,5 +66,5 @@ def test_a_password_session_of_a_linked_user_still_needs_mfa(client, linked, set
     # The exemption follows how the session authenticated, not the provider link.
     settings.MFA_REQUIRED = True
     client.force_login(linked)
-    mark_session(client, "password")
+    mark_session(client, linked, "password")
     assert logged_in_as(client) is None
