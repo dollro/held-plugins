@@ -83,7 +83,7 @@ The release is created from the pipeline that tested the commit, so the tag pipe
   - **Set:** a new admin gets it; an existing admin whose password differs is updated to it, so a changed variable takes effect on the next deploy or start. An unchanged password keeps its hash (`check_password` first), so sessions survive. It must pass Django's password validators and is never printed.
   - **Unset:** a new admin gets an unusable password and the owner sets one through password reset (the safer default where production mail works: no admin password stored anywhere); an existing admin's password is left alone.
   - An existing non-admin with that email is never promoted.
-  - A weak password, an existing non-admin with that email or a username clash fails the command, on purpose: on a deploy it runs after migrate and before `up`, so the deploy stops and the previous release keeps serving; on a dev start it stops the container. The log names the reason, never the password.
+  - A weak password, a non-admin with that email or a username clash fails the command on purpose: a deploy stops before `up`, so the previous release keeps serving.
 
 ## Build cache
 
@@ -96,12 +96,9 @@ The release is created from the pipeline that tested the commit, so the tag pipe
 
 ## Build steps that stay fast on a fresh daemon
 
-Docker-in-Docker builders start empty: every step after a changed layer pulls and unpacks its parents.
-
-- **Dependencies before code, code `COPY` late,** and parent layers small. A cold or busted cache gives every layer a new digest, so every test job then pulls the whole image again: order layers for cache hits and keep the per-branch cache warm.
-- **No recursive `chown` over `node_modules` or a virtualenv** (minutes on a fresh daemon); `COPY --chown` instead.
-- **Clean build output in the same `RUN` as the compile** (`target/`, sources, caches): a later `rm` keeps the bytes in the earlier layer.
-- **No `npx <tool>@latest` or other floating fetches in a Dockerfile:** a cache miss on every build and not reproducible. Keep `docs/`, `plans/` and env files out of the build context (`.dockerignore`).
+- **Dependencies before code, code `COPY` late, parent layers small:** builders start empty, and a busted cache makes every test job pull the whole image again.
+- **No recursive `chown` over dependency trees** and no build output left for a later `rm`: use `COPY --chown` and clean up in the same `RUN`.
+- **No floating fetches in a Dockerfile** (`@latest`): every build misses the cache and is not reproducible.
 
 ## Registry cleanup
 
@@ -124,8 +121,7 @@ Per-commit tags pile up (several per commit and repository). A daily cleanup pol
 - **Trigger jobs forward variables that beat the child's job variables.** A global `DOCKER_TLS_CERTDIR: ""` overrode the build job's `/certs` and the child's Docker-in-Docker client missed its daemon. List what the child needs with `inherit: variables: [...]`.
 - **Services start before the checkout** but see `/builds`; a service that reads code from it can start on a previous job's files. Running services from the image removes the problem.
 - **Non-root job images** cannot install tools to `/usr/local/bin`: install into a directory in the checkout and put it on `PATH`.
-- **Writing to `/builds` from a non-root job image depends on the runner's umask** (default 0000 makes the checkout world-writable; a hardened runner may not). Write reports and caches to a directory the job creates, or set the umask in the runner config.
-- **A service without an exposed port** logs "service didn't start properly" in every job: harmless, but it trains people to ignore service warnings. Expose the port in the image or note it in the job.
+- **Non-root job images write to the checkout only if the runner's umask allows it;** write to a directory the job creates.
 
 ## Runner-location agnostic
 
