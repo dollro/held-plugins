@@ -14,7 +14,17 @@ Official pages behind `agent-sandbox.md`, checked October 2026 (sbx 0.47, MCP sp
 - Environment files (`sbxenv.yaml`): https://docs.docker.com/ai/sandboxes/configuration/environment-files/
 - Credentials (service secrets, `github` service, `gh auth token`, SSH agent forwarding for git): https://docs.docker.com/ai/sandboxes/security/credentials/
 - Contributed kits: https://github.com/docker/sbx-kits-contrib (`gitlab-ssh/README.md`, `github-ssh/README.md`, `gitlab/README.md`, `gitea/README.md`)
+- SSH access (`sbx setup ssh`, experimental): https://docs.docker.com/reference/cli/sbx/setup/ssh/ and https://docs.docker.com/ai/sandboxes/integrations/
+- Cloud sandboxes (`--cloud`, TTL, attach, SSH to `<id>@sbx_cloud`): https://docs.docker.com/ai/sandboxes/cloud/usage/ and https://docs.docker.com/agentic-platform/guides/remote-development/
 - GitLab git-over-HTTP auth (Basic with the token as password, or Kerberos): https://docs.gitlab.com/user/profile/personal_access_tokens/ and `app/controllers/repositories/git_http_client_controller.rb` in https://gitlab.com/gitlab-org/gitlab
+
+### Reaching the agent from the host: notes as of 2026-11-21 (sbx 0.47, Claude Code 2.1.329)
+
+- Observed: `sbx exec <name>` runs as `agent` with the primary workspace as working directory; `claude` at `/home/agent/.local/bin/claude`; `SBX_CRED_ANTHROPIC_MODE=none` (login stored inside).
+- Observed: `printf '%s' "<prompt>" | sbx exec -i <name> claude -p --output-format json --permission-mode bypassPermissions` returned `result`, `session_id`, `is_error`, `total_cost_usd`; a second call with `--resume <session_id>` remembered the first; `pgrep -x claude` inside matches a running `claude -p`.
+- Observed: without an accepted trust dialog, `claude -p` printed `Ignoring … permissions.allow entries from .claude/settings.json: this workspace has not been trusted`.
+- Claude Code cross-session messaging (other machines need claude.ai login and Remote Control): https://code.claude.com/docs/en/cross-session-messaging; Remote Control: https://code.claude.com/docs/en/remote-control; channels: https://code.claude.com/docs/en/channels; headless and `--resume`: https://code.claude.com/docs/en/sessions
+- Third-party walkthrough of `sbx setup ssh` (written for v0.37 nightly, syntax changed since): https://www.ajeetraina.com/ssh-straight-into-your-agent-sandboxes-a-hands-on-look-at-sbx-ssh/
 
 ### Git push from a sandbox: notes as of 2026-10-10 (sbx 0.47)
 
