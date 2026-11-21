@@ -32,6 +32,42 @@ Sections in this order:
 | `## Planning` | Where plans live (the issue tracker) and that `plans/` is only for temporary files | "Plans and decisions go on the tracker issue. `./plans/<branch-name>/` is for temporary files only, not authoritative." |
 | `## Agent practices` | One line pointing at the live official guidance as recommended reading; the repo's own rules win | "Recommended reading: https://code.claude.com/docs/en/best-practices (live; this file and the repo's standards take precedence; raise real conflicts with the team)." |
 
+## Sections for repos where agents work
+
+When agents (a sandboxed one, a host session or both) take issues from the tracker, the root CLAUDE.md carries three more sections, because agents read CLAUDE.md every session and a skill loads only when it triggers. Concrete names come from the profile (E5); the rationale is in `autonomous-runs.md` (sections 9 and 10) and `agent-sandbox.md`.
+
+| Section | Content |
+|-|-|
+| `## Sandbox` | One generic sandbox worktree and its attach line; issues worked one after another in it; per issue a fresh branch from the integration branch; no merging by the agent; how the agent reads pull request and pipeline status (which MCP server) and what to do when it is missing |
+| `## Git` (addition) | Trailer `Refs: <KEY>-<n>` on every commit that belongs to an issue |
+| `## Issue Tracker` | Tracker and its tool prefix, project key; columns selected by state type, never by name; the Worker field and its names; the "grab your issue" procedure; what to do when the tracker is unreachable |
+
+Template (replace the placeholders; keep it this short):
+
+```markdown
+## Sandbox
+
+- **One generic sandbox:** worktree `../atlas-sbx`, sandbox `claude-atlas-sbx` (attach: `sbx run --name claude-atlas-sbx`). Issues are worked one after another inside it, never in parallel.
+- **Per issue:** `git fetch origin && git switch -c <type>/acme-<n>-<short-name> origin/develop`; commit and push only that branch, open a pull request into `develop`.
+- **No merging by the agent:** never merge, never push to `develop` or `main`, never remove Draft. After a review asking for fixes: push them, wait for green, reply "Fixes applied in <commit>" under the review comment.
+- **Pipeline status:** read via the <git host> MCP server. If it is missing, name it and hand the human the command to add it.
+- When the pull request is open and green, move the issue to `In Review` and continue with the next issue.
+
+## Git
+
+When a commit belongs to a tracker issue, add a trailer line `Refs: ACME-<n>`.
+
+## Issue Tracker
+
+<Tracker> (`mcp__<tracker>__*` tools) is the issue tracker, project key `ACME`.
+
+- Before starting, find the matching `ACME-<n>` issue; create one for non-trivial work that has none.
+- Move issues by the column's state type (`started`, `completed`, `canceled`), never by column name.
+- **Worker field:** the owner is assignee; the custom field `Worker` names the agent: `atlas` (sandbox, `$SANDBOX_NAME` set) or `host`. Work only on your own issues; no Worker means the owner hands it out. New issues get issue type `<id>` and a Worker; work needing both agents is two issues.
+- **"Grab your issue":** search by your Worker name, confirm the field exactly, drop completed, canceled and blocked issues, skip `In Review` unless its review asks for fixes, take the highest priority (a started one first). Say which and why.
+- Tracker unreachable: say so, continue, list the owed updates in the final message.
+```
+
 ## Component CLAUDE.md
 
 One per component directory (`client/CLAUDE.md`, `webapp/CLAUDE.md`):
