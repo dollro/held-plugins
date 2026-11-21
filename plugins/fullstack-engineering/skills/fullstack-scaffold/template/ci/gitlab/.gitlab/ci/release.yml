@@ -116,8 +116,10 @@ smoke_release:
     - task release:smoke REGISTRY="$RELEASE_REGISTRY" VERSION="$CI_COMMIT_TAG"
 
 # Never interruptible. One deploy per environment at a time (resource_group).
-# "Prevent outdated deployment jobs" stops a stale pipeline; only an explicit
-# re-run deploys an older tag, so ROLLBACK=1 here lets that re-run through.
+# ROLLBACK=1 lets an explicit re-run deploy an older tag. It is only safe with
+# the project setting "Prevent outdated deployment jobs" ON (Settings > CI/CD >
+# General pipelines), which stops a stale pipeline from deploying; preflight
+# cannot check that setting, so turn it on before the first deploy (docs/ci.md).
 # Deploys only over SSH (scripts/deploy.sh): the runner can be anywhere.
 .deploy:
   stage: deploy

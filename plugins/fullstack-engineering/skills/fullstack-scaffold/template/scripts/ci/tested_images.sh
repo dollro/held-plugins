@@ -102,7 +102,9 @@ reuse() {
       echo "No $(repo "$name"):$(tested_tag "$name"): build"
       rm -f "$out.part"; return 3
     fi
-    echo "$(digest_var "$name")=$("$REGCTL" image digest "$(repo "$name"):$(tested_tag "$name")")" >>"$out.part"
+    digest="$("$REGCTL" image digest "$(repo "$name"):$(tested_tag "$name")")" \
+      || { echo "Cannot read the digest of $(repo "$name"):$(tested_tag "$name")" >&2; rm -f "$out.part"; return 1; }
+    echo "$(digest_var "$name")=$digest" >>"$out.part"
   done
   mv "$out.part" "$out"
   echo "$(commit) is tested already: reusing its images"

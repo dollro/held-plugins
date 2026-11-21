@@ -1,9 +1,9 @@
 """Keep the admin account in line with the env: DJANGO_SUPERUSER_EMAIL (required),
 DJANGO_SUPERUSER_USERNAME and DJANGO_SUPERUSER_PASSWORD (both optional).
 
-Runs after migrate on every deploy (scripts/deploy.sh), on every start of the
-local stack, and from the optional manual admin job. Dev, staging and production
-use the same command and keys. Idempotent:
+Runs after migrate on every deploy (scripts/deploy.sh) and on every start of
+the local stack; redeploying the same tag applies a changed password. Dev,
+staging and production use the same command and keys. Idempotent:
 
 - DJANGO_SUPERUSER_PASSWORD set: the source of truth. A new admin gets it; an
   existing admin whose password differs is updated, so a changed value takes

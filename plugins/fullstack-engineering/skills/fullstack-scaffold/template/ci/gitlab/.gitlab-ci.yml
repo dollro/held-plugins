@@ -66,8 +66,7 @@ lint:
     - task check:types:baseline BRANCH="$CI_DEFAULT_BRANCH"
     - task test:scripts
 
-# TODO: run docs and frontend in plain uv/node job images once that is shorter
-# than this; for now they use the compose dev stack like developers do.
+# docs and frontend use the compose dev stack, like developers do (docs/ci.md).
 docs:
   stage: check
   extends: [.docker, .checks]

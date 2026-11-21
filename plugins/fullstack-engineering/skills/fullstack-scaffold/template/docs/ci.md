@@ -39,7 +39,7 @@ Jobs are ordered by `needs:`, not by stages; build and test jobs are interruptib
 - `test_backend` and `typecheck` run in the test image by digest from `/app` (the image's code, not the checkout), Postgres and Redis as services.
 - `test_e2e` runs in the Playwright image; the app runs as services from the production images by digest, Caddy and the specs run in the job (`scripts/e2e_job.sh`).
 - Pitfalls handled: per-commit digests (a cached mutable tag would stand in for a new image), app services never read the checkout (services start before the clone), tools for non-root images come from `build_images` as artifacts in `.cache/bin`, writing to the checkout needs a runner umask that allows it.
-- `docs` and `frontend` still use the compose stack in Docker-in-Docker.
+- `docs` and `frontend` still use the compose stack in Docker-in-Docker. Moving them to plain uv/node job images saves the image pulls; do it when that keeps the CI file as short as it is now.
 
 ## Type checking
 
