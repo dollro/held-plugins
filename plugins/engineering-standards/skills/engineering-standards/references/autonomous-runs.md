@@ -175,3 +175,32 @@ Rules for every agent that works on a repo other people and agents also use. Put
 - **Time box and heartbeat.** Every agent gets an explicit time box in the prompt. It commits and pushes before it starts a long check, so finished work is never lost to a stalled session. Seen in practice: an agent finished its fix and then sat idle for hours, uncommitted and unreported.
 - **Check state, don't wait on the agent.** The person or orchestrator looks at the agent's worktree, branch and pipeline (`git -C <worktree> status`, `git log`, the pull request's checks) rather than waiting for a reply.
 - **The tracker is the hand-off channel to sandboxed agents.** A sandboxed session usually cannot receive messages from the host session; prompts go in by hand at launch, and from then on issue state, pull requests and pipelines are the shared state both sides read.
+
+## 10. Who works which issue: the Worker field
+
+With more than one agent on a repo (typically one sandboxed agent and one session on the host), each issue says which agent works it. Names, the field and the issue type are in the profile (E5).
+
+- **The owner stays assignee** of every issue. A text custom field `Worker` names the AI agent that works it: one name for the sandbox agent (e.g. `atlas`), one for the host session (e.g. `host`). The assignee answers for the result; the Worker field only routes the work.
+- **No Worker → the owner's to hand out.** An agent never picks up an issue whose Worker is empty or another agent's name.
+- **Work that needs both agents is split into two issues,** one per Worker, linked with a `blocks` link when one must finish first (e.g. the host session sets up a credential, the sandbox agent builds on it).
+- **New issues get the issue type that carries the field** (profile: issue type id); on another type the field does not exist and the issue cannot be routed. An agent that creates an issue sets the type and a Worker.
+- **Columns by state type, not by name.** Agents move issues by the column's state type (backlog, unstarted, started, completed, canceled), never by the column's display name; names differ per project. The one named column agents need is the review column (profile).
+
+### "Grab your issue"
+
+When told to "grab your issue", the agent picks its next issue itself:
+
+1. **Candidates:** search the tracker for its own Worker name. Text search only gives a candidate list.
+2. **Confirm:** read each candidate and keep it only if the `Worker` field is exactly its name.
+3. **Drop** issues in a completed or canceled column, and issues blocked by one that is not done yet: an inward `blocks` link, or a description saying it starts after another issue.
+4. **Skip** issues in the review column, unless their review asks for fixes (then the fixes are the work).
+5. **Take the highest priority;** an issue the agent already started comes first.
+6. **Say which issue it took and why** (one line: key, priority, what was dropped), then move it to a started column and branch from the integration branch.
+
+### Review on the tracker
+
+The review of an agent's pull request lands on the issue, not only on the pull request, because the sandboxed agent reads the tracker:
+
+- **The reviewer comments on the issue** `Review of !NN: <verdict>` (or `#NN` on GitHub), followed by the fixes needed before merge. Leftovers become new issues. If fixes are needed, the reviewer marks the pull request Draft.
+- **The agent pushes the fixes** on the pull request's branch, waits for a green pipeline and replies under that comment `Fixes applied in <commit>`. It never removes Draft.
+- **The reviewer re-checks** and removes Draft; a person merges. The issue moves to completed with the merge, not before.
