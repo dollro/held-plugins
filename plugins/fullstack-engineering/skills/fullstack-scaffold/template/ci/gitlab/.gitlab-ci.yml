@@ -83,6 +83,15 @@ lint:
   stage: check
   extends: .checks
   image: ghcr.io/astral-sh/uv:python__PYTHON_VERSION__-__DEBIAN_SUITE__
+  # Hook environments and the uv cache survive pipelines, keyed on the files
+  # that pin them: a warm run installs nothing.
+  variables:
+    PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/pre-commit
+    UV_CACHE_DIR: $CI_PROJECT_DIR/.cache/uv
+  cache:
+    key:
+      files: [.pre-commit-config.yaml, uv.lock]
+    paths: [.cache/pre-commit, .cache/uv]
   before_script:
     - export PATH="$BIN:$PATH"
     - apt-get update -qq && apt-get install -y -qq git curl > /dev/null

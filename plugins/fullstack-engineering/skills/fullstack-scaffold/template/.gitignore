@@ -49,3 +49,4 @@ plans/
 .DS_Store
 .idea/
 .vscode/
+caddy.log

@@ -10,7 +10,6 @@ env:
 vars:
   DC: docker compose -f compose.local.yml
   DC_CI: docker compose -f compose.local.yml -f compose.ci.yml
-  DC_E2E: docker compose -f compose.e2e.yml
   RUN: docker compose -f compose.local.yml run --rm
 
 tasks:
@@ -122,14 +121,14 @@ tasks:
       - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run ci:lint"
       - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run ci:test-unit"
 
-  # STACK=local (default): through the dev stack. STACK=job: directly in the
-  # current container, which CI sets to the commit's test image (Postgres and
-  # Redis as job services, env from job variables); runs the image's code in
-  # /app, not the checkout.
+  # One command, two runtimes. STACK=compose (default): through the dev stack.
+  # STACK=job: directly in the current container, which CI sets to the commit's
+  # test image (Postgres and Redis as job services, env from job variables);
+  # runs the image's code in /app, not the checkout.
   test:backend:
     desc: Backend tests (migration check + pytest) against real Postgres and Redis; STACK=job in CI
     vars:
-      STACK: '{{.STACK | default "local"}}'
+      STACK: '{{.STACK | default "compose"}}'
     cmds:
       - task: env:local
         if: '{{ne .STACK "job"}}'
@@ -140,18 +139,20 @@ tasks:
       - cmd: cd /app && python backend/manage.py makemigrations --check --dry-run && pytest {{.CLI_ARGS}}
         if: '{{eq .STACK "job"}}'
 
-  # STACK=local (default): dev image with freshly built assets. STACK=ci: the
-  # built production images (compose.e2e.yml), as CI runs it on the commit's
-  # images by digest: DJANGO_IMAGE=...@sha256:... (and REALTIME_IMAGE=...).
+  # STACK=compose (default): the dev stack with freshly built assets. STACK=job
+  # (CI): the app runs as job services from the commit's images, by digest;
+  # this container (the Playwright image) runs the proxy and the specs
+  # (scripts/e2e_job.sh). Both go through the proxy, like production routing.
   test:e2e:
-    desc: Playwright against the production-like stack through the proxy; STACK=ci DJANGO_IMAGE=... runs built images
-    deps: [env:local]
+    desc: Playwright against the production-like stack through the proxy; STACK=job in CI
     vars:
-      STACK: '{{.STACK | default "local"}}'
+      STACK: '{{.STACK | default "compose"}}'
     cmds:
+      - task: env:local
+        if: '{{ne .STACK "job"}}'
       - task: e2e:{{.STACK}}
 
-  e2e:local:
+  e2e:compose:
     internal: true
     cmds:
       - "{{.DC_CI}} --profile build run --rm frontend-build"
@@ -161,18 +162,10 @@ tasks:
     vars:
       REALTIME: __REALTIME_ENABLED__
 
-  e2e:ci:
+  e2e:job:
     internal: true
-    requires: { vars: [DJANGO_IMAGE] }
-    env:
-      DJANGO_IMAGE: "{{.DJANGO_IMAGE}}"
-      REALTIME_IMAGE: "{{.REALTIME_IMAGE}}"
     cmds:
-      - defer: "{{.DC_E2E}} down -v --remove-orphans"
-      - "{{.DC_E2E}} up -d --wait django celeryworker proxy{{if .REALTIME}} realtime{{end}}"
-      - "{{.DC_E2E}} --profile e2e run --rm playwright"
-    vars:
-      REALTIME: __REALTIME_ENABLED__
+      - scripts/e2e_job.sh {{.CLI_ARGS}}
 
   check:docs:
     desc: Build the docs site strictly (broken links and nav entries fail)

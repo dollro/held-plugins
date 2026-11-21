@@ -16,7 +16,7 @@ Once per server (staging and production may share one):
 
 CI settings per platform (protected release tags `__PROTECTED_TAG_PATTERN__`, environments `staging` and `production` with their own `SOPS_AGE_KEY`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, approval for production): see the header comments of the CI files.
 
-**CI tools** (Task, sops, Compose, regctl) are pinned with their SHA-256 in `scripts/ci/tools.txt` and installed by `scripts/ci/install-tools.sh`: mirror first, then the original source, hash checked either way. The `mirror-tools` job copies missing versions into the mirror on protected branches (GitLab: the project's generic package registry; GitHub: the store in `TOOL_MIRROR_URL`, if set). Bump a tool with `scripts/ci/pin-tool.sh <name> <version>` after reading its release notes; the first pipeline on a protected branch mirrors it.
+**CI tools** (Task, sops, Compose, regctl, Caddy) are pinned with their SHA-256 in `scripts/ci/tools.txt` and installed by `scripts/ci/install-tools.sh`: mirror first, then the original source, hash checked either way. The `mirror-tools` job copies missing versions into the mirror on protected branches (GitLab: the project's generic package registry; GitHub: the store in `TOOL_MIRROR_URL`, if set). Bump a tool with `scripts/ci/pin-tool.sh <name> <version>` after reading its release notes; the first pipeline on a protected branch mirrors it.
 
 ## Release
 
@@ -91,6 +91,8 @@ task deploy:backup ENV=production
 - `DJANGO_SUPERUSER_EMAIL` (required for the admin; unset: no admin is managed).
 - `DJANGO_SUPERUSER_PASSWORD` (optional). Set: a new admin gets it, and an existing admin whose password differs is updated on the next deploy or start; an unchanged password keeps its hash, so sessions survive. It must pass the password validators and is never printed. Unset: a new admin gets an unusable password and sets one through the password-reset mail (nothing stored anywhere; the safer default once production mail works); an existing admin's password is left alone.
 - An existing non-admin account with that email is never promoted: the command fails and names it.
+- **Failing is intended:** a weak password, an existing non-admin with that email or a username clash fails `ensure_admin`. On a deploy it runs after migrate and before `up`, so the deploy stops and the previous release keeps serving (with the new schema, which stays backward compatible); fix the env file and deploy again. On a dev start it stops the django container (`task dev:logs -- django` names the reason).
+- **Quote secrets** in env files with single quotes (`DJANGO_SUPERUSER_PASSWORD='...'`, the database password): Compose expands `$` and cuts at ` #` in env files. Inside `DATABASE_URL` and `EMAIL_URL` they are URL-encoded instead.
 
 Further admins: create them without a password and let them set one through the password-reset mail (not `createsuperuser --noinput`: it would take `DJANGO_SUPERUSER_PASSWORD` from the container environment):
 
