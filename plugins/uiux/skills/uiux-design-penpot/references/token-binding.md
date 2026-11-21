@@ -4,6 +4,7 @@
 
 - Token Resolver Utility
 - Greenfield Pattern — Inline Binding During Creation
+- Recommended Brownfield Procedure
 - Brownfield Sweep Recipe
 - Property Extraction Helpers
 - Penpot-Specific Gotchas
@@ -35,10 +36,20 @@ function initTokenResolver() {
       _cache[key] = token || null;
       return _cache[key];
     },
+    // Look a token up by name: semantic set first, then primitives
+    find(tokenName, order = ['semantic', 'primitives']) {
+      for (const setName of order) {
+        const t = this.resolve(setName, tokenName);
+        if (t) return t;
+      }
+      return null;
+    },
     applySafe(shape, token, properties) {
       if (!token) return false;
       // Toggle guard: applyToken() is a toggle, calling twice UNBINDS.
       // shape.tokens maps property -> token name, e.g. { fill: "bg.body", fontFamily: "font.sans" }
+      // Color tokens: compare shape.tokens[prop]. Other types (properties omitted):
+      // the key is chosen by Penpot, so check Object.values(shape.tokens) instead.
       const existing = shape.tokens || {};
       const props = properties ? [].concat(properties) : null;
       const bound = props
@@ -82,7 +93,7 @@ TR.applySafe(rect, TR.resolve('semantic', 'bg.interactive'), 'fill');
 | Color (stroke) | `'strokeColor'` | Maps to first stroke color |
 | borderRadius | **omit** | |
 | shadow | **omit** | |
-| spacing | **omit** | |
+| spacing | explicit (`paddingLeft`, `rowGap`, ...) | Omitting may silently apply nothing (upstream PR #10668, unverified on 2.18.5). Check `shape.tokens` after |
 | sizing | **omit** | |
 | fontFamilies | **omit** | 2.18: `'fontFamilies'` throws; binds as `fontFamily` |
 | fontSizes | **omit** | |
@@ -91,9 +102,92 @@ TR.applySafe(rect, TR.resolve('semantic', 'bg.interactive'), 'fill');
 
 ---
 
+## Recommended Brownfield Procedure
+
+**Status: verified on 2.18, Oct 2026** (886 bindings across a component library, 0 visual changes)
+
+Use this for any real file. The quick sweep below is the minimal version without the safety steps. Work **one page per write call** and read [setup-troubleshooting.md § Long-Running Sessions](setup-troubleshooting.md) first: timeouts, batch size and `storage` wipes all apply here.
+
+1. **Dry run.** Classify every candidate (`fill`, `strokeColor`, `borderRadius`, `fontSize`, `fontWeight`) into *auto* (one token) or *ambiguous* (with a reason) per page. Store the plan and report counts plus the ambiguous groups, e.g. `"fill #E8503A (link vs danger)": 7`, before writing anything. Ask the user to settle the ambiguous groups.
+2. **Apply in capped batches.** 40 `applyToken` calls per `execute_code` call is reliable (~80 was too slow on a 112-shape page). Return the remaining count. The toggle guard makes every batch idempotent, so a re-run after a timeout is safe.
+3. **Verify each page** before moving on (see below), then export one board and look at it.
+
+### Classifier Rules
+
+Build a **context string** for each shape: its own and its ancestors' names, lowercased and joined. Then:
+
+| Candidate | Token family |
+|-|-|
+| Text fill | `color.text.*` |
+| Stroke | `color.border.*` |
+| Non-text fill | `color.background.*` / `color.feedback.*` |
+| Any color inside a `button` context | `color.interactive.*` (white text → `interactive.<variant>.fg`) |
+| `borderRadius` 9999 | `radius.button` / `radius.input` / `radius.badge` by context |
+| Same hex maps to two semantic tokens, no context decides | **ambiguous**, ask the user |
+
+- **Skip component copies** (`shape.isComponentCopyInstance()`). Bind the main components; instances inherit.
+- **Exclude foundations / reference swatch pages** from semantic sweeps. Their swatches document primitives and must stay on primitive tokens.
+- **Token lookup**: resolve a name in the semantic set first, then in primitives (`TR.find(name)` below).
+
+```javascript
+function contextOf(shape) {
+  const names = [];
+  for (let s = shape; s; s = s.parent) names.push((s.name || '').toLowerCase());
+  return names.join(' > ');
+}
+
+// Re-runnable: recompute the plan from the file instead of trusting storage
+function buildPlan(classify) {
+  const plan = [], ambiguous = {};
+  for (const shape of penpot.currentPage.findShapes()) {
+    if (shape.isComponentCopyInstance?.()) continue;
+    for (const c of classify(shape, contextOf(shape))) { // -> [{ prop, value, token | reason }]
+      if (c.token) plan.push({ id: shape.id, prop: c.prop, value: c.value, token: c.token });
+      else { const k = `${c.prop} ${c.value} (${c.reason})`; ambiguous[k] = (ambiguous[k] || 0) + 1; }
+    }
+  }
+  return { plan, ambiguous };
+}
+
+async function applyPlan(plan, TR, max = 40) {
+  let applied = 0, already = 0;
+  for (const item of plan) {
+    const shape = penpot.currentPage.getShapeById(item.id);
+    const token = TR.find(item.token);
+    if (!shape || !token) continue;
+    if (applied >= max) break;
+    const prop = ['fill', 'strokeColor'].includes(item.prop) ? item.prop : undefined;
+    if (TR.applySafe(shape, token, prop)) applied++; else already++;
+  }
+  await new Promise(r => setTimeout(r, 200));
+  return { applied, already, remaining: plan.length - applied - already };
+}
+```
+
+### Verify After Each Page
+
+For each planned item check (a) `Object.values(shape.tokens)` includes the token name and (b) the visual value is unchanged: fill/stroke hex, `borderRadius`, `fontSize`, `fontWeight`. Report `ok` / `notBound` / `changed`. Anything in `changed` means the token value differs from the hardcoded value. Unbind it and put it in the ambiguous list.
+
+```javascript
+function verify(plan) {
+  const r = { ok: 0, notBound: [], changed: [] };
+  for (const item of plan) {
+    const s = penpot.currentPage.getShapeById(item.id);
+    if (!s) continue;
+    if (!Object.values(s.tokens || {}).includes(item.token)) { r.notBound.push(item); continue; }
+    const now = String(extractBindableProps(s)[item.prop] ?? '').toUpperCase();
+    if (now !== String(item.value).toUpperCase()) r.changed.push({ ...item, now });
+    else r.ok++;
+  }
+  return { ok: r.ok, notBound: r.notBound.length, changed: r.changed.slice(0, 20) };
+}
+```
+
+---
+
 ## Brownfield Sweep Recipe
 
-Sweep an existing page to bind tokens to shapes whose visual properties match token values.
+Minimal version of the procedure above, without dry run or verification. Sweep an existing page to bind tokens to shapes whose visual properties match token values.
 
 > **One page per `execute_code` call.** WASM renderer crashes on bulk font changes
 > combined with page switches. See `mcp-known-issues.md` for details.
@@ -173,3 +267,7 @@ function extractBindableProps(shape) {
 | Slash normalization in names | `atoms/button` becomes `atoms / button`. Normalise `" / "` before comparing. |
 | Duplicate token names throw | `addToken()` with an existing name (or group prefix) throws. Check `set.tokens` first. |
 | `catalog.sets` on empty catalog | Crashed on older versions. Guard the first read with try/catch. |
+| `resolvedValue` on shadow tokens | Throws (`…forEach is not a function`) on 2.18. Wrap in try/catch when inventorying all tokens. |
+| Non-container top-level shapes | `penpot.root.children` can hold a stray text whose `.children` is undefined. Guard `(b.children \|\| [])`. |
+| Large write batches | ~80 `applyToken` calls per call was too slow on 2.18; 40 is reliable. A timed-out call may still have completed. Verify before re-running. |
+| `storage` lost after tab reload | Design changes persist, helpers don't. Recompute the plan from the file and resume. |
