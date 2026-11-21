@@ -67,7 +67,7 @@ The release is created from the pipeline that tested the commit, so the tag pipe
 | `deploy_production` | Deploys the pipeline's tag, `needs: [promote_tested, deploy_preflight]` | Manual, blocking, `resource_group: production`; release tags only |
 | `deploy_admin` | Runs the admin command (below) without a release; every deploy runs it anyway | Optional, manual, `allow_failure: true`, `needs: [deploy_production]`, `environment: action: access` |
 
-- **Prerelease tags** (`1.8a1`, `1.8-rc1`, or `v1.8.0-rc.1`) run validate, await, promote and only the preflight: a safe way to prove protected variables and SSH in a tag pipeline before the first real release. They never move `latest`.
+- **Prerelease tags** (`1.8a1`, `1.8-rc1`, or `v1.8.0-rc.1`) run validate, await, promote and only the preflight: a safe way to prove protected variables and SSH in a tag pipeline before the first real release.
 - **Tag shape is a project choice:** `X.Y`/`X.Y.Z` or `vX.Y.Z`. Pick one and never mix them; version sorting (`sort -V`) and protected tag patterns depend on it.
 - **Staging is optional.** With staging, a `deploy_staging` job runs before `deploy_production` on the same tag and images; production-only is a valid setup where the smoke test and preflight are the last gates.
 - **The deploy job checks its version equals the tag** and refuses anything else.
@@ -79,7 +79,7 @@ The release is created from the pipeline that tested the commit, so the tag pipe
 - **Protected variables reach only protected refs:** without protected tags the tag pipeline gets none of the deploy variables and the preflight lists all as missing. A project that used to deploy from a protected branch finds out on its first tag deploy; check the protected tags list before it. Protection is checked when a job runs: after adding it, retry the failed job, no new tag needed.
 - **Approval = manual jobs** on protected tags, plus "Prevent outdated deployment jobs" and "Allow job retries for rollback deployments".
 - Protected environments with required approvers are the Premium option; use them where available, not as a requirement.
-- **Admin account, env is the source of truth:** one idempotent command (e.g. `ensure_admin`) runs on **every** production deploy after migrate (when the admin email is set), on every local dev stack start, and from an optional manual admin job (`environment: action: access`) to apply a change without a release. Dev, staging and production use the same command and env keys. The admin email is required; `DJANGO_SUPERUSER_PASSWORD` (masked, protected CI variable or env file) is optional:
+- **Admin account, env is the source of truth:** one idempotent command (e.g. `ensure_admin`) runs on **every** deploy of every environment (production, and staging where it exists) after migrate (when the admin email is set), on every local dev stack start, and from an optional manual admin job (`environment: action: access`) to apply a change without a release. Dev, staging and production use the same command and env keys. The admin email is required; `DJANGO_SUPERUSER_PASSWORD` (masked, protected CI variable or env file) is optional:
   - **Set:** a new admin gets it; an existing admin whose password differs is updated to it, so a changed variable takes effect on the next deploy or start. An unchanged password keeps its hash (`check_password` first), so sessions survive. It must pass Django's password validators and is never printed.
   - **Unset:** a new admin gets an unusable password and the owner sets one through password reset (the safer default where production mail works: no admin password stored anywhere); an existing admin's password is left alone.
   - An existing non-admin with that email is never promoted.
@@ -98,7 +98,7 @@ The release is created from the pipeline that tested the commit, so the tag pipe
 Per-commit tags pile up (several per commit and repository). A daily cleanup policy, changed together with its docs:
 
 - **Delete** after N days (e.g. 7): `^(test-|tested-|test-tested-)?[0-9a-f]{40}$|^cache-.+$|^scratch-.+$`
-- **Keep always:** `^(cache-(develop|main)-.+|v?[0-9]+\.[0-9]+.*|latest)$` (releases, integration-branch caches), plus the newest few per repository.
+- **Keep always:** `^(cache-(develop|main)-.+|v?[0-9]+\.[0-9]+.*)$` (releases, integration-branch caches), plus the newest few per repository.
 - A policy without an explicit release keep pattern deletes release tags and with them the rollback path. Check it before relying on old tags.
 - Consequences to accept: a tag of a commit older than N days takes the rebuild path; `cache-tested-*` pins match `^cache-` too, so a commit reaching develop after N days leaves develop's cache as it was (slower, never wrong).
 - Immutable tags need a higher tier; promotion by digest makes them unnecessary.
