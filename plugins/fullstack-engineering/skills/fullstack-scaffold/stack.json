@@ -89,7 +89,7 @@
     "@playwright/test (exact)": "The Playwright Docker image tag must equal the installed @playwright/test version, so it is installed without a range."
   },
   "runtimes": {
-    "_comment": "Defaults for base images, set once at scaffold time and overridable. Rules, re-check at scaffold time: python = newest minor that every core package officially supports (Celery is usually last); node = current Active LTS; postgres = current major with at least one year of minor releases; redis = current stable major (Redis 8 offers AGPLv3 among its licenses; running the official image as a service is fine); debian = suite pinned on purpose, because the `-slim` tags switch suites on their own. caddy = current major (local/CI proxy that mirrors production routing); mailpit = current major tag (development mail catcher, accounts audiences only). docker = current exact Docker release (GitLab CI docker:<v>-cli / -dind images; exact, never major-only, so smoke test and deploy run the same Compose and Renovate/Dependabot can bump it); compose = the Compose version that docker:<v>-cli ships (GitHub jobs install it from scripts/ci/tools.txt, so GitHub and GitLab smoke-test and deploy with the same Compose); task, sops = major series, regctl = minor series (0.x), resolved at scaffold time to the newest release and pinned with its SHA-256 in scripts/ci/tools.txt (every tool CI downloads lives there, fetched through the optional mirror; regctl copies images by digest for build once; caddy is the end-to-end job's proxy, newest release of the caddy major); traefik = current major (throwaway proxy of the production smoke test, matching the shared server Traefik).",
+    "_comment": "Defaults for base images and CI tools, set at scaffold time. The rule each one follows is in the template's docs/operations.md (\"Pins and versions\"); re-check them before generating.",
     "python": "3.13",
     "node": "24",
     "postgres": "18",
@@ -110,29 +110,5 @@
     "pnpm": "Recent pnpm blocks dependency build scripts by default: approve the ones you need (`pnpm approve-builds`). Corepack is removed from Node 25 on: install the exact pnpm from `packageManager` explicitly.",
     "fastapi": "FastAPI is still 0.x and ships breaking changes in minor releases: always install from the lockfile and read the release notes before upgrading.",
     "sqlalchemy": "Adopt a new SQLAlchemy minor only after a test window; the project itself advises pinning below a fresh minor until tested."
-  },
-  "release": {
-    "_comment": "Release options asked at scaffold time (fullstack-engineering/references/build-once-and-release.md). tag_shape: one shape per project, never mixed (version sorting and protected tag patterns depend on it); the regexes go into scripts/release.sh and the GitLab rules (POSIX ERE and RE2 alike). staging: a staging deploy before production in the GitLab tag pipeline (off: production only, smoke test and preflight are the last gates; .envs/staging stays as a template). gitlab_tier: free = approval by manual jobs on protected tags; premium adds protected environments with required approvers.",
-    "defaults": {
-      "tag_shape": "x.y",
-      "staging": false,
-      "gitlab_tier": "free"
-    },
-    "tag_shapes": {
-      "x.y": {
-        "example": "1.8",
-        "release": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(\\.(0|[1-9][0-9]*))?$",
-        "prerelease": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(\\.(0|[1-9][0-9]*))?-?(a|b|rc)[0-9]+$",
-        "protected_pattern": "*",
-        "github_tag_filter": "[0-9]*"
-      },
-      "vx.y.z": {
-        "example": "v1.8.0",
-        "release": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
-        "prerelease": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)-(alpha|beta|rc)\\.[0-9]+$",
-        "protected_pattern": "v*",
-        "github_tag_filter": "v*"
-      }
-    }
   }
 }

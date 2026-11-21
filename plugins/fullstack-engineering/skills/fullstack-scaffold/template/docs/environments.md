@@ -23,7 +23,7 @@ Staging runs the production settings with its own values; there is no `staging.p
 | `.envs/<env>/app.env` | Decrypted working copy | No (gitignored, blocked by pre-commit) |
 | `.envs/<staging\|production>/deploy.env` | Deploy target: host, registry, SSH target (`ssh://user@host[:port]`), proxy network | Yes, plain text |
 
-The version is never stored in a file: the release pipeline passes its tag (`task deploy ENV=<env> VERSION=__VERSION_EXAMPLE__`), which sets `APP_VERSION` in the containers; images carry only their commit (`GIT_SHA`).
+The version is never stored in a file: the release pipeline passes its tag (`task deploy ENV=<env> VERSION=1.8`), which sets `APP_VERSION` in the containers; images carry only their commit (`GIT_SHA`).
 
 ```bash
 task secrets:edit ENV=staging      # edit encrypted values; regenerates the example
