@@ -12,11 +12,14 @@ env = environ.Env()
 
 # GENERAL
 # ------------------------------------------------------------------------------
-_version_file = ROOT_DIR / "VERSION.txt"
-APP_VERSION = (
-    _version_file.read_text().strip()
-    if _version_file.exists()
-    else env.str("APP_VERSION", default="development")
+# The release tag, set by the deploy at runtime (the image exists before its
+# tag, so the version cannot be baked in). Without it: the image's commit.
+_git_sha = env.str("GIT_SHA", default="")
+APP_VERSION = env.str(
+    "APP_VERSION",
+    default=f"dev-{_git_sha[:12]}"
+    if _git_sha and _git_sha != "unknown"
+    else "development",
 )
 # local | ci | staging | production. A label for logs, error reports and the UI
 # banner; code never branches on it (behaviour differs only through settings

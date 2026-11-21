@@ -9,7 +9,9 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(case_sensitive=False, extra="ignore")
 
-    app_version: str = Field(default="development", alias="APP_VERSION")
+    # The release tag, set by the deploy at runtime; see version.
+    app_version: str = Field(default="", alias="APP_VERSION")
+    git_sha: str = Field(default="", alias="GIT_SHA")
     debug: bool = Field(default=False, alias="REALTIME_DEBUG")
     log_level: str = Field(default="INFO", alias="REALTIME_LOGLEVEL")
 
@@ -29,6 +31,15 @@ class Settings(BaseSettings):
     # Comma-separated, like Django's list settings.
     allowed_origins_csv: str = Field(default="", alias="REALTIME_ALLOWED_ORIGINS")
     sse_keepalive_s: float = Field(default=15.0, alias="SSE_KEEPALIVE_S")
+
+    @property
+    def version(self) -> str:
+        """The release tag; without one, the image's commit (as Django reports it)."""
+        if self.app_version:
+            return self.app_version
+        if self.git_sha and self.git_sha != "unknown":
+            return f"dev-{self.git_sha[:12]}"
+        return "development"
 
     @property
     def allowed_origins(self) -> list[str]:
