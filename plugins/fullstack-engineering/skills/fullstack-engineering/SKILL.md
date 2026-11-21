@@ -27,10 +27,11 @@ This file holds the **principles and guardrails**. They change slowly. The `refe
 | `assets/traefik-host/` | Shared Traefik per server: compose, static and dynamic config, setup and operation |
 | `references/environments.md` | local/CI/staging/production, build once and promote, how values reach Docker, Django, FastAPI and Vue |
 | `references/secrets-and-config.md` | Env vars, SOPS + age, example files, rotation |
+| `references/build-once-and-release.md` | Build once per commit, test that image, release from main (`create_release`), tag pipeline (await, promote, preflight, deploy), runtime version, build cache refs, registry cleanup, GitLab pitfalls |
 | `references/ci-cd-and-deploy.md` | Pipeline contract, platform mapping (GitHub, GitLab, others), release, deploy preflight, rollback, release runbook, hardening, backups, observability |
 | `references/identity.md` | Login audience (internal/external/mixed), company SSO over OpenID Connect (Entra ID as worked example), external accounts and MFA, data separation, personal data |
 | `references/security.md` | Auth flows, CSRF, cross-site checks, API keys, review checklist |
-| `references/testing.md` | Test layers, real services, end-to-end through the proxy |
+| `references/testing.md` | Test layers, real services, tests on the shipped image, end-to-end through the proxy |
 | `references/sources.md` | Official docs, changelogs, migration guides |
 
 ## Repos on another stack
@@ -134,8 +135,9 @@ Details and checklists: `references/identity.md`, `references/security.md`.
 
 ## 8. Environments, secrets and configuration
 
-- **Environments: local, CI, staging (recommended), production.** Settings modules describe the kind of runtime (development, test, production), not the environment: staging runs the production settings with its own values.
-- **Build once, promote the same image:** a version tag builds each image once; the smoke test, staging and production use that image. No per-environment builds; build arguments carry only artifact properties (runtime versions, app version, platform).
+- **Environments: local, CI, staging (optional, recommended for teams), production.** Settings modules describe the kind of runtime (development, test, production), not the environment: staging runs the production settings with its own values.
+- **Build once, promote the same image:** each commit's image is built once in its branch pipeline and tested as built; a release copies the tested digest to the version tag, and the smoke test, staging and production use it. No per-environment builds; build arguments carry only artifact properties (runtime versions, platform, commit). The version comes from the release tag at runtime (`APP_VERSION`), never from the build.
+- **Scaffold status:** the `/fullstack-scaffold` template moves to this model in a follow-up change; until then it still ships the older model that builds images in the tag pipeline.
 - **All configuration comes from the environment at runtime**; code has no environment-specific values. Per environment: encrypted `app.env` for secrets and config, plain `deploy.env` for the deploy target (host, registry, SSH target).
 - **The frontend bundle holds nothing environment-specific:** relative API URLs, and runtime values rendered by Django into the page. `VITE_*` variables are public build constants.
 - **The environment name is a label** (logs, error reports, a badge outside production); behaviour differs only through settings and explicit variables.
@@ -148,7 +150,7 @@ Details and checklists: `references/identity.md`, `references/security.md`.
 - **Platform-neutral:** the rules name requirements, never platform features. Logic lives in Task targets and `scripts/`; CI files add only triggers, secrets, environments, approvals and concurrency, and a check keeps them that way. How each requirement maps to GitHub, GitLab or another platform: the mapping table in `references/ci-cd-and-deploy.md`.
 - **Third-party CI actions are pinned by commit SHA, base images by digest,** kept current by Renovate or Dependabot; jobs get least-privilege permissions.
 - **Every tool CI downloads is pinned with its SHA-256 and fetched mirror first** (`scripts/ci/tools.txt`, `install-tools.sh`; a mirror job fills the mirror on protected refs), so an outage of the original source does not stop every pipeline.
-- **The release pipeline deploys what it built:** an annotated tag `vX.Y.Z` (protected pattern) is validated, builds and pushes the images once, smoke-tests them with production settings, deploys to staging, then to production after approval. The CI platform's environment history records what runs.
+- **Release from main, deploy what was tested:** a manual `create_release` job in main's pipeline, after the tests, creates the annotated release tag (shape `X.Y` or `vX.Y.Z`, protected pattern) on the tested commit. The tag pipeline validates it, promotes the tested digest to the version tag and offers manual preflight and deploy jobs (optional staging, then production). On GitLab Free, approval is protected tags plus manual jobs. The CI platform's environment history records what runs. Details: `references/build-once-and-release.md`.
 - **A deploy is preflight → backup → pull → migrate → up → verify,** one at a time per environment. The preflight proves SSH as the deploy user, the remote Docker daemon, registry access and the images before anything changes; verify checks the version on the public URL.
 - **Rollback is a deliberate redeploy** of the previous release (an older version needs an explicit flag); migrations stay backward compatible for one release, so no restore is needed.
 - **Production containers are hardened:** non-root, no capabilities, no privilege escalation, read-only root filesystem.
@@ -203,7 +205,8 @@ repo/
 | Celery task enqueued inside the transaction | `transaction.on_commit` |
 | Blocking I/O inside `async def` | Async client, or run in a thread / Celery |
 | HTTP calls scattered across components | One `fetch` client module, lint-enforced |
-| Deploying `latest`, or a deploy job that can run before its images exist | Deploy from the release pipeline, after build and smoke test, with the tag as version |
+| Deploying `latest`, or a deploy job that can run before its images exist | Deploy from the release tag's pipeline, after promotion of the tested digest and the preflight, with the tag as version |
+| Release tag pipeline that rebuilds the images, or a version baked into the image | Promote the tested digest; set `APP_VERSION` from the tag at deploy time |
 | Only unit and e2e tests on development images | Production smoke test: release images, production settings, behind a proxy |
 | CI logic written in platform YAML (GitLab- or GitHub-only features in the rules) | Task targets and scripts; platform features only via the mapping table |
 | First deploy fails at SSH or registry pull | Deploy preflight once before release day; SSH user required in the target |
