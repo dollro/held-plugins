@@ -53,7 +53,7 @@ Settings for the agent rules in `autonomous-runs.md` (sections 9 and 10) and the
 | Worker names | Sandbox agent: one name per team (example: `atlas`); host session: `host` |
 | Issue type carrying the Worker field | The tracker's id for that type, stated in the repo's CLAUDE.md; ask if missing |
 | Review column | `In Review` (the only column selected by name; all others by state type) |
-| Review comment | `Review of !NN: <verdict>` on the issue; reply `Fixes applied in <commit>` |
+| Review comment | `Review of !NN: <verdict>` (GitLab) or `Review of #NN: <verdict>` (GitHub) on the issue; reply `Fixes applied in <commit>` |
 | Commit trailer | `Refs: <KEY>-<n>` |
 
 ## E6. Not yet covered

@@ -49,7 +49,7 @@ Template (replace the placeholders; keep it this short):
 
 - **One generic sandbox:** worktree `../atlas-sbx`, sandbox `claude-atlas-sbx` (attach: `sbx run --name claude-atlas-sbx`). Issues are worked one after another inside it, never in parallel.
 - **Per issue:** `git fetch origin && git switch -c <type>/acme-<n>-<short-name> origin/develop`; commit and push only that branch, open a pull request into `develop`.
-- **No merging by the agent:** never merge, never push to `develop` or `main`, never remove Draft. After a review asking for fixes: push them, wait for green, reply "Fixes applied in <commit>" under the review comment.
+- **No merging by the agent:** never merge, never push to `develop` or `main`, never delete branches or tags you did not create for the current issue, never remove Draft. After a review asking for fixes: push them, wait for green, reply "Fixes applied in <commit>" under the review comment.
 - **Pipeline status:** read via the <git host> MCP server. If it is missing, name it and hand the human the command to add it.
 - When the pull request is open and green, move the issue to `In Review` and continue with the next issue.
 
