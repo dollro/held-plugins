@@ -21,6 +21,7 @@
 - **Decrypt and generate via a temp file.** `cmd > file` truncates the target before `cmd` runs, so a failed `sops -d` leaves an empty env file (which `status:` checks then treat as done). Replace the target only on success: `sops -d in > out.tmp && mv out.tmp out`. Same for encrypting into the committed `.enc`.
 - **Adding a person:** add their age public key to `.sops.yaml`, run `sops updatekeys` on each file, commit.
 - **Removing a person:** remove the key, `updatekeys`, and **rotate every secret they could read**; old ciphertext stays readable in git history for anyone who had the key.
+- **A secret that was ever committed in plaintext is burned:** rotate it first (for the database password `ALTER ROLE` before the env file changes, or the app loses its connection), then purge it from history (`git filter-repo`) and have every clone re-fetched. Purging alone protects nothing: forks, caches and CI logs keep the old value.
 - The age private key never enters git. Back it up outside the repo (password manager). CI gets its own age key as a masked secret.
 
 ## When SOPS is not enough
@@ -31,5 +32,7 @@ SOPS + age fits small teams with one or a few hosts. Move to a secrets manager (
 
 - **Agents read env values by exact key, never by prefix.** To check a setting in an env file or CI variable, print only the named keys (`grep -E '^(APP_LLM_MODEL|APP_LLM_FALLBACK)='`), not everything under a common prefix: `APP_LLM_` also matched `APP_LLM_API_KEY` and printed the key into the session. If a secret was printed, say so and rotate it.
 - Secrets reach containers as environment variables at deploy time. They never get baked into images (`.dockerignore` excludes env files; build steps that need settings use dummy values).
+- **Never re-include an env file in the build context:** `.dockerignore` excludes `.env`, `.env.*` and `.envs`, with no `!.env` exception. Build-time secrets enter only as BuildKit secrets (`RUN --mount=type=secret`), never as files or build args. Check the final image (`docker run --rm <image> ls -la /app/.env*` finds nothing).
+- **Deploy scripts handle secrets on purpose:** `set +x` before any secret is read; env files are parsed key by key, never `source`d (values contain `$ ( ) & ;`); CRLF stripped from every value; the SSH key goes straight into a fresh `ssh-agent` of the script's own (inherited `SSH_AUTH_SOCK`/`SSH_AGENT_PID` unset, the agent's output checked for `SSH_AUTH_SOCK=` and only its stdout evaluated) and never onto disk; decrypted files live in a private temp directory removed on exit.
 - Values passed as env are visible in the container config to anyone with access to the host's Docker socket (`docker inspect`). Treat Docker socket access as secret access; for the most sensitive values consider Compose `secrets:` (files under `/run/secrets`).
 - Logs, traces and error reports must not contain secrets or tokens; scrub before sending.

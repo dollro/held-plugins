@@ -94,6 +94,15 @@ The release is created from the pipeline that tested the commit, so the tag pipe
   3. The reuse path on develop and main copies `cache-tested-<sha>-*` to `cache-<ref>-*` (regctl or crane manifest copy, no build).
 - **A missing cache never fails a job.** Every cache step logs and continues; the worst case is a slower build. A cache-layout change makes everything cold until the integration branch has really built once; size build timeouts for that.
 
+## Build steps that stay fast on a fresh daemon
+
+Docker-in-Docker builders start empty: every step after a changed layer pulls and unpacks its parents.
+
+- **Dependencies before code, code `COPY` late,** and parent layers small. A cold or busted cache gives every layer a new digest, so every test job then pulls the whole image again: order layers for cache hits and keep the per-branch cache warm.
+- **No recursive `chown` over `node_modules` or a virtualenv** (minutes on a fresh daemon); `COPY --chown` instead.
+- **Clean build output in the same `RUN` as the compile** (`target/`, sources, caches): a later `rm` keeps the bytes in the earlier layer.
+- **No `npx <tool>@latest` or other floating fetches in a Dockerfile:** a cache miss on every build and not reproducible. Keep `docs/`, `plans/` and env files out of the build context (`.dockerignore`).
+
 ## Registry cleanup
 
 Per-commit tags pile up (several per commit and repository). A daily cleanup policy, changed together with its docs:
@@ -115,6 +124,8 @@ Per-commit tags pile up (several per commit and repository). A daily cleanup pol
 - **Trigger jobs forward variables that beat the child's job variables.** A global `DOCKER_TLS_CERTDIR: ""` overrode the build job's `/certs` and the child's Docker-in-Docker client missed its daemon. List what the child needs with `inherit: variables: [...]`.
 - **Services start before the checkout** but see `/builds`; a service that reads code from it can start on a previous job's files. Running services from the image removes the problem.
 - **Non-root job images** cannot install tools to `/usr/local/bin`: install into a directory in the checkout and put it on `PATH`.
+- **Writing to `/builds` from a non-root job image depends on the runner's umask** (default 0000 makes the checkout world-writable; a hardened runner may not). Write reports and caches to a directory the job creates, or set the umask in the runner config.
+- **A service without an exposed port** logs "service didn't start properly" in every job: harmless, but it trains people to ignore service warnings. Expose the port in the image or note it in the job.
 
 ## Runner-location agnostic
 
