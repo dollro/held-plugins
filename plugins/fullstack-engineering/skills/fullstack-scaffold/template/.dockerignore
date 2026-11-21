@@ -8,10 +8,18 @@ frontend/test-results
 backend/static/vue
 backend/staticfiles
 backend/media
-.envs/**/app.env
+# No env file ever enters an image: never add a `!.env` exception. Build-time
+# secrets go in as BuildKit secrets (RUN --mount=type=secret), not files.
+.env
+.env.*
+**/.env
+.envs
 plans
 site
+# Not needed by any build stage; keeps the context small.
+docs
 .cache
 images.env
 build-metadata.json
 ran-*.env
+.mypy_cache
