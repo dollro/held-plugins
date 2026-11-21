@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 python backend/manage.py migrate --noinput
-python backend/manage.py ensure_superuser
+# The same admin command as every deploy: the env file is the source of truth.
+if [ -n "${DJANGO_SUPERUSER_EMAIL:-}" ]; then
+  python backend/manage.py ensure_admin
+fi
 exec python backend/manage.py runserver 0.0.0.0:5000

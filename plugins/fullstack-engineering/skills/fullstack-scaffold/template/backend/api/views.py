@@ -29,6 +29,13 @@ def health(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+def version(request):
+    """The running release: the deploy's verify step compares it with the tag."""
+    return Response({"version": settings.APP_VERSION})
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def ready(request):
     """Readiness: database and cache reachable. Liveness is /health/."""
     checks = {}

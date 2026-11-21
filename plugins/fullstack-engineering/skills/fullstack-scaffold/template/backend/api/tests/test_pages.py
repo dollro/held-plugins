@@ -24,6 +24,11 @@ def test_health_reports_version_and_environment(client, settings):
     assert body["version"] == settings.APP_VERSION
 
 
+def test_version_reports_the_release(client, settings):
+    settings.APP_VERSION = "__VERSION_EXAMPLE__"
+    assert client.get("/api/v1/version/").json() == {"version": "__VERSION_EXAMPLE__"}
+
+
 def test_readiness_checks_database_and_cache(client):
     response = client.get("/api/v1/health/ready/")
     assert response.status_code == 200
