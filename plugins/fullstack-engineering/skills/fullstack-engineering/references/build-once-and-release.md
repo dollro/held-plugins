@@ -83,6 +83,7 @@ The release is created from the pipeline that tested the commit, so the tag pipe
   - **Set:** a new admin gets it; an existing admin whose password differs is updated to it, so a changed variable takes effect on the next deploy or start. An unchanged password keeps its hash (`check_password` first), so sessions survive. It must pass Django's password validators and is never printed.
   - **Unset:** a new admin gets an unusable password and the owner sets one through password reset (the safer default where production mail works: no admin password stored anywhere); an existing admin's password is left alone.
   - An existing non-admin with that email is never promoted.
+  - A weak password, an existing non-admin with that email or a username clash fails the command, on purpose: on a deploy it runs after migrate and before `up`, so the deploy stops and the previous release keeps serving; on a dev start it stops the container. The log names the reason, never the password.
 
 ## Build cache
 
