@@ -1,7 +1,8 @@
 """Keep CI files thin and the CI platforms interchangeable.
 
-1. Every command in .gitlab-ci.yml and .github/workflows/*.yml is a `task ...`
-   call or a known setup step (installing tools, registry login, env example).
+1. Every command in .gitlab-ci.yml, .gitlab/ci/*.yml and .github/workflows/*.yml
+   is a `task ...` call or a known setup step (installing tools, registry login,
+   env example, a literal echo).
    Logic belongs in Taskfile.yml and scripts/, where developers can run it.
 2. If both platforms are configured, both call the same Task targets.
 3. Tools are installed from scripts/ci/tools.txt (pinned, SHA-256 checked,
@@ -26,7 +27,23 @@ SETUP = [
     r"cp \.envs/local/app\.env\.example \.envs/local/app\.env$",
     r'echo "\$CI_REGISTRY_PASSWORD" \| docker login ',
     r"docker buildx create ",
+    r'export PATH="\$BIN:\$PATH"$',
+    r'echo "[^"`;|&()]*"$',
 ]
+# Build once (GitLab): build by digest, mark tested, release from main and
+# promote. The GitHub workflows do not build once yet; until they do, these
+# targets may appear on GitLab only, and GitHub's tag-pipeline build only there.
+ONE_PLATFORM_TARGETS = {
+    "release:build-ci",
+    "release:check-image",
+    "release:ran",
+    "release:mark-tested",
+    "release:prepare",
+    "release:await-tested",
+    "release:promote",
+    "release:build",
+    "deploy:preflight",
+}
 COMMAND_KEYS = {"script", "before_script", "after_script", "run"}
 
 
@@ -88,10 +105,13 @@ def unpinned_tools(files: list[Path]) -> list[str]:
 
 def main() -> int:
     gitlab = [p for p in [ROOT / ".gitlab-ci.yml"] if p.exists()]
+    gitlab += sorted((ROOT / ".gitlab" / "ci").glob("*.y*ml"))
     github = sorted((ROOT / ".github" / "workflows").glob("*.y*ml"))
     errors, gitlab_targets = check(gitlab)
     more, github_targets = check(github)
     errors += more
+    gitlab_targets -= ONE_PLATFORM_TARGETS
+    github_targets -= ONE_PLATFORM_TARGETS
     if gitlab and github and gitlab_targets != github_targets:
         errors.append(
             "GitLab and GitHub call different Task targets: "

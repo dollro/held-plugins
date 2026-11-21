@@ -12,11 +12,14 @@ env = environ.Env()
 
 # GENERAL
 # ------------------------------------------------------------------------------
-_version_file = ROOT_DIR / "VERSION.txt"
-APP_VERSION = (
-    _version_file.read_text().strip()
-    if _version_file.exists()
-    else env.str("APP_VERSION", default="development")
+# The release tag, set by the deploy at runtime (the image exists before its
+# tag, so the version cannot be baked in). Without it: the image's commit.
+_git_sha = env.str("GIT_SHA", default="")
+APP_VERSION = env.str(
+    "APP_VERSION",
+    default=f"dev-{_git_sha[:12]}"
+    if _git_sha and _git_sha != "unknown"
+    else "development",
 )
 # local | ci | staging | production. A label for logs, error reports and the UI
 # banner; code never branches on it (behaviour differs only through settings
@@ -220,7 +223,26 @@ API_KEY_PREFIX = env.str("API_KEY_PREFIX", default="__PROJECT_KEY_PREFIX__")
 # require a real transport where users depend on mail.
 EMAIL_URL = env.str("EMAIL_URL", default="") or "consolemail://"
 vars().update(env.email_url_config(EMAIL_URL))
-DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="noreply@__APP_HOST__")
+
+
+def mail_sender(override: str, smtp_login: str, app_name: str) -> str:
+    """The From address. Most SMTP servers accept only their own login as sender,
+    so the default is the app name with the login from EMAIL_URL; without a login
+    that is an address (a local mail catcher, an API-key login), webmaster@localhost.
+    DEFAULT_FROM_EMAIL overrides it; empty counts as unset."""
+    if override:
+        return override
+    address = smtp_login if "@" in smtp_login else "webmaster@localhost"
+    return f"{app_name} <{address}>"
+
+
+# Optional overrides read as `env(KEY, default="") or fallback`: django-environ
+# keeps an empty string, so `KEY=` in an env file would otherwise blank the setting.
+DEFAULT_FROM_EMAIL = mail_sender(
+    env.str("DEFAULT_FROM_EMAIL", default=""),
+    globals().get("EMAIL_HOST_USER") or "",
+    "__PROJECT_TITLE__",
+)
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # AUTH: ACCOUNTS (django-allauth)

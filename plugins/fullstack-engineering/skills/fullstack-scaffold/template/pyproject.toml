@@ -25,6 +25,8 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101", "S105", "S106"]
 "**/conftest.py" = ["S101", "S105", "S106"]
+# Script tests run the repo's own shell scripts.
+"scripts/tests/**" = ["S101", "S603", "S607"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "backend.config.settings.test"
@@ -41,3 +43,18 @@ filterwarnings = [
 markers = [
     "integration: needs live external services (deselect with -m 'not integration')",
 ]
+
+[tool.mypy]
+# Checked in CI against mypy-baseline.txt (task check:types): new errors fail,
+# fixed ones must leave the baseline (task check:types:sync), and the baseline
+# may not grow (task check:types:baseline).
+python_version = "__PYTHON_VERSION__"
+plugins = ["mypy_django_plugin.main"]
+files = ["backend", "realtime"]
+exclude = ["/migrations/"]
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[tool.django-stubs]
+# The plugin imports the settings; CI sets the env it needs (no database access).
+django_settings_module = "backend.config.settings.test"

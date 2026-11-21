@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 @router.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "version": get_settings().app_version}
+    return {"status": "ok", "version": get_settings().version}
 
 
 @router.get("/health/ready")

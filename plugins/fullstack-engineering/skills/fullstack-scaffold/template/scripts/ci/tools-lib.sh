@@ -1,3 +1,4 @@
+# shellcheck shell=sh
 # Shared by install-tools.sh, mirror-tools.sh and pin-tool.sh (sourced, POSIX sh).
 #
 # Pinned tools come from scripts/ci/tools.txt. In CI (CI=true, set by every
@@ -19,7 +20,8 @@ tool_fields() {
   [ -n "$line" ] || { echo "unknown tool: $1 (not in $TOOLS_FILE)" >&2; return 1; }
   set -- $line
   VERSION="$2" SHA256="$3"
-  URL="$(printf '%s' "$4" | sed "s/{version}/$VERSION/g")"
+  # {version} as pinned (v1.2.3), {bare} without the leading v (1.2.3)
+  URL="$(printf '%s' "$4" | sed -e "s/{version}/$VERSION/g" -e "s/{bare}/${VERSION#v}/g")"
   FILE="${URL##*/}"
 }
 
@@ -46,11 +48,16 @@ verify() {
   echo "$1 $VERSION from $3, SHA-256 verified" >&2
 }
 
+# Every download is bounded: a hanging source must fail the try, not the job's
+# timeout. Retries back off (curl doubles the delay, up to 10 minutes total).
+CURL_LIMITS="--connect-timeout 10 --max-time ${TOOL_DOWNLOAD_MAX_TIME:-300}"
+
 # fetch_upstream <name> <out>: original source only, verified.
 fetch_upstream() {
   tool_fields "$1" || return 1
-  curl -fsSL --retry 3 --retry-all-errors -o "$2" "$URL" || {
-    echo "$1 $VERSION: download failed: $URL" >&2; return 1; }
+  # shellcheck disable=SC2086  # CURL_LIMITS is a list of options
+  curl -fsSL $CURL_LIMITS --retry 4 --retry-all-errors --retry-max-time 600 -o "$2" "$URL" || {
+    rm -f "$2"; echo "$1 $VERSION: download failed: $URL" >&2; return 1; }
   verify "$1" "$2" "$URL"
 }
 
@@ -59,7 +66,7 @@ fetch() {
   tool_fields "$1" || return 1
   # A missing or wrong mirror copy falls back to the original source.
   if [ "${CI:-}" = "true" ] && [ -n "${TOOL_MIRROR_URL:-}" ] \
-     && curl_mirror -fsSL --retry 2 -o "$2" "$(mirror_url "$1")" 2>/dev/null \
+     && curl_mirror -fsSL $CURL_LIMITS --retry 2 -o "$2" "$(mirror_url "$1")" 2>/dev/null \
      && verify "$1" "$2" mirror; then
     return 0
   fi

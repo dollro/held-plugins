@@ -15,13 +15,12 @@
 
 ## Tests run on the image that ships
 
-Default with build once (`build-once-and-release.md`):
+Default with build once (`build-once-and-release.md`; the scaffold's `docs/ci.md` shows one implementation):
 
-- **A `test` stage `FROM production`** adds only the test and dev dependencies on top of the final production stage. Every production layer is shared byte for byte; the shipped image has no test tools. Installing test tools at job runtime instead is slow and changes the image under test.
-- **CI tests run against the built image, by digest:** the test job's image is `test@<digest>` recorded by the build job, Postgres and Redis are CI services, and the tests run from the image's app directory, not the checkout. End-to-end runs the app image as a service; the browser image runs the specs.
-- **One command, several runtimes:** `STACK=local` (default) runs `task test:backend` through Compose, `STACK=ci` reproduces CI with Compose and the commit's CI images, `STACK=job` runs it directly in the CI job's container (a small script loads the test env file without overriding job variables). CI only calls the Task target.
-- **Every test job reports the digest it ran** (a dotenv artifact); the job that marks the image tested refuses unless all reports equal the digest it marks.
-- **The job checks its own image** (`$CI_JOB_IMAGE` against the recorded digest), so a tag that moved cannot stand in.
+- **A `test` stage `FROM` the final production stage** adds only the test and dev dependencies, so every shipped layer is tested and the shipped image has no test tools. Installing test tools at job runtime instead is slow and changes the image under test.
+- **CI tests run in the built image, by digest,** from the image's app directory, not the checkout; databases are services. End-to-end runs the app's images as services.
+- **One command, two runtimes:** the same Task target runs through the compose stack locally and directly in the CI job's container, switched by one variable.
+- **Every test job reports the digest it ran,** and the image is marked tested only if all reports match.
 
 ## Rules
 
@@ -35,6 +34,8 @@ Default with build once (`build-once-and-release.md`):
 - **Production settings are tested before tagging** by the smoke test, then on staging after each deploy: health, readiness, login and one live stream through the proxy (`environments.md`). Extend the smoke test whenever a production-only bug is found.
 - **The smoke test runs with the deploy's Docker and Compose versions** (CI: the same job image). A Compose difference otherwise shows up only in the production deploy.
 - **Migrations are tested against production-shaped data:** CI, e2e and smoke tests start from an empty database, so a migration that repoints a foreign key or deletes a model passes everywhere and fails (or silently drops data) in production. Restore a recent backup into the throwaway stack and migrate on top of it; every such migration carries a data step or a written decision to drop the data.
+- **The migration rehearsal runs where the data is,** in a throwaway container on the production host; production data never goes to CI or laptops.
+- **Type checking:** its own job with a lockfile-keyed cache; a baseline holds existing errors, new ones fail, and the baseline may only shrink.
 - **User-facing mail flows are tested end to end:** the e2e test follows the link in the sent mail to the final state (password changed, address verified). Sending mail never fails the request (a signup must not roll back because SMTP is down), and flows that must not reveal accounts (reset for an unknown address, closed registration) send nothing. After a production deploy, one real password-reset mail proves SMTP and links.
 - **Deterministic:** no sleeps; Playwright's auto-waiting assertions; retries only in CI.
 - **Flaky tests are fixed at the cause:** one retry to classify, then an issue with the evidence (job, exact assertion). Typical causes: comparing two separately built archives whose timestamps cross a second boundary (build once or fix the timestamp); subprocess probes that hang at interpreter exit.

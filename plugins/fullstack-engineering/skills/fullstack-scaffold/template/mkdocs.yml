@@ -31,6 +31,9 @@ nav:
   - Architecture: architecture.md
   - Environments: environments.md
   - Operations: operations.md
+  # >>> gitlab
+  - CI and releases: ci.md
+  # <<< gitlab
 
 markdown_extensions:
   - toc:

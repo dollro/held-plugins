@@ -1,0 +1,46 @@
+# Shared by the main pipeline and the rebuild child pipeline of a release tag
+# (rebuild.yml): stages, variables and job templates.
+stages: [check, build, test, mark, promote, verify, release, deploy]
+
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+  # Build once keeps builds, tests and releases in this project's registry:
+  # images are $RELEASE_REGISTRY/__PROJECT__-<service>. The deploy preflight
+  # fails if a server pulls from elsewhere (.envs/<env>/deploy.env REGISTRY).
+  RELEASE_REGISTRY: $CI_REGISTRY_IMAGE
+  # Neutral names for scripts/ (they never read CI_* variables): registry
+  # login for regctl and for the deploy target's pull, and the commit.
+  REGISTRY_HOST: $CI_REGISTRY
+  REGISTRY_USER: $CI_REGISTRY_USER
+  REGISTRY_PASSWORD: $CI_REGISTRY_PASSWORD
+  COMMIT: $CI_COMMIT_SHA
+  # Release and prerelease tag patterns (same as scripts/release.sh).
+  RELEASE_TAG: '/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$/'
+  PRERELEASE_TAG: '/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?-?(a|b|rc)[0-9]+$/'
+  # Pinned CI tools go into the checkout, so job images that run as a non-root
+  # user (the test image) can use them too; each job puts BIN on its PATH.
+  BIN: $CI_PROJECT_DIR/.cache/bin
+  # Pinned CI tools (scripts/ci/tools.txt) come from this project's generic
+  # package registry first, then from their original source; the SHA-256 is
+  # checked either way. Point both at another store with GET and PUT if needed.
+  TOOL_MIRROR_URL: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic
+  TOOL_MIRROR_HEADER: "JOB-TOKEN: ${CI_JOB_TOKEN}"
+
+# One place for the Docker and Compose versions of every Docker job, so the
+# smoke test and the deploy run the same Compose. Exact version, never a
+# major-only tag; bump with Renovate and keep -cli and -dind equal.
+.docker:
+  image: docker:__DOCKER_VERSION__-cli
+  services: ["docker:__DOCKER_VERSION__-dind"]
+  before_script:
+    - export PATH="$BIN:$PATH"
+    - apk add --no-cache bash curl git python3 openssh-client
+    - scripts/ci/install-tools.sh task sops regctl
+
+# Registry-only jobs (wait, mark, promote): regctl, no Docker daemon.
+.registry:
+  image: docker:__DOCKER_VERSION__-cli
+  before_script:
+    - export PATH="$BIN:$PATH"
+    - apk add --no-cache bash curl git
+    - scripts/ci/install-tools.sh task regctl

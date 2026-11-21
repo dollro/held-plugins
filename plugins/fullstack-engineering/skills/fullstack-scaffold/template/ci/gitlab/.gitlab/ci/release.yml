@@ -1,0 +1,173 @@
+# Release from main and the tag pipeline. A release tag never rebuilds: it
+# copies the digests its commit was tested on to the version tag. Release tags
+# look like 1.8 or 1.8.1; prereleases (1.8a1, 1.8-rc1) run up to the read-only
+# preflight and never deploy. RELEASE_TAG and PRERELEASE_TAG (common.yml) match
+# the patterns in scripts/release.sh; change both together.
+
+.release-tag:
+  rules:
+    - if: $CI_COMMIT_TAG =~ $RELEASE_TAG
+
+.any-release-tag:
+  rules:
+    - if: $CI_COMMIT_TAG =~ $RELEASE_TAG
+    - if: $CI_COMMIT_TAG =~ $PRERELEASE_TAG
+
+# One click on main after the tests: play with RELEASE_VERSION=1.8. It checks
+# the version (shape, not taken, newer than the newest release) and that this
+# commit contains the newest release (the job stays playable in older main
+# pipelines), then creates the release and its annotated tag on this tested
+# commit with the job token. The tag pipeline finds the tested images at once.
+# Tagging by hand (git tag -a ... && git push) still works: it waits or rebuilds.
+create_release:
+  stage: release
+  # Official GitLab CLI image (glab, git), pinned by digest; no entrypoint.
+  image: registry.gitlab.com/gitlab-org/cli:v1.128.0@sha256:00884510ffcbb6b03c0abc5dd058d7728a646cab2a419de4a7108d073ce90a03
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      # An unplayed manual job must not leave every main pipeline "blocked".
+      allow_failure: true
+  needs:
+    - job: mark_tested
+      artifacts: false
+    - job: smoke
+      artifacts: false
+  interruptible: false
+  variables:
+    # Full history and tags: version order and the release notes.
+    GIT_DEPTH: "0"
+    RELEASE_VERSION: ""
+  before_script:
+    - export PATH="$BIN:$PATH"
+    - apk add --no-cache bash curl
+    - scripts/ci/install-tools.sh task
+  script:
+    - task release:prepare VERSION="$RELEASE_VERSION" COMMIT="$COMMIT"
+  release:
+    tag_name: $RELEASE_VERSION
+    # A tag message makes the tag annotated, as validate_release requires.
+    tag_message: Release $RELEASE_VERSION
+    ref: $CI_COMMIT_SHA
+    name: $RELEASE_VERSION
+    description: ./release-notes.md
+
+# Fails a bad tag in seconds: shape, annotated, newer than the newest release.
+validate_release:
+  stage: check
+  extends: [.registry, .any-release-tag]
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - task release:validate VERSION="$CI_COMMIT_TAG" ALLOW_PRERELEASE=1
+
+# Waits for tested-<sha> of the tagged commit (its branch pipeline may still be
+# running), at most AWAIT_TESTED_TIMEOUT seconds; a registry read error fails
+# after a few tries instead of counting as "not tested yet". Reports
+# TESTED=true|false for the rebuild child.
+await_tested:
+  stage: build
+  extends: [.registry, .any-release-tag]
+  needs: [validate_release]
+  timeout: 45m
+  variables:
+    AWAIT_TESTED_TIMEOUT: "1800"
+  script:
+    - task release:await-tested REGISTRY="$RELEASE_REGISTRY" COMMIT="$COMMIT" TIMEOUT="$AWAIT_TESTED_TIMEOUT" OUT=tested.env
+  artifacts:
+    reports:
+      dotenv: tested.env
+
+# The only child pipeline, and why it exists: whether the commit must be built
+# and tested depends on the registry at run time, and rules: cannot read a
+# job's output in the same pipeline. A child pipeline can: it receives TESTED
+# from await_tested (forward: pipeline_variables) and its rules pick either the
+# build-test jobs or a no-op. mirror: this job has the child's status. YAML
+# variables are not forwarded, since they would beat the child's own.
+rebuild_untested:
+  stage: test
+  extends: .any-release-tag
+  needs: [await_tested]
+  trigger:
+    include:
+      - local: .gitlab/ci/rebuild.yml
+    strategy: mirror
+    forward:
+      yaml_variables: false
+      pipeline_variables: true
+
+# tested-<sha> -> <version>, digest checked. Registry calls only.
+promote_tested:
+  stage: promote
+  extends: [.registry, .any-release-tag]
+  needs: [rebuild_untested]
+  timeout: 15m
+  script:
+    - task release:promote REGISTRY="$RELEASE_REGISTRY" COMMIT="$COMMIT" VERSION="$CI_COMMIT_TAG"
+
+# The promoted images with production settings, behind a throwaway proxy, with
+# the deploy job's Docker and Compose.
+smoke_release:
+  stage: verify
+  extends: [.docker, .release-tag]
+  needs: [promote_tested]
+  timeout: 20m
+  script:
+    - task release:smoke REGISTRY="$RELEASE_REGISTRY" VERSION="$CI_COMMIT_TAG"
+
+# Never interruptible. One deploy per environment at a time (resource_group).
+# ROLLBACK=1 lets an explicit re-run deploy an older tag. It is only safe with
+# the project setting "Prevent outdated deployment jobs" ON (Settings > CI/CD >
+# General pipelines), which stops a stale pipeline from deploying; preflight
+# cannot check that setting, so turn it on before the first deploy (docs/ci.md).
+# Deploys only over SSH (scripts/deploy.sh): the runner can be anywhere.
+.deploy:
+  stage: deploy
+  image: docker:__DOCKER_VERSION__-cli
+  interruptible: false
+  timeout: 30m
+  variables:
+    VERSION: $CI_COMMIT_TAG
+    ROLLBACK: "1"
+  before_script:
+    - export PATH="$BIN:$PATH"
+    - apk add --no-cache bash curl git openssh-client
+    - scripts/ci/install-tools.sh task sops
+
+# Read-only: SSH login, remote Docker, registry login, images of the tag, the
+# version guard. Its own blocking manual job for release tags, so a missing
+# variable or key shows before anything changes. On prerelease tags it is the
+# last job: a safe way to prove protected variables and SSH in a tag pipeline.
+deploy_preflight:
+  extends: .deploy
+  needs: [promote_tested]
+  rules:
+    - if: $CI_COMMIT_TAG =~ $RELEASE_TAG
+      when: manual
+    - if: $CI_COMMIT_TAG =~ $PRERELEASE_TAG
+      when: manual
+      allow_failure: true
+  environment:
+    name: production
+    action: verify
+  script:
+    - task deploy:preflight ENV=production VERSION="$VERSION"
+
+# Deploys this pipeline's tag: preflight, backup, pull, migrate, admin, up,
+# verify (/api/v1/health/ready/ ok and /api/v1/version/ == the tag). Retrying
+# it redeploys the same tag, which also applies a changed admin password.
+deploy_production:
+  extends: .deploy
+  needs:
+    - smoke_release
+    - deploy_preflight
+  rules:
+    - if: $CI_COMMIT_TAG =~ $RELEASE_TAG
+      when: manual
+  environment:
+    name: production
+    url: https://__APP_HOST__
+    deployment_tier: production
+  resource_group: production
+  script:
+    - task deploy ENV=production VERSION="$VERSION" ROLLBACK="$ROLLBACK"

@@ -1,0 +1,17 @@
+# Child pipeline of a release tag (rebuild_untested in release.yml). Untested
+# commit (TESTED=false): build it once, test it and mark it tested, exactly as a
+# branch pipeline does; promote_tested then copies tested-<sha> to the tag.
+# Tested commit: a no-op, since a child pipeline needs at least one job.
+include:
+  - local: .gitlab/ci/common.yml
+  - local: .gitlab/ci/build-test.yml
+
+already_tested:
+  stage: test
+  image: docker:__DOCKER_VERSION__-cli
+  rules:
+    - if: $TESTED == "true"
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - echo "tested-$CI_COMMIT_SHA exists, nothing to rebuild"

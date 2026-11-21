@@ -35,7 +35,17 @@ Access points (admin, Flower, mail catcher): `backend/CLAUDE.md`.
 
 ### Release & deploy
 
-Before tagging: `task release:smoke` (production images and settings behind a throwaway proxy). An annotated tag `vX.Y.Z` on `main` runs the release pipeline: validate the tag → build and push → smoke test of the pushed images → deploy to staging → manual approval → production. Each deploy is `task deploy ENV=<env> VERSION=vX.Y.Z` (preflight, backup, pull, migrate, up, verify). Rollback: re-run the previous tag's deploy job (GitLab) or the deploy workflow with `rollback` (GitHub); from a laptop, at the previous tag with `ROLLBACK=1`. Details: `docs/operations.md`.
+The version is the release tag (`1.8`), never a file; the deploy sets `APP_VERSION` at runtime and `/api/v1/version/` reports it. Each deploy is `task deploy ENV=<env> VERSION=1.8` (preflight, backup, pull, migrate, admin, up, verify), from a checkout at that tag.
+<!-- >>> gitlab -->
+
+GitLab, build once: every branch commit is built once, tested on that exact image and tagged `tested-<sha>`. Release: in `main`'s pipeline play `create_release` with `RELEASE_VERSION=1.8`; the tag pipeline promotes the tested digests to the tag (no rebuild), smoke-tests them, then offers the manual `deploy_preflight` and `deploy_production`. Rollback: re-run the older tag's deploy job.
+<!-- <<< gitlab -->
+<!-- >>> github -->
+
+GitHub: an annotated tag on `main` runs the release workflow (validate, build, smoke, staging, approved production); rollback with the `deploy` workflow and `rollback`.
+<!-- <<< github -->
+
+From a laptop (last resort): at the previous tag with `ROLLBACK=1`. The admin account follows `DJANGO_SUPERUSER_EMAIL`/`DJANGO_SUPERUSER_PASSWORD` in the env file on every deploy and dev start (`ensure_admin`). Details: `docs/operations.md`.
 
 ## Testing
 
@@ -44,6 +54,7 @@ Before tagging: `task release:smoke` (production images and settings behind a th
 | Lint (pre-commit: ruff, hygiene, secrets guard) | `task check:lint` |
 | Docs build (strict: broken links fail) | `task check:docs` |
 | Frontend type-check, eslint, vitest | `task check:frontend` |
+| Python type check (mypy against `mypy-baseline.txt`; the baseline may only shrink) | `task check:types`, after fixes `task check:types:sync` |
 | Django<!-- >>> realtime --> + realtime<!-- <<< realtime --> (pytest, real Postgres/Redis), migration check | `task test:backend` |
 | End-to-end (Playwright, built assets) | `task test:e2e` |
 | Production smoke test (main and release tags) | `task release:smoke` |
@@ -61,7 +72,7 @@ Before tagging: `task release:smoke` (production images and settings behind a th
 <!-- >>> internal -->- Login: company SSO (OpenID Connect, e.g. Entra ID) where configured; local login only for development and tests.
 <!-- <<< internal --><!-- >>> external -->- External users: email verification by code, MFA (required in production), invite-only unless `SIGNUP_OPEN`.
 <!-- <<< external --><!-- >>> mixed -->- Staff and SSO-linked accounts log in via the company identity provider only (once configured); external users via verified accounts with MFA. Staff rights are never granted at signup.
-<!-- <<< mixed -->- Deploys name an explicit release version (`VERSION=vX.Y.Z`), never `latest`; deploy from a checkout at that tag; an older version than the running one needs `ROLLBACK=1` on a laptop.
+<!-- <<< mixed -->- Deploys name an explicit release version (`VERSION=1.8`), never `latest`; deploy from a checkout at that tag; an older version than the running one needs `ROLLBACK=1` on a laptop.
 
 ## Git
 

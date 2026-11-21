@@ -1,14 +1,14 @@
 # Thin wrapper (logic in Taskfile.yml and scripts/, checked by scripts/check_ci.py).
-# Release: annotated tag vX.Y.Z on main -> validate -> images -> smoke ->
+# Release: annotated tag 1.8 on main -> validate -> images -> smoke ->
 # staging -> production. Production waits for the reviewers configured on the
 # `production` environment (Settings > Environments). Protect the tag pattern
-# `v*` with a ruleset so only maintainers create releases.
+# `[0-9]*` with a ruleset so only maintainers create releases.
 # Rollback or a manual deploy: run the deploy workflow (deploy.yml).
 name: release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["[0-9]*"]
 
 permissions:
   contents: read

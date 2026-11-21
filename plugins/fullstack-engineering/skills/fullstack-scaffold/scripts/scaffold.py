@@ -54,6 +54,7 @@ FEATURE_PATHS = {
     "sso": ["backend/users/tests/test_sso.py"],
     "accounts": ["backend/users/policy.py", "backend/users/tests/test_accounts.py"],
     "mixed": ["backend/users/backends.py", "backend/users/tests/test_mixed.py"],
+    "gitlab": ["docs/ci.md"],
 }
 SKIP_DIRS = {"node_modules", ".venv", ".git", ".ruff_cache", ".pytest_cache"}
 
@@ -123,10 +124,14 @@ def key_prefix(name: str) -> str:
 
 
 def copy_template(target: Path, ci: str, features: set[str]) -> None:
-    shutil.copytree(
-        TEMPLATE, target, dirs_exist_ok=True,  # an existing empty target is fine
-        ignore=shutil.ignore_patterns("ci", "__pycache__", ".ruff_cache", ".pytest_cache", "node_modules"),
-    )
+    junk = shutil.ignore_patterns("__pycache__", ".ruff_cache", ".pytest_cache", "node_modules")
+
+    def ignore(directory: str, names: list[str]) -> set[str]:
+        # Only the template's top-level ci/ (per platform, copied below), never scripts/ci/.
+        top = {"ci"} if Path(directory) == TEMPLATE else set()
+        return set(junk(directory, names)) | (top & set(names))
+
+    shutil.copytree(TEMPLATE, target, dirs_exist_ok=True, ignore=ignore)  # an empty target is fine
     ci_root = TEMPLATE / "ci"
     if ci in ("github", "both"):
         shutil.copytree(ci_root / "github", target, dirs_exist_ok=True)
@@ -160,7 +165,7 @@ def render(target: Path, values: dict[str, str], features: set[str] | None) -> N
             path.write_text(new)
 
 LATE_PLACEHOLDERS = {"__PLAYWRIGHT_VERSION__", "__PLAYWRIGHT_MCP_VERSION__"}  # known after install
-LATE_PLACEHOLDERS |= {"__TASK_SHA256__", "__SOPS_SHA256__", "__COMPOSE_SHA256__"}  # pin_ci_tools
+LATE_PLACEHOLDERS |= {"__TASK_SHA256__", "__SOPS_SHA256__", "__COMPOSE_SHA256__", "__REGCTL_SHA256__", "__CADDY_SHA256__"}  # pin_ci_tools
 # Real identifiers that look like placeholders.
 LITERALS: set[str] = set()
 
@@ -318,7 +323,7 @@ def pin_ci_tools(target: Path) -> None:
             name, version, _, url = fields
             fields[2] = "REPLACE_WITH_SHA256"
             if "REPLACE" not in version:
-                url = url.replace("{version}", version)
+                url = url.replace("{version}", version).replace("{bare}", version.removeprefix("v"))
                 try:
                     digest = hashlib.sha256()
                     with urllib.request.urlopen(url, timeout=120) as response:  # noqa: S310 (https URL from the template)
@@ -345,6 +350,25 @@ def initial_migrations(target: Path) -> None:
     run(["uv", "run", "python", "backend/manage.py", "makemigrations", "users"], target, env)
     for cache in target.glob("backend/**/__pycache__"):
         shutil.rmtree(cache)
+
+
+def mypy_baseline(target: Path) -> None:
+    """Record the type errors the fresh project starts with, so CI fails only on
+    new ones (task check:types). Usually empty; never hand-edited."""
+    env = {
+        **os.environ,
+        "DJANGO_SECRET_KEY": "scaffold",
+        "DATABASE_URL": "sqlite:////tmp/scaffold.db",
+        "REDIS_URL": "redis://localhost:6379/0",
+        "INTERNAL_API_SECRET": "scaffold",
+    }
+    log("uv run mypy | uv run mypy-baseline sync")
+    subprocess.run(
+        ["bash", "-c", "uv run mypy | uv run mypy-baseline sync --no-colors"],
+        cwd=target, env=env, text=True, capture_output=True, stdin=subprocess.DEVNULL,
+    )
+    errors = len([line for line in (target / "mypy-baseline.txt").read_text().splitlines() if line])
+    log(f"mypy baseline: {errors} error(s)")
 
 
 def secrets(target: Path, recipients: list[str]) -> None:
@@ -395,6 +419,8 @@ def main() -> int:
             raise SystemExit(f"{tool} not found on PATH")
 
     features = set(AUDIENCES[args.audience]) | (set() if args.no_realtime else {"realtime"})
+    features |= {"gitlab"} if args.ci in ("gitlab", "both") else set()
+    features |= {"github"} if args.ci in ("github", "both") else set()
     runtimes = STACK["runtimes"]
     recipients = ",".join(args.age_recipient) or "age1REPLACE_WITH_RECIPIENT_PUBLIC_KEYS"
     values = {
@@ -415,6 +441,8 @@ def main() -> int:
         "__COMPOSE_VERSION__": runtimes["compose"],
         "__TASK_VERSION__": ci_tool_version("go-task/task", runtimes["task"]),
         "__SOPS_VERSION__": ci_tool_version("getsops/sops", runtimes["sops"]),
+        "__REGCTL_VERSION__": ci_tool_version("regclient/regclient", runtimes["regctl"]),
+        "__CADDY_TOOL_VERSION__": ci_tool_version("caddyserver/caddy", f"v{runtimes['caddy']}"),
         "__UV_VERSION__": tool_version(["uv", "--version"]) if shutil.which("uv") else "latest",
         "__PNPM_VERSION__": tool_version(["pnpm", "--version"]) if shutil.which("pnpm") else "10.0.0",
         "__REALTIME_ENABLED__": "" if args.no_realtime else "true",
@@ -445,6 +473,7 @@ def main() -> int:
         mcp = run(["pnpm", "view", "@playwright/mcp", "version"], target)  # pinned, never @latest
         render(target, {"__PLAYWRIGHT_VERSION__": playwright, "__PLAYWRIGHT_MCP_VERSION__": mcp}, None)
         initial_migrations(target)
+        mypy_baseline(target)
         run(["uvx", "pre-commit", "autoupdate"], target)
         if (target / ".github" / "workflows").exists():
             log("pinning GitHub Actions to commit SHAs")

@@ -1,62 +1,30 @@
 # Thin wrapper: every job runs a Task target, identical to what developers run.
-# This file holds only what the platform must hold: triggers, secrets,
-# environments, approvals and concurrency. Logic lives in Taskfile.yml and
-# scripts/; scripts/check_ci.py (pre-commit) keeps it that way and keeps this
-# file in step with .github/workflows/ if both exist.
-#
-# Project settings this file relies on:
-# - Repository > Protected tags: `v*`, so only maintainers create releases
-# - Operate > Environments > Protected: `staging`, `production` (approval for
-#   production); per environment SOPS_AGE_KEY, DEPLOY_SSH_KEY and
-#   DEPLOY_KNOWN_HOSTS (file variables), scoped to that environment
-# - CI/CD > General pipelines: "Prevent outdated deployment jobs" on, with
-#   "Allow job retries for rollback deployments" (the rollback path below)
-# - Deploy > Package registry available (default): pinned CI tools are mirrored
-#   into this project's generic packages (job mirror-tools)
-#
-# Release: annotated tag vX.Y.Z on main -> validate -> images -> smoke ->
-# staging -> (manual) production. Deploys run only from the tag's pipeline, so
-# the checkout (compose.deploy.yml) always matches the images. Rollback:
-# re-run the deploy job of the older tag's pipeline; the deploy logs it as a
-# rollback and verify is the gate. No variable to add, since a re-run cannot.
-stages: [check, test, release, verify, deploy]
+# Logic lives in Taskfile.yml and scripts/; scripts/check_ci.py keeps it that way.
+# Build once, release from main, and the project settings this relies on
+# (protected tags, deploy variables, cleanup policy): docs/ci.md.
+#   .gitlab/ci/common.yml      stages, variables, job templates
+#   .gitlab/ci/build-test.yml  build once, test the digests, mark tested
+#   .gitlab/ci/release.yml     create_release on main, the tag pipeline, deploy
+#   .gitlab/ci/rebuild.yml     child of a tag pipeline whose commit is untested
 
-variables:
-  DOCKER_TLS_CERTDIR: "/certs"
-  # Where releases are pushed; the deploy preflight fails if a server pulls
-  # from elsewhere. Override as a project variable for an external registry.
-  RELEASE_REGISTRY: $CI_REGISTRY_IMAGE
-  # Pinned CI tools (scripts/ci/tools.txt) come from this project's generic
-  # package registry first, then from their original source; the SHA-256 is
-  # checked either way. Point both at another store with GET and PUT if needed.
-  TOOL_MIRROR_URL: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic
-  TOOL_MIRROR_HEADER: "JOB-TOKEN: ${CI_JOB_TOKEN}"
+include:
+  - local: .gitlab/ci/common.yml
+  - local: .gitlab/ci/build-test.yml
+  - local: .gitlab/ci/release.yml
 
-# One place for the Docker and Compose versions of every job, so the smoke test
-# and the deploy run the same Compose. Exact version, never a major-only tag;
-# bump with Renovate and keep -cli and -dind equal.
-.docker:
-  image: docker:__DOCKER_VERSION__-cli
-  services: ["docker:__DOCKER_VERSION__-dind"]
-  before_script:
-    - apk add --no-cache bash curl git python3 openssh-client
-    - scripts/ci/install-tools.sh task sops
-
-# Checks on merge requests and main. Interruptible: a newer commit cancels them.
-.checks:
-  interruptible: true
+# Branch and tag pipelines only: one pipeline per commit, so each commit is
+# built once (merge request pipelines would build it a second time).
+workflow:
   rules:
-    - if: $DEPLOY_ENV
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-
-.release:
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+  auto_cancel:
+    on_new_commit: interruptible
 
 # Copies pinned CI tools the mirror lacks into it, so jobs survive an outage of
-# the original download source. Protected refs only (it writes); never blocks.
+# the original download source. Integration branches and tags only (it writes);
+# never blocks. The branches are named on purpose: CI_COMMIT_REF_PROTECTED is
+# "false" on a develop that is not a protected branch, and the job never ran.
 mirror-tools:
   stage: .pre
   image: docker:__DOCKER_VERSION__-cli
@@ -67,19 +35,38 @@ mirror-tools:
   script:
     - scripts/ci/mirror-tools.sh
   rules:
-    - if: $CI_COMMIT_REF_PROTECTED == "true"
+    - if: $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG
+
+# Checks on every branch commit. Interruptible: a newer commit cancels them.
+.checks:
+  interruptible: true
+  rules:
+    - if: $CI_COMMIT_BRANCH
 
 lint:
   stage: check
   extends: .checks
   image: ghcr.io/astral-sh/uv:python__PYTHON_VERSION__-__DEBIAN_SUITE__
+  variables:
+    PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/pre-commit
+    UV_CACHE_DIR: $CI_PROJECT_DIR/.cache/uv
+    # Full history: the mypy baseline is compared with the merge base.
+    GIT_DEPTH: "0"
+  cache:
+    key:
+      files: [.pre-commit-config.yaml, uv.lock]
+    paths: [.cache/pre-commit, .cache/uv]
   before_script:
+    - export PATH="$BIN:$PATH"
     - apt-get update -qq && apt-get install -y -qq git curl > /dev/null
     - scripts/ci/install-tools.sh task
   script:
     - cp .envs/local/app.env.example .envs/local/app.env
     - task check:lint
+    - task check:types:baseline BRANCH="$CI_DEFAULT_BRANCH"
+    - task test:scripts
 
+# docs and frontend use the compose dev stack, like developers do (docs/ci.md).
 docs:
   stage: check
   extends: [.docker, .checks]
@@ -93,102 +80,3 @@ frontend:
   script:
     - task env:local
     - task check:frontend
-
-backend:
-  stage: test
-  extends: [.docker, .checks]
-  script:
-    - task env:local
-    - task test:backend -- --junitxml=backend-results.xml
-  artifacts:
-    when: always
-    reports:
-      junit: backend-results.xml
-
-e2e:
-  stage: test
-  extends: [.docker, .checks]
-  needs: [backend]
-  script:
-    - task env:local
-    - task test:e2e
-  artifacts:
-    when: always
-    paths: [frontend/playwright-report/]
-    reports:
-      junit: frontend/e2e-results.xml
-
-# Production images and settings on every main commit: the release candidate.
-smoke:
-  stage: test
-  extends: .docker
-  interruptible: true
-  timeout: 40m
-  script:
-    - task release:smoke
-  rules:
-    - if: $DEPLOY_ENV
-      when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-
-validate:
-  stage: check
-  extends: [.docker, .release]
-  variables:
-    GIT_DEPTH: 0
-    GIT_FETCH_EXTRA_FLAGS: --prune --quiet --tags
-  script:
-    - task release:validate VERSION=$CI_COMMIT_TAG
-
-images:
-  stage: release
-  extends: [.docker, .release]
-  needs: [validate]
-  # Sized from measured cold builds; a stuck push fails instead of hanging.
-  timeout: 45m
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker buildx create --use --driver docker-container
-    - task release:build REGISTRY=$RELEASE_REGISTRY VERSION=$CI_COMMIT_TAG
-
-smoke:release:
-  stage: verify
-  extends: [.docker, .release]
-  needs: [images]
-  timeout: 20m
-  variables:
-    REGISTRY_USER: $CI_REGISTRY_USER
-    REGISTRY_PASSWORD: $CI_REGISTRY_PASSWORD
-  script:
-    - task release:smoke REGISTRY=$RELEASE_REGISTRY VERSION=$CI_COMMIT_TAG
-
-# Never interruptible. One deploy per environment at a time (resource_group).
-# "Prevent outdated deployment jobs" stops a stale pipeline; only an explicit
-# re-run deploys an older tag, so ROLLBACK=1 here lets that re-run through.
-.deploy:
-  stage: deploy
-  extends: .docker
-  timeout: 30m
-  variables:
-    # Pull access for the target host: this job's registry token
-    REGISTRY_USER: $CI_REGISTRY_USER
-    REGISTRY_PASSWORD: $CI_REGISTRY_PASSWORD
-    VERSION: $CI_COMMIT_TAG
-    ROLLBACK: "1"
-  script:
-    - task deploy ENV=$CI_ENVIRONMENT_NAME VERSION=$VERSION ROLLBACK=$ROLLBACK
-
-deploy:staging:
-  extends: [.deploy, .release]
-  needs: [smoke:release]
-  environment: staging
-  resource_group: staging
-
-deploy:production:
-  extends: .deploy
-  needs: [deploy:staging]
-  environment: production
-  resource_group: production
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
-      when: manual
