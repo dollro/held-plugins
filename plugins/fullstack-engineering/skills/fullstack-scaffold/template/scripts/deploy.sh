@@ -34,7 +34,7 @@
 #
 # Verbs:
 #   preflight  prove the deploy can work before changing anything: SSH login as
-#              the deploy user, remote Docker, the proxy network, registry login, images present,
+#              the deploy user, remote Docker, registry login, images present,
 #              registry matches the release, version not older than the running one
 #   backup     pg_dump into the postgres_backups volume (skipped on a first deploy)
 #   pull       pull the images of APP_VERSION on the server
@@ -61,14 +61,7 @@ set +x  # never trace: the values below include secrets
 
 ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd -P)"
 DEPLOY_ENV="${DEPLOY_ENV:-}"
-[[ "${1:-}" == "--local" ]] && LOCAL_ARG=1 || LOCAL_ARG=0
-# smoke: the production smoke test (scripts/smoke.sh) reuses migrate and up on
-# the local daemon with its own generated, plaintext env file.
-case "$DEPLOY_ENV" in
-  staging|production) ;;
-  smoke) [[ "$LOCAL_ARG" == 1 ]] || { echo "error: DEPLOY_ENV=smoke needs --local" >&2; exit 1; } ;;
-  *) echo "error: set DEPLOY_ENV=staging|production" >&2; exit 1 ;;
-esac
+case "$DEPLOY_ENV" in staging|production) ;; *) echo "error: set DEPLOY_ENV=staging|production" >&2; exit 1 ;; esac
 export DEPLOY_ENV  # compose.deploy.yml reads it (env files, router names)
 ENV_DIR="$ROOT/.envs/$DEPLOY_ENV"
 PROJECT="__PROJECT__-$DEPLOY_ENV"
@@ -80,7 +73,7 @@ export COMPOSE_PARALLEL_LIMIT="${COMPOSE_PARALLEL_LIMIT:-4}"
 die() { echo "error: $*" >&2; exit 1; }
 info() { echo "==> $*" >&2; }
 
-[[ "$LOCAL_ARG" == 1 ]] && { LOCAL=1; shift; }
+[[ "${1:-}" == "--local" ]] && { LOCAL=1; shift; }
 VERB="${1:-}"; [[ -n "$VERB" ]] || die "missing verb (see header of $0)"; shift
 
 # Plaintext secrets exist on the caller only while this script runs, in private
@@ -115,14 +108,10 @@ as_file() {
 }
 
 load_env() {
-  if [[ "$DEPLOY_ENV" == smoke ]]; then
-    ( umask 077; tr -d '\r' < "$ENV_DIR/app.env" > "$APP_ENV_FILE" )
-  else
   ( umask 077
     sops --decrypt --input-type dotenv --output-type dotenv "$ENV_DIR/app.env.enc" \
       | tr -d '\r' > "$APP_ENV_FILE" ) \
     || die "cannot decrypt $ENV_DIR/app.env.enc (age key in SOPS_AGE_KEY or ~/.config/sops/age/keys.txt?)"
-  fi
   # Files edited on Windows carry CRLF; compose would keep the \r in every value.
   tr -d '\r' < "$ENV_DIR/deploy.env" > "$DEPLOY_ENV_FILE"
   REGISTRY="$(read_key "$DEPLOY_ENV_FILE" REGISTRY)"
@@ -246,9 +235,7 @@ ensure_context
 
 case "$VERB" in
   preflight) require_version prerelease; require_checkout ;;
-  # The smoke test deploys CI tags (tested-<sha>) or a local build: no release shape.
-  migrate|up) [[ "$DEPLOY_ENV" == smoke ]] || { require_version; require_checkout; } ;;
-  pull) require_version; require_checkout ;;
+  pull|migrate|up) require_version; require_checkout ;;
   *) APP_VERSION="${APP_VERSION:-$(running_version || true)}"
      APP_VERSION="${APP_VERSION:-none}" ;;
 esac
@@ -257,10 +244,8 @@ export APP_VERSION  # compose.deploy.yml: image tags
 # parses it, the shell never evaluates it.
 COMPOSE=(-f "$ROOT/compose.deploy.yml" -p "$PROJECT" --env-file "$DEPLOY_ENV_FILE")
 dc() { remote compose "${COMPOSE[@]}" "$@"; }
-# DEPLOY_PULL=never: images built locally (smoke test) are never pulled.
-PULL=(); [[ -n "${DEPLOY_PULL:-}" ]] && PULL=(--pull "$DEPLOY_PULL")
 # One-off containers must not receive traffic from the reverse proxy.
-one_off() { dc run --rm --no-deps ${PULL[@]+"${PULL[@]}"} -l traefik.enable=false "$@"; }
+one_off() { dc run --rm --no-deps -l traefik.enable=false "$@"; }
 
 images() {
   printf '%s\n' "$REGISTRY/__PROJECT__-django:$APP_VERSION"
@@ -274,11 +259,6 @@ case "$VERB" in
     info "ssh login and remote docker ($DEPLOY_SSH_TARGET)"
     remote version --format 'server docker {{.Server.Version}}' \
       || die "cannot reach the Docker daemon over SSH: check the deploy user, its key and its docker group"
-    # The shared Traefik owns this network; without it `up` fails late, and a
-    # router whose middleware is missing answers 404 (check proxy logs after).
-    proxy_net="$(read_key "$DEPLOY_ENV_FILE" PROXY_NETWORK)"
-    remote network inspect "${proxy_net:-proxy}" >/dev/null 2>&1 \
-      || die "network ${proxy_net:-proxy} missing on the server: start the shared Traefik first (docs/operations.md)"
     lower() { printf '%s' "${1%/}" | tr '[:upper:]' '[:lower:]'; }  # bash 3 (macOS) safe
     if [[ -n "${RELEASE_REGISTRY:-}" && "$(lower "$RELEASE_REGISTRY")" != "$(lower "$REGISTRY")" ]]; then
       die "release pushed to $RELEASE_REGISTRY but $DEPLOY_ENV pulls from $REGISTRY"
@@ -341,7 +321,7 @@ case "$VERB" in
   up)
     guard_version
     info "docker compose $(docker compose version --short) (the smoke test should use the same)"
-    dc up -d ${PULL[@]+"${PULL[@]}"} --remove-orphans --wait
+    dc up -d --remove-orphans --wait
     ;;
   manage)
     [[ "$APP_VERSION" != none ]] || die "nothing running in $DEPLOY_ENV"

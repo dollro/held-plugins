@@ -81,8 +81,6 @@ mirror-tools:
   rules:
     - if: $CI_COMMIT_BRANCH
 
-# Checks run in plain job images (uv, node), not Docker-in-Docker: the runner
-# caches the images, and the caches below are keyed on the files that pin them.
 lint:
   stage: check
   extends: .checks
@@ -105,36 +103,18 @@ lint:
     - task check:lint
     - task check:types:baseline BRANCH="$CI_DEFAULT_BRANCH"
 
+# TODO: run docs and frontend in plain uv/node job images once that is shorter
+# than this; for now they use the compose dev stack like developers do.
 docs:
   stage: check
-  extends: .checks
-  image: ghcr.io/astral-sh/uv:python__PYTHON_VERSION__-__DEBIAN_SUITE__
-  variables:
-    UV_CACHE_DIR: $CI_PROJECT_DIR/.cache/uv
-  cache:
-    key:
-      files: [uv.lock]
-      prefix: docs
-    paths: [.cache/uv]
-  before_script:
-    - export PATH="$BIN:$PATH"
-    - apt-get update -qq && apt-get install -y -qq curl > /dev/null
-    - scripts/ci/install-tools.sh task
+  extends: [.docker, .checks]
   script:
-    - task check:docs STACK=job
+    - task env:local
+    - task check:docs
 
 frontend:
   stage: check
-  extends: .checks
-  image: node:__NODE_VERSION__-__DEBIAN_SUITE__-slim
-  cache:
-    key:
-      files: [frontend/pnpm-lock.yaml]
-    # The pnpm store lives in node_modules (docker/frontend/pnpm).
-    paths: [frontend/node_modules]
-  before_script:
-    - export PATH="$BIN:$PATH"
-    - apt-get update -qq && apt-get install -y -qq curl ca-certificates > /dev/null
-    - scripts/ci/install-tools.sh task
+  extends: [.docker, .checks]
   script:
-    - task check:frontend STACK=job
+    - task env:local
+    - task check:frontend
