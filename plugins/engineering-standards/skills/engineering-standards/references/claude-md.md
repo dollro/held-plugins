@@ -40,7 +40,7 @@ When agents (a sandboxed one, a host session or both) take issues from the track
 |-|-|
 | `## Sandbox` | One generic sandbox worktree and its attach line; issues worked one after another in it; per issue a fresh branch from the integration branch; no merging by the agent; how the agent reads pull request and pipeline status (which MCP server) and what to do when it is missing |
 | `## Git` (addition) | Trailer `Refs: <KEY>-<n>` on every commit that belongs to an issue |
-| `## Issue Tracker` | Tracker and its tool prefix, project key; columns selected by state type, never by name; the Worker field and its names; the "grab your issue" procedure; what to do when the tracker is unreachable |
+| `## Issue Tracker` | Tracker and its tool prefix, project key; columns selected by state type, never by name; the Worker field and its names; the "grab your issue" steps, compact (rationale in `autonomous-runs.md` §10); what to do when the tracker is unreachable |
 
 Template (replace the placeholders; keep it this short):
 
@@ -64,7 +64,7 @@ When a commit belongs to a tracker issue, add a trailer line `Refs: ACME-<n>`.
 - Before starting, find the matching `ACME-<n>` issue; create one for non-trivial work that has none.
 - Move issues by the column's state type (`started`, `completed`, `canceled`), never by column name.
 - **Worker field:** the owner is assignee; the custom field `Worker` names the agent: `atlas` (sandbox, `$SANDBOX_NAME` set) or `host`. Work only on your own issues; no Worker means the owner hands it out. New issues get issue type `<id>` and a Worker; work needing both agents is two issues.
-- **"Grab your issue":** search by your Worker name, confirm the field exactly, drop completed, canceled and blocked issues, skip `In Review` unless its review asks for fixes, take the highest priority (a started one first). Say which and why.
+- **"Grab your issue":** search by your Worker name, confirm the field exactly, skip completed, canceled and blocked issues and `In Review` unless its review asks for fixes, take the highest priority (a started one first). Say which and why. Rationale: engineering-standards `autonomous-runs.md` §10.
 - Tracker unreachable: say so, continue, list the owed updates in the final message.
 ```
 

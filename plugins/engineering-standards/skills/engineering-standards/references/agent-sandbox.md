@@ -1,6 +1,6 @@
 # Agent sandboxes
 
-How to develop with coding agents inside a sandbox without fighting permissions, the network policy or the local stack. Checked in October 2026 against Docker Sandboxes (`sbx`) 0.47 and Claude Code's sandboxing docs; sources in `sources.md`. Both move fast and `sbx kit`/`sbx env` are marked experimental: check flags with `sbx <command> --help` and the docs before writing them into a repo.
+How to develop with coding agents inside a sandbox without fighting permissions, the network policy or the local stack. Built on Docker Sandboxes (`sbx`) and Claude Code's sandboxing docs; sources in `sources.md`. Both move fast and `sbx kit`/`sbx env` are marked experimental: check flags with `sbx <command> --help` and the docs before writing them into a repo.
 
 A sandbox limits what an autonomous agent can reach: files, network, credentials. Pick the kind first, because the rules for Docker and host access differ:
 
@@ -33,7 +33,7 @@ For letting the agent run unattended in a sandbox (who decides where it runs, `/
 
 ### Stack inside the sandbox
 
-Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.47, 16 CPUs): cold build of 7 images 162 s, `up --wait` 34–54 s, backend suite of 428 tests ~40 s. Images took ~13 GB of Docker disk, the running stack ~4 GB RAM.
+A full multi-service stack builds and runs in a sandbox at a speed fit for a test loop, but its images need far more Docker disk than the default, and the running stack several GB of RAM.
 
 - **Size the sandbox at creation.** The Docker disk defaults to 10 GB, too small for such a stack. `DOCKER_SANDBOXES_DOCKER_SIZE=40g DOCKER_SANDBOXES_ROOT_SIZE=30g sbx create … -m 12g …` (sizes cannot change later; `/sbx --stack` does this).
 - **Images are per sandbox.** Sandboxes do not share images or layers; each new sandbox builds once, then keeps its images until `sbx rm`.
@@ -91,7 +91,7 @@ Measured on a Django + FastAPI + Celery + Postgres + Redis + Vite stack (sbx 0.4
 2. **Tools run in containers, not in the sandbox.** Missing pnpm or browsers are not installed into the sandbox; use the image CI uses, pinned to the project's version. Playwright's browsers do not install on the sandbox OS when it is newer than Playwright supports (`does not support chromium on ubuntu<ver>`); run the official image matching `@playwright/test` in `package.json` against the stack inside: `docker run --rm --network host -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/w -w /w mcr.microsoft.com/playwright:v<ver>-noble npx playwright test`. Node tools already in `node_modules` run as `node_modules/.bin/<tool>` without pnpm. Better: a sandbox-aware task per suite (One Taskfile above), so the agent never composes these by hand.
 3. **Throwaway overlays stay out of the repo.** One-off compose files (a tool container, a production-like setting) go into the agent's scratchpad and are added with another `-f`. Relative paths in them resolve against the first compose file's directory. An `environment:` entry in an overlay overrides the service's `env_file` (e.g. switch the app from the Vite dev server to built assets). If the overlay is worth keeping, commit it next to `compose.sbx.yml`.
 4. **Tool containers follow the same rules:** the proxy/CA block above (with every compose service name in `NO_PROXY`) and `user: "${UID}:${GID}"` with `HOME` under `/tmp` (File ownership below). For pnpm as non-root, set `COREPACK_HOME` to a writable path and `corepack enable --install-directory <writable dir>`. Escape `$` as `$$` inside a compose `command:`.
-   **Image builds need the proxy CA in builder stages too,** not only in the final image. Swap in a builder image that has the CA through a bake/BuildKit named context keyed by the full digest ref (`image@sha256:…`); a context keyed by tag can silently fall back to the stock image. TLS verification stays on; never disable it.
+   **Image builds need the proxy CA in every build stage,** not only in the final image; TLS verification stays on.
 5. **Start only what the tests need:** `up -d --wait <services>`, not the whole stack.
 6. **Long runs:** send build and test output to a log file in the scratchpad and read it with `tail`; wrap commands in `timeout`; raise the Bash tool timeout (up to 600000 ms) instead of polling.
 7. **`exec` into running services.** `docker compose run --no-deps <svc>` hangs when the entrypoint waits for a database that is not part of the run.
@@ -256,7 +256,7 @@ Push is not enough. An agent that moves its issue to review "when the pipeline i
 - **In `sbx`, the intended route is the MCP gateway:** `sbx mcp add` on the host, OAuth and secrets stay on the host, `--static-mcp` fixes the set at creation. Use `.mcp.json` placeholders for servers that are not in the gateway.
 - **The gateway inside a sandbox is `sbx`'s own, managed with `sbx mcp` on the host** (`ls`, `add`, `inspect`, `load`). It is not the Docker MCP Toolkit: `docker mcp server enable` and `docker mcp secret set` do not apply and usually do not exist on the host. An agent inside sees the gateway's tool list but cannot change it; it names the missing server and hands the `sbx mcp` commands to the human.
 - **`sbx mcp load` is for the running sandbox only.** A recreated sandbox gets the `--static-mcp` set again, so a server that should stay goes into that set (harness selection) as well.
-- **Remote MCP with OAuth** (MCP authorization spec 2026-07-28: OAuth 2.1 for HTTP, client ID metadata documents preferred) needs a browser. In a headless sandbox, sign in with `claude mcp login <name> --no-browser`, use a pre-registered client, or fall back to a bearer token through the proxy.
+- **Remote MCP with OAuth** (the MCP authorization spec uses OAuth for HTTP servers) needs a browser. In a headless sandbox, sign in with `claude mcp login <name> --no-browser`, use a pre-registered client, or fall back to a bearer token through the proxy.
 - **stdio servers via `uvx`/`npx`** download on first start. Pin versions (`pkg@1.2.3`, `git+https://...@<tag>`) rather than `@latest`, and pre-install them in the kit's install step so the first session neither waits nor hits the policy.
 - **Serena rewrites `.serena/project.yml`** from the template of the installed version (new keys, refreshed comments) whenever that version changes. Pin the same version for host and sandbox (one `.mcp.json` does that) and commit the refreshed file once; two versions rewrite it back and forth.
 - **Move repo-local MCP state out of the repo** when a server runs on both sides: Playwright MCP with `--output-dir` (or `PLAYWRIGHT_MCP_OUTPUT_DIR`) and `--isolated`; Serena with `project_serena_folder_location` in `serena_config.yml`.
@@ -338,21 +338,23 @@ Never copied: credentials, `~/.claude.json`, history, `projects/` and memory, se
 
 ## Reach the agent from the host (`sbx`)
 
-An orchestrator session on the host gives sandboxed agents work and reads their answers. The routes, as of sbx 0.47 and Claude Code 2.1.3xx:
+An orchestrator session on the host gives sandboxed agents work and reads their answers. Routes, default first:
 
-| Route | How | Use it for | Limits |
-|-|-|-|-|
-| `ask` (default) | `sandbox.sh ask <name> "<prompt>"` in this plugin (`skills/sbx/scripts/`), or `/sbx ask`: `sbx exec -i <name> claude -p --resume <id> --output-format json`, prompt over stdin | Tasks and follow-ups from an orchestrator, local and cloud (`--cloud`, untested) | One headless turn per call, not a message into an attached session; one call at a time per sandbox; refused while an interactive session works there unless `--read-only` |
-| Tracker | Issue state, pull requests, pipelines | Status both sides read; anything that must outlive a session | Asynchronous only |
-| SSH | `sbx setup ssh` once, then `ssh <name>.sbx`, `ssh <name>.sbx -- <cmd>`, `scp`, `sftp`; cloud: `sbx --cloud setup ssh`, `ssh <sbx_id>@sbx_cloud` | Editors (VS Code Remote-SSH), file copy, a forwarded port (`ssh -L`) | A shell, not a line to the agent: for prompts it does what `sbx exec` does. Experimental; the syntax changed between releases |
-| Cross-session messaging | The orchestrator's `SendMessage` to a named session; it arrives as a new turn, or between tool calls when busy | Two-way messages into a running agent session | Needs a claude.ai login and Remote Control (`claude --rc`) on both sides, the Anthropic hosts in the sandbox's network policy. Not tested in a sandbox |
-| Channels | An MCP server inside the sandbox pushes events into the running session (`claude --channels …`) | Webhooks or a relay into a running session | Research preview; listens on the sandbox's loopback, so the host needs `ssh -L`; a published cloud port is a public URL and must check the sender, or it is a prompt-injection path |
+| Route | Use it for | Limits |
+|-|-|-|
+| `ask`: `sandbox.sh ask <name> "<prompt>"` in this plugin (`skills/sbx/scripts/`), or `/sbx ask` | Tasks and follow-ups from an orchestrator: a headless `claude -p` turn inside the sandbox that resumes the same session | One turn per call, one call at a time per sandbox; refused while an interactive session works there unless read-only |
+| Tracker | Status both sides read; anything that must outlive a session | Asynchronous only |
+| SSH (`sbx setup ssh`) | Editors, file copy, a forwarded port | A shell, not a line to the agent; experimental |
+| Cross-session messaging | Two-way messages into a running agent session | Needs a login and remote control on both sides, and the vendor's hosts in the network policy |
+| Channels | Webhooks or a relay pushed into a running session | Preview feature; an exposed port must check the sender, or it is a prompt-injection path |
 
-**`ask` in practice** (observed with sbx 0.47, Claude Code 2.1.329): `sbx exec` runs as user `agent` in the primary workspace, so `claude -p` works on the repo without a `cd`. It uses the login stored in the sandbox (`SBX_CRED_ANTHROPIC_MODE=none`): attach once and `/login` before the first `ask`. `--resume <id>` keeps the conversation across calls; a recreated sandbox loses it and `ask` starts a new session. Until someone accepts the workspace trust dialog in an attached session, `claude -p` ignores the repo's `.claude/settings.json` permissions and hooks, so `/goal` and Stop hooks do not run; `ask` warns. A trivial reply cost about $0.30 with a large CLAUDE.md and harness: every call loads the context again.
+Principles for `ask`:
 
-**SSH, the details.** `sbx setup ssh` writes a managed block included from `~/.ssh/config`: `*.sbx` routed through `sbx ssh proxy`, no client key (`IdentityFile /dev/null`), the host key pinned in `~/.ssh/sbx_known_hosts`; access is gated on the Docker login. No SSH server runs in the sandbox. `ssh -L` forwards to the sandbox's loopback only; binding the client side to anything but `127.0.0.1` exposes the service to the network. Client environment variables are not forwarded. `ssh <name>.sbx` starts a stopped sandbox. On host key errors after an upgrade, rerun `sbx setup ssh`. Remove with `sbx setup ssh remove`.
+- **Log in once and accept workspace trust** in an attached session before the first `ask`. Until trust is accepted, `claude -p` ignores the repo's permissions and hooks, so `/goal` and Stop hooks do not run; `ask` warns.
+- **Each call reloads the full context** (CLAUDE.md, harness), so it costs more than its reply suggests; batch follow-ups.
+- **A recreated sandbox loses the session;** `ask` then starts a new one.
 
-**Cloud sandboxes** (`sbx --cloud …`): created with a TTL (default 1 h, extendable to 24 h from creation with `sbx --cloud ttl +30m <name>`); `sbx --cloud run --detach claude --name <name>` starts one without attaching, `sbx --cloud attach <name>` joins the running session, Ctrl+\ leaves it running. Logins and secrets of local sandboxes are not there. `sbx --cloud port publish <name> <port>` gives a public HTTPS URL that the Docker login does not protect.
+SSH and port forwards bind the client side to `127.0.0.1` only; anything else exposes the service to the network. Cloud sandboxes expire, carry none of the local logins or secrets, and a published port is a public URL the Docker login does not protect. Check flags with `sbx <command> --help` before relying on them.
 
 ## Audit a repo's sandbox setup
 
@@ -376,7 +378,7 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 
 | Symptom | Cause | Fix |
 |-|-|-|
-| `sbx run`/`create`: `500 ... failed to run sandbox container`; daemon log `unknown volume driver: block` | Before sbx 0.47 on Linux: sandboxd started without `/usr/sbin` on PATH, did not find `mkfs.ext4` and disabled its block volume driver; `sbx diagnose` stays green | Upgrade (0.47 bundles `mkfs.ext4`), or add `/usr/sbin:/sbin` to PATH and restart the daemon. Log: `~/.local/state/sandboxes/sandboxes/sandboxd/daemon.log` |
+| `sbx run`/`create`: `500 ... failed to run sandbox container`; daemon log `unknown volume driver: block` | Older sbx on Linux: sandboxd started without `/usr/sbin` on PATH, did not find `mkfs.ext4` and disabled its block volume driver; `sbx diagnose` stays green | Upgrade sbx (newer releases bundle `mkfs.ext4`), or add `/usr/sbin:/sbin` to PATH and restart the daemon. Log: `~/.local/state/sandboxes/sandboxes/sandboxd/daemon.log` |
 | Tests or MCP calls fail with connection errors only in the sandbox | Domain or host port not allowed (`sbx policy log` shows `deny`) | Allow it; host ports as `localhost:<port>` |
 | `curl` to a host service from inside answers HTTP 500 with `dial tcp … connection refused` | The sandbox proxy answers itself: nothing listens on the host port | Start the service on the host |
 | `curl` answers HTTP 403 `Approval required for <host>` | No allow rule; the request waits as a pending approval | `sbx policy approval ls`, then `sbx policy approval respond <id> --option allow`, or add the host to the kit |
