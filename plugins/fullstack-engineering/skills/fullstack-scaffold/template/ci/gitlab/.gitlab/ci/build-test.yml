@@ -1,0 +1,246 @@
+# Build once, test, mark tested. Included by .gitlab-ci.yml for branch
+# pipelines and by child-rebuild.yml for the child pipeline a release tag starts
+# when its commit has no tested images.
+#
+# Runner-location agnostic: no Docker socket, no host paths; per-commit tags
+# and digests, so the runner's image cache only saves pulls and a cold runner on
+# any host gets the same result.
+
+.build-test:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $CI_COMMIT_BRANCH
+
+# The only image build of a pipeline. One bake run builds the production images
+# and the test image (stage `test`, FROM the production django stage) and
+# pushes them as <sha> / test-<sha>. The dotenv report images.env records the
+# pushed digests (DIGEST_*), which the test jobs run and mark_tested tags, plus
+# the cache refs this build wrote (CACHE_*). A commit with tested-<sha> already
+# builds nothing: its tested digests are recorded instead, and develop/main
+# take its pinned cache (release:build-ci).
+build_images:
+  stage: build
+  extends: .docker
+  # Starts at once, beside the checks: stages never serialize the pipeline.
+  needs: []
+  interruptible: true
+  # Sized from measured cold builds; a stuck push fails instead of hanging.
+  timeout: 45m
+  rules:
+    # A release tag's rebuild child uses main's cache: a cache per tag is junk.
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+      variables:
+        CACHE_REF: main
+    - if: $CI_COMMIT_BRANCH
+      variables:
+        CACHE_REF: $CI_COMMIT_REF_SLUG
+  before_script:
+    - export PATH="$BIN:$PATH"
+    - apk add --no-cache bash curl git python3 openssh-client
+    # task and caddy are handed to the test jobs as artifacts: their images
+    # (non-root test image, Playwright image) do not install tools.
+    - scripts/ci/install-tools.sh task regctl caddy
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker buildx create --use --driver docker-container
+    - task release:build-ci REGISTRY="$RELEASE_REGISTRY" COMMIT="$COMMIT" CACHE_REF="$CACHE_REF"
+  artifacts:
+    expire_in: 1 week
+    paths: [.cache/bin/task, .cache/bin/caddy]
+    reports:
+      dotenv: images.env
+
+# Job image = the commit's test image, by digest (dotenv variables work in
+# image: and services:). The tests run the image's code in /app, not the
+# checkout (task test:backend STACK=job). Throwaway database credentials.
+test_backend:
+  stage: test
+  extends: .build-test
+  interruptible: true
+  needs:
+    - job: build_images
+      artifacts: true
+  image:
+    name: $CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO_TEST
+    entrypoint: [""]
+  services:
+    - name: postgres:__POSTGRES_VERSION__
+      alias: postgres
+    - name: redis:__REDIS_VERSION__
+      alias: redis
+  variables:
+    POSTGRES_DB: ci
+    POSTGRES_USER: ci
+    POSTGRES_PASSWORD: ci-only
+    DATABASE_URL: postgres://ci:ci-only@postgres:5432/ci
+    REDIS_URL: redis://redis:6379/0
+    DJANGO_SETTINGS_MODULE: backend.config.settings.test
+    DJANGO_SECRET_KEY: ci-only-not-secret
+    INTERNAL_API_SECRET: ci-only-internal-secret
+    EMAIL_URL: consolemail://
+  before_script:
+    - export PATH="$BIN:$PATH"
+  script:
+    # Fails unless this job runs the digest build_images recorded.
+    - task release:check-image IMAGE="$CI_JOB_IMAGE" DIGEST="$DIGEST_DJANGO_TEST"
+    - task test:backend STACK=job -- --junitxml="$CI_PROJECT_DIR/backend-results.xml"
+    # Last: only a passing run writes the digests it ran (mark_tested checks).
+    - task release:ran OUT=ran-backend.env
+  artifacts:
+    when: always
+    expire_in: 1 day
+    paths: [ran-backend.env]
+    reports:
+      junit: backend-results.xml
+
+# mypy in its own job, beside the tests: the commit's test image (it carries
+# mypy and the stubs), the image's /app code, no services (the Django plugin
+# imports the settings but never connects). The cache survives pipelines, keyed
+# on uv.lock, so a warm run only rechecks changed files.
+typecheck:
+  stage: test
+  extends: .build-test
+  interruptible: true
+  needs:
+    - job: build_images
+      artifacts: true
+  image:
+    name: $CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO_TEST
+    entrypoint: [""]
+  variables:
+    MYPY_CACHE_DIR: $CI_PROJECT_DIR/.cache/mypy
+    DATABASE_URL: postgres://ci:ci-only@postgres:5432/ci
+    REDIS_URL: redis://redis:6379/0
+    DJANGO_SECRET_KEY: ci-only-not-secret
+    INTERNAL_API_SECRET: ci-only-internal-secret
+  cache:
+    key:
+      files: [uv.lock]
+      prefix: mypy
+    paths: [.cache/mypy]
+  before_script:
+    - export PATH="$BIN:$PATH"
+  script:
+    - task release:check-image IMAGE="$CI_JOB_IMAGE" DIGEST="$DIGEST_DJANGO_TEST"
+    - task check:types STACK=job
+
+# The app as job services from the commit's production images, by digest; the
+# job image is the official Playwright image (its tag equals @playwright/test),
+# which runs the proxy and the checkout's specs (task test:e2e STACK=job,
+# scripts/e2e_job.sh). No Docker-in-Docker: the runner caches job and service
+# images, so a warm runner pulls nothing. Runs beside test_backend.
+test_e2e:
+  stage: test
+  extends: .build-test
+  interruptible: true
+  timeout: 30m
+  needs:
+    - job: build_images
+      artifacts: true
+  image: mcr.microsoft.com/playwright:v__PLAYWRIGHT_VERSION__-noble
+  services:
+    - name: postgres:__POSTGRES_VERSION__
+      alias: postgres
+    - name: redis:__REDIS_VERSION__
+      alias: redis
+    # >>> accounts
+    - name: axllent/mailpit:__MAILPIT_VERSION__
+      alias: mailpit
+    # <<< accounts
+    - name: $CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO
+      alias: django
+      command: ["bash", "-c", "python backend/manage.py migrate --noinput && python backend/manage.py seed_e2e_user && exec /docker/start-django"]
+    - name: $CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO
+      alias: celeryworker
+      command: ["/docker/start-celery-worker"]
+    # >>> realtime
+    - name: $CI_REGISTRY_IMAGE/__PROJECT__-realtime@$DIGEST_REALTIME
+      alias: realtime
+      command: ["bash", "-c", "alembic -c realtime/alembic.ini upgrade head && exec /docker/start-realtime"]
+    # <<< realtime
+  variables:
+    # Services reach each other by alias (django -> postgres, realtime -> django).
+    FF_NETWORK_PER_BUILD: "true"
+    # Service logs in the job log, for failures on start.
+    CI_DEBUG_SERVICES: "true"
+    # For every service (throwaway values). Local settings with DEBUG off: the
+    # e2e user may be seeded (refused with production settings), assets come
+    # from the image's bundle.
+    POSTGRES_DB: ci
+    POSTGRES_USER: ci
+    POSTGRES_PASSWORD: ci-only
+    DATABASE_URL: postgres://ci:ci-only@postgres:5432/ci
+    REDIS_URL: redis://redis:6379/0
+    APP_ENVIRONMENT: ci
+    APP_VERSION: e2e
+    DJANGO_SETTINGS_MODULE: backend.config.settings.local
+    DJANGO_DEBUG: "False"
+    DJANGO_VITE_DEV_MODE: "False"
+    DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,django
+    DJANGO_SECRET_KEY: ci-only-not-secret
+    INTERNAL_API_SECRET: ci-only-internal-secret
+    DJANGO_INTERNAL_URL: http://django:5000
+    # >>> accounts
+    EMAIL_URL: smtp://mailpit:1025
+    # <<< accounts
+    # >>> !accounts
+    EMAIL_URL: consolemail://
+    # <<< !accounts
+  before_script:
+    - export PATH="$BIN:$PATH"
+  script:
+    # Logs the digests the services were pulled by (an empty one fails the pull).
+    - task release:check-image IMAGE="$CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO" DIGEST="$DIGEST_DJANGO"
+    - task test:e2e STACK=job
+    # Last: only a passing run writes the digests it ran (mark_tested checks).
+    - task release:ran OUT=ran-e2e.env
+  artifacts:
+    when: always
+    expire_in: 1 day
+    paths: [ran-e2e.env, frontend/playwright-report/, caddy.log]
+    reports:
+      junit: frontend/e2e-results.xml
+
+# Every test job passed on the recorded digests: tag exactly those tested-<sha>
+# (test image: test-tested-<sha>) and pin the build's cache. Refuses when a
+# ran-*.env names other digests: GitLab retries a job without its dependents,
+# so a retried build would otherwise be marked on tests it never had. The
+# checks of the same commit must be green too (absent in a rebuild child).
+mark_tested:
+  stage: mark
+  extends: [.registry, .build-test]
+  interruptible: true
+  needs:
+    - job: build_images
+      artifacts: true
+    - job: test_backend
+      artifacts: true
+    - job: test_e2e
+      artifacts: true
+    # A new type error keeps the commit from being tested.
+    - job: typecheck
+      artifacts: false
+    - job: lint
+      artifacts: false
+      optional: true
+    - job: docs
+      artifacts: false
+      optional: true
+    - job: frontend
+      artifacts: false
+      optional: true
+  script:
+    - task release:mark-tested REGISTRY="$RELEASE_REGISTRY" COMMIT="$COMMIT"
+
+# Production images and settings on every main commit, on the tested digests:
+# the release candidate. Same job image as the deploy (same Compose).
+smoke:
+  stage: verify
+  extends: .docker
+  interruptible: true
+  timeout: 20m
+  needs: [mark_tested]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - task release:smoke REGISTRY="$RELEASE_REGISTRY" VERSION="tested-$COMMIT"

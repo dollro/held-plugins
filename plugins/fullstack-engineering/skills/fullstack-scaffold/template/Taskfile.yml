@@ -121,16 +121,73 @@ tasks:
       - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run ci:lint"
       - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run ci:test-unit"
 
-  test:backend:
-    desc: Backend tests (pytest) against real Postgres and Redis
-    deps: [env:local]
+  # mypy against mypy-baseline.txt: new errors fail, and so do fixed errors still
+  # in the baseline. STACK=job (CI): in the commit's test image, on its /app code.
+  check:types:
+    desc: Python type check (mypy) against mypy-baseline.txt; STACK=job in CI
+    vars:
+      STACK: '{{.STACK | default "compose"}}'
     cmds:
-      - "{{.RUN}} django python backend/manage.py makemigrations --check --dry-run"
-      - "{{.RUN}} django pytest {{.CLI_ARGS}}"
+      - cmd: "{{.RUN}} --no-deps django bash -c 'mypy | mypy-baseline filter --no-colors'"
+        if: '{{ne .STACK "job"}}'
+      - cmd: cd /app && mypy | mypy-baseline filter --no-colors --baseline-path "{{.ROOT_DIR}}/mypy-baseline.txt"
+        if: '{{eq .STACK "job"}}'
 
+  check:types:sync:
+    desc: Rewrite mypy-baseline.txt from the current errors (after fixing some; on the merged tree)
+    cmds: ["{{.RUN}} --no-deps django bash -c 'mypy | mypy-baseline sync'"]
+
+  # The baseline may only shrink: compared with the merge base of BRANCH (on
+  # BRANCH itself: the previous commit). ALLOW_GROWTH=1 for a deliberate case.
+  check:types:baseline:
+    desc: Fail when mypy-baseline.txt grew against BRANCH (default main)
+    vars:
+      BRANCH: '{{.BRANCH | default "main"}}'
+    cmds:
+      - |
+        git fetch --quiet origin "{{.BRANCH}}" 2>/dev/null || true
+        base="$(git merge-base HEAD "origin/{{.BRANCH}}" 2>/dev/null || true)"
+        if [ -z "$base" ] || [ "$base" = "$(git rev-parse HEAD)" ]; then base="HEAD~1"; fi
+        before="$(git show "$base:mypy-baseline.txt" 2>/dev/null | grep -c . || true)"
+        after="$(grep -c . mypy-baseline.txt || true)"
+        echo "mypy baseline: ${before:-0} -> ${after:-0} errors (against $base)"
+        if [ "${after:-0}" -gt "${before:-0}" ] && [ "{{.ALLOW_GROWTH}}" != 1 ]; then
+          echo "the mypy baseline grew: fix the new errors instead (ALLOW_GROWTH=1 to accept)"; exit 1
+        fi
+
+  # One command, two runtimes. STACK=compose (default): through the dev stack.
+  # STACK=job: directly in the current container, which CI sets to the commit's
+  # test image (Postgres and Redis as job services, env from job variables);
+  # runs the image's code in /app, not the checkout.
+  test:backend:
+    desc: Backend tests (migration check + pytest) against real Postgres and Redis; STACK=job in CI
+    vars:
+      STACK: '{{.STACK | default "compose"}}'
+    cmds:
+      - task: env:local
+        if: '{{ne .STACK "job"}}'
+      - cmd: "{{.RUN}} django python backend/manage.py makemigrations --check --dry-run"
+        if: '{{ne .STACK "job"}}'
+      - cmd: "{{.RUN}} django pytest {{.CLI_ARGS}}"
+        if: '{{ne .STACK "job"}}'
+      - cmd: cd /app && python backend/manage.py makemigrations --check --dry-run && pytest {{.CLI_ARGS}}
+        if: '{{eq .STACK "job"}}'
+
+  # STACK=compose (default): the dev stack with freshly built assets. STACK=job
+  # (CI): the app runs as job services from the commit's images, by digest;
+  # this container (the Playwright image) runs the proxy and the specs
+  # (scripts/e2e_job.sh). Both go through the proxy, like production routing.
   test:e2e:
-    desc: Playwright against the production-like stack (built assets)
-    deps: [env:local]
+    desc: Playwright against the production-like stack through the proxy; STACK=job in CI
+    vars:
+      STACK: '{{.STACK | default "compose"}}'
+    cmds:
+      - task: env:local
+        if: '{{ne .STACK "job"}}'
+      - task: e2e:{{.STACK}}
+
+  e2e:compose:
+    internal: true
     cmds:
       - "{{.DC_CI}} --profile build run --rm frontend-build"
       - "{{.DC_CI}} up -d --wait django celeryworker proxy{{if .REALTIME}} realtime{{end}}"
@@ -138,6 +195,11 @@ tasks:
       - "{{.DC_CI}} --profile e2e run --rm playwright"
     vars:
       REALTIME: __REALTIME_ENABLED__
+
+  e2e:job:
+    internal: true
+    cmds:
+      - scripts/e2e_job.sh {{.CLI_ARGS}}
 
   check:docs:
     desc: Build the docs site strictly (broken links and nav entries fail)
@@ -149,6 +211,7 @@ tasks:
       - task: check:lint
       - task: check:docs
       - task: check:frontend
+      - task: check:types
       - task: test:backend
       - task: test:e2e
 
@@ -187,27 +250,108 @@ tasks:
     cmds: ["python3 scripts/env_examples.py"]
 
   # ── Release and deploy ───────────────────────────────────────────────────
-  # CI calls these with the release tag as VERSION; nothing here knows the CI platform.
+  # Build once: CI builds each commit once (release:build-ci), tests that exact
+  # image, marks it tested (release:mark-tested); a release copies the tested
+  # digest to the version tag (release:promote). The version is the release tag,
+  # never baked into an image. CI maps its own variables to the neutral ones
+  # used here (REGISTRY, COMMIT, VERSION, CACHE_REF, REGISTRY_HOST/USER/PASSWORD);
+  # nothing here knows the CI platform. Details: docs/operations.md.
   release:validate:
-    desc: Check a release tag before building (vX.Y.Z, annotated, newer than the last release)
+    desc: Check a release tag (shape __VERSION_EXAMPLE__, annotated, newer than the newest release; ALLOW_PRERELEASE=1 also takes prereleases)
     requires: { vars: [VERSION] }
-    cmds: ["scripts/validate_release.sh {{.VERSION}}"]
+    cmds: ["ALLOW_PRERELEASE={{.ALLOW_PRERELEASE | default 0}} scripts/release.sh validate {{.VERSION}}"]
+
+  release:prepare:
+    desc: Before tagging COMMIT as VERSION - shape, not taken, newer, contains the newest release; writes release-notes.md
+    requires: { vars: [VERSION, COMMIT] }
+    cmds: ["scripts/release.sh prepare {{.VERSION}} {{.COMMIT}}"]
+
+  release:build-ci:
+    desc: "CI: reuse the commit's tested images, else build the production and test images once, push by digest and record them in images.env"
+    requires: { vars: [REGISTRY, COMMIT] }
+    vars:
+      PLATFORMS: '{{.PLATFORMS | default "linux/amd64"}}'
+      # Integration branches take the tested build's cache when they reuse it.
+      CACHE_RESTORE: '{{.CACHE_RESTORE | default "develop main"}}'
+    env:
+      IMAGE_BASE: "{{.REGISTRY | lower}}/__PROJECT__"
+      COMMIT: "{{.COMMIT}}"
+      CACHE_REF: "{{.CACHE_REF}}"
+    cmds:
+      - |
+        rc=0; scripts/ci/tested_images.sh reuse images.env || rc=$?
+        if [ "$rc" = 0 ]; then
+          case " {{.CACHE_RESTORE}} " in
+            *" {{.CACHE_REF}} "*) scripts/ci/tested_images.sh restore-cache "{{.CACHE_REF}}" || echo "cache not restored" ;;
+          esac
+          exit 0
+        fi
+        REGISTRY={{.REGISTRY | lower}} IMAGETAG={{.COMMIT}} GIT_SHA={{.COMMIT}} \
+          CACHE_REF={{.CACHE_REF}} PLATFORMS={{.PLATFORMS}} \
+          docker buildx bake --push --metadata-file build-metadata.json ci
+        scripts/ci/tested_images.sh record build-metadata.json images.env
+        scripts/ci/tested_images.sh record-cache images.env || echo "cache not recorded"
+
+  release:check-image:
+    desc: "CI: fail unless IMAGE (the job's image) is pinned to DIGEST"
+    requires: { vars: [IMAGE, DIGEST] }
+    cmds: ["scripts/ci/tested_images.sh check-image {{.IMAGE}} {{.DIGEST}}"]
+
+  release:ran:
+    desc: "CI: after a passing test job, write the digests it ran (DIGEST_*) to OUT"
+    requires: { vars: [OUT] }
+    cmds: ["scripts/ci/tested_images.sh ran {{.OUT}}"]
+
+  release:mark-tested:
+    desc: "CI: tag the recorded digests tested-<sha>, only if every ran-*.env names them; pin the build cache"
+    requires: { vars: [REGISTRY, COMMIT] }
+    env:
+      IMAGE_BASE: "{{.REGISTRY | lower}}/__PROJECT__"
+      COMMIT: "{{.COMMIT}}"
+    cmds: ["scripts/ci/tested_images.sh mark ran-backend.env ran-e2e.env"]
+
+  release:await-tested:
+    desc: "Wait up to TIMEOUT s for tested-<sha>; copy ON_TESTED or (timeout) ON_UNTESTED to OUT"
+    requires: { vars: [REGISTRY, COMMIT, OUT, ON_TESTED, ON_UNTESTED] }
+    vars:
+      TIMEOUT: '{{.TIMEOUT | default "1800"}}'
+    env:
+      IMAGE_BASE: "{{.REGISTRY | lower}}/__PROJECT__"
+      COMMIT: "{{.COMMIT}}"
+    cmds:
+      - |
+        rc=0; scripts/ci/tested_images.sh await {{.TIMEOUT}} || rc=$?
+        case $rc in
+          0) cp {{.ON_TESTED}} {{.OUT}} ;;
+          3) echo "not tested in time: rebuild and test this commit first"; cp {{.ON_UNTESTED}} {{.OUT}} ;;
+          *) exit "$rc" ;;
+        esac
+
+  release:promote:
+    desc: Copy the tested images of COMMIT to the release tag VERSION, digest checked
+    requires: { vars: [REGISTRY, COMMIT, VERSION] }
+    env:
+      IMAGE_BASE: "{{.REGISTRY | lower}}/__PROJECT__"
+      COMMIT: "{{.COMMIT}}"
+    cmds: ["scripts/ci/tested_images.sh promote {{.VERSION}}"]
 
   release:build:
-    desc: Build and push production images, e.g. task release:build REGISTRY=ghcr.io/org VERSION=v1.2.3 [PLATFORMS=linux/amd64,linux/arm64]
+    desc: Build and push production images tagged VERSION without the build-once path, e.g. task release:build REGISTRY=registry.example.com/acme VERSION=__VERSION_EXAMPLE__
     requires: { vars: [REGISTRY, VERSION] }
-    vars: { PLATFORMS: '{{.PLATFORMS | default "linux/amd64"}}' }
+    vars:
+      PLATFORMS: '{{.PLATFORMS | default "linux/amd64"}}'
+      GIT_SHA: { sh: git rev-parse HEAD }
     cmds:
       # Image names must be lowercase; registry owners often are not.
-      - REGISTRY={{.REGISTRY | lower}} IMAGETAG={{.VERSION}} PLATFORMS={{.PLATFORMS}} docker buildx bake --push
+      - REGISTRY={{.REGISTRY | lower}} IMAGETAG={{.VERSION}} GIT_SHA={{.GIT_SHA}} PLATFORMS={{.PLATFORMS}} docker buildx bake --push
 
   release:smoke:
-    desc: Production smoke test - production images and settings behind a throwaway proxy. Local build, or the pushed release with REGISTRY=... VERSION=...
+    desc: Production smoke test - production images and settings behind a throwaway proxy. Local build, or pushed images with REGISTRY=... VERSION=<tag>
     cmds:
       - '{{if .VERSION}}REGISTRY={{.REGISTRY | lower}} VERSION={{.VERSION}} {{end}}scripts/smoke.sh'
 
   deploy:
-    desc: Deploy a release - preflight, backup, pull, migrate, up, verify. task deploy ENV=staging|production VERSION=vX.Y.Z [ROLLBACK=1]
+    desc: Deploy a release - preflight, backup, pull, migrate (+ admin), up, verify. task deploy ENV=staging|production VERSION=__VERSION_EXAMPLE__ [ROLLBACK=1]
     requires: { vars: [ENV, VERSION] }
     # Inline on purpose: an exported DEPLOY_ENV in the shell must never win over ENV.
     vars:
@@ -221,7 +365,7 @@ tasks:
       - "{{.RUN}} verify"
 
   deploy:*:
-    desc: Any deploy.sh verb, e.g. task deploy:preflight ENV=production VERSION=v1.2.3, task deploy:ps ENV=staging, task deploy:logs ENV=production -- django
+    desc: Any deploy.sh verb, e.g. task deploy:preflight ENV=production VERSION=__VERSION_EXAMPLE__, task deploy:admin ENV=production, task deploy:logs ENV=production -- django
     requires: { vars: [ENV] }
     vars:
       VERB: "{{index .MATCH 0}}"

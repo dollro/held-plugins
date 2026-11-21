@@ -86,6 +86,8 @@ Containers that write into the bind-mounted repo must not leave root-owned files
 
 **Checkers that import app settings run in the app container,** not in pre-commit's isolated environment: mypy with the Django plugin needs the app's dependencies and settings, so it is a Task target (`check:types`) that runs where the app runs. When introducing or upgrading a checker, commit a baseline of the existing errors so only new ones fail, and file the burn-down as its own issue. The comparison checks the checker's own exit code (`PIPESTATUS`, `set -o pipefail`): a crashed checker reports no errors and would pass as "nothing new".
 
+- **shellcheck every repo script in pre-commit, following sourced files:** it catches masked `set -e` failures and unquoted expansions before CI does.
+
 ## Pitfalls
 
 - A `DJANGO_SETTINGS_MODULE` in the container env overrides pytest's ini setting; force test settings with `--ds`.

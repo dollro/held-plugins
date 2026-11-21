@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 .coverage
 htmlcov/
 
@@ -31,6 +32,14 @@ frontend/e2e-results.xml
 # Throwaway env of the production smoke test (scripts/smoke.sh)
 .envs/smoke/
 
+# CI build once and release files (scripts/ci/tested_images.sh, scripts/release.sh)
+.cache/
+images.env
+build-metadata.json
+ran-*.env
+child-pipeline.yml
+release-notes.md
+
 # Docs site build output
 site/
 
@@ -41,3 +50,4 @@ plans/
 .DS_Store
 .idea/
 .vscode/
+caddy.log

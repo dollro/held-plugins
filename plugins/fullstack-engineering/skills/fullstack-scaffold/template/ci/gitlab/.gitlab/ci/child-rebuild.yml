@@ -1,0 +1,7 @@
+# Child pipeline of a release tag whose commit had no tested images when
+# await_tested gave up: build this commit once, test it and mark it tested,
+# exactly as a branch pipeline does. promote_tested in the tag pipeline then
+# copies tested-<sha> to the version tag.
+include:
+  - local: .gitlab/ci/common.yml
+  - local: .gitlab/ci/build-test.yml

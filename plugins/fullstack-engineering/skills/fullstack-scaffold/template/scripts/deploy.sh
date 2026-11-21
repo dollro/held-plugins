@@ -10,10 +10,13 @@
 # Platform-neutral on purpose: CI files only set the variables below and call
 # `task deploy`; nothing here knows whether it runs in GitHub, GitLab or a shell.
 #
-# Usage: DEPLOY_ENV=staging|production [APP_VERSION=vX.Y.Z] scripts/deploy.sh [--local] <verb> [args]
+# Usage: DEPLOY_ENV=staging|production [APP_VERSION=__VERSION_EXAMPLE__] scripts/deploy.sh [--local] <verb> [args]
 #   DEPLOY_ENV    required (no default); Task passes it from ENV=... .
 #   APP_VERSION   the release to deploy (Task: VERSION=...; CI: the release tag).
-#                 Required for preflight, pull, migrate and up (never a default);
+#                 The images do not carry it: the containers get it from here and
+#                 report it at /api/v1/version/, which verify compares.
+#                 Required for preflight, pull, migrate, admin and up (never a default);
+#                 preflight also takes a prerelease tag (read-only check);
 #                 the other verbs default to the version that is running. For
 #                 these four the checkout must be at that tag: compose.deploy.yml
 #                 comes from the checkout and has to match the images.
@@ -35,21 +38,26 @@
 #              registry matches the release, version not older than the running one
 #   backup     pg_dump into the postgres_backups volume (skipped on a first deploy)
 #   pull       pull the images of APP_VERSION on the server
-#   migrate    run Django migrations (and Alembic) as one-shot containers
+#   migrate    run Django migrations (and Alembic) as one-shot containers, then
+#              the admin command (when DJANGO_SUPERUSER_EMAIL is set)
+#   admin      only the admin command (ensure_admin), against the running version:
+#              applies a changed DJANGO_SUPERUSER_PASSWORD without a release
 #   up         start or update the stack and wait until healthy
-#   verify     check readiness and the running version on the public URL
+#   verify     poll the public URL until /api/v1/health/ready/ is ok and
+#              /api/v1/version/ reports APP_VERSION
 #   version    show requested and running version and the target
 #   manage     one-off Django management command in a one-shot container of the
 #              running version, e.g. `task deploy:manage ENV=production -- shell`
 #   ps|logs|down|compose   inspect or control the stack
 #
 # A release is: preflight -> backup -> pull -> migrate -> up -> verify
-# (`task deploy ENV=... VERSION=...`), first on staging, then the same version on
-# production. Rollback: re-run the older tag's deploy job in CI, or from a laptop
+# (`task deploy ENV=... VERSION=...`), optionally first on staging, then the same
+# version on production. Rollback: re-run the older tag's deploy job in CI, or from a laptop
 # check out the previous tag and deploy it with ROLLBACK=1; migrations stay
 # backward compatible for one release, so no restore is needed. The verify step
 # after the deploy is the gate, not the version guard.
 set -euo pipefail
+set +x  # never trace: the values below include secrets
 
 ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd -P)"
 DEPLOY_ENV="${DEPLOY_ENV:-}"
@@ -120,10 +128,27 @@ setup_ssh() {
     cat "$(as_file "$DEPLOY_KNOWN_HOSTS")" >> ~/.ssh/known_hosts
   fi
   if [[ -n "${DEPLOY_SSH_KEY:-}" ]]; then
-    local key; key="$(as_file "$DEPLOY_SSH_KEY")"; chmod 600 "$key"
-    eval "$(ssh-agent -s)" >/dev/null; AGENT_PID="$SSH_AGENT_PID"
-    ssh-add -q "$key"
+    start_agent
+    # The key lives only in the agent, never in a file this script writes.
+    if [[ -f "$DEPLOY_SSH_KEY" ]]; then
+      ssh-add -q "$DEPLOY_SSH_KEY" || die "ssh-add refused the key in DEPLOY_SSH_KEY"
+    else
+      tr -d '\r' <<<"$DEPLOY_SSH_KEY" | ssh-add -q - || die "ssh-add refused the key in DEPLOY_SSH_KEY"
+    fi
   fi
+}
+
+# A fresh agent of our own: an inherited SSH_AUTH_SOCK may point at a dead or
+# foreign agent. Only ssh-agent's stdout is evaluated, and only after checking
+# that it is what we expect (stderr would put messages into the eval).
+start_agent() {
+  unset SSH_AUTH_SOCK SSH_AGENT_PID
+  local out
+  out="$(ssh-agent -s 2>"$WORK/ssh-agent.err")" \
+    || die "ssh-agent failed: $(cat "$WORK/ssh-agent.err")"
+  [[ "$out" == *SSH_AUTH_SOCK=* ]] || die "unexpected ssh-agent output; not evaluating it"
+  eval "$out" >/dev/null
+  AGENT_PID="$SSH_AGENT_PID"
 }
 
 ensure_context() {
@@ -185,9 +210,23 @@ registry_login() {
     | docker "$@" login "${REGISTRY%%/*}" -u "$REGISTRY_USER" --password-stdin >/dev/null
 }
 
+# A release tag; with "prerelease" also a prerelease tag (preflight only).
 require_version() {
-  [[ "${APP_VERSION:-}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
-    || die "APP_VERSION must be a release version vX.Y.Z (task deploy ENV=... VERSION=...), got '${APP_VERSION:-}'"
+  local kind
+  kind="$("$ROOT/scripts/release.sh" shape "${APP_VERSION:-}")" \
+    || die "APP_VERSION must be a release tag like __VERSION_EXAMPLE__ (task deploy ENV=... VERSION=...), got '${APP_VERSION:-}'"
+  [[ "$kind" == release || "${1:-}" == prerelease ]] \
+    || die "$APP_VERSION is a prerelease: only the read-only preflight runs for it"
+}
+
+# Admin account from the env (ensure_admin is idempotent; the env is the source
+# of truth). Skipped when DJANGO_SUPERUSER_EMAIL is not set for this environment.
+ensure_admin() {
+  if [[ -z "$(read_key "$APP_ENV_FILE" DJANGO_SUPERUSER_EMAIL)" ]]; then
+    info "DJANGO_SUPERUSER_EMAIL not set in $DEPLOY_ENV: admin command skipped"
+    return
+  fi
+  one_off django python backend/manage.py ensure_admin
 }
 
 load_env
@@ -195,7 +234,8 @@ setup_ssh
 ensure_context
 
 case "$VERB" in
-  preflight|pull|migrate|up) require_version; require_checkout ;;
+  preflight) require_version prerelease; require_checkout ;;
+  pull|migrate|up) require_version; require_checkout ;;
   *) APP_VERSION="${APP_VERSION:-$(running_version || true)}"
      APP_VERSION="${APP_VERSION:-none}" ;;
 esac
@@ -204,6 +244,8 @@ export APP_VERSION  # compose.deploy.yml: image tags
 # parses it, the shell never evaluates it.
 COMPOSE=(-f "$ROOT/compose.deploy.yml" -p "$PROJECT" --env-file "$DEPLOY_ENV_FILE")
 dc() { remote compose "${COMPOSE[@]}" "$@"; }
+# One-off containers must not receive traffic from the reverse proxy.
+one_off() { dc run --rm --no-deps -l traefik.enable=false "$@"; }
 
 images() {
   printf '%s\n' "$REGISTRY/__PROJECT__-django:$APP_VERSION"
@@ -225,7 +267,10 @@ case "$VERB" in
     registry_login --context "$CONTEXT" || die "the server cannot log in to ${REGISTRY%%/*}"
     registry_login || die "cannot log in to ${REGISTRY%%/*}"
     while read -r image; do
-      docker manifest inspect "$image" >/dev/null 2>&1 || die "image not in the registry: $image"
+      # imagetools names the real error (auth, not found); `docker manifest
+      # inspect` says "no such manifest" for every failure.
+      err="$(docker buildx imagetools inspect "$image" 2>&1 >/dev/null)" \
+        || die "image not available: $image (${err:-no details})"
       info "found $image"
     done < <(images)
     guard_version
@@ -258,12 +303,20 @@ case "$VERB" in
     ;;
   migrate)
     dc up -d postgres redis
-    # One-off containers must not receive traffic from the reverse proxy.
-    dc run --rm --no-deps -l traefik.enable=false django python backend/manage.py migrate --noinput
-    dc run --rm --no-deps -l traefik.enable=false django python backend/manage.py ensure_superuser
+    one_off django python backend/manage.py migrate --noinput
     # >>> realtime
-    dc run --rm --no-deps -l traefik.enable=false realtime alembic -c realtime/alembic.ini upgrade head
+    one_off realtime alembic -c realtime/alembic.ini upgrade head
     # <<< realtime
+    ensure_admin
+    ;;
+  admin)
+    # The running version only: a one-off container of another version could
+    # meet a schema it does not know.
+    running="$(running_version || true)"
+    [[ -n "$running" ]] || die "nothing running in $DEPLOY_ENV"
+    [[ "$running" == "$APP_VERSION" ]] \
+      || die "$DEPLOY_ENV runs $running, not $APP_VERSION; run the admin job of the running release"
+    ensure_admin
     ;;
   up)
     guard_version
@@ -272,15 +325,15 @@ case "$VERB" in
     ;;
   manage)
     [[ "$APP_VERSION" != none ]] || die "nothing running in $DEPLOY_ENV"
-    dc run --rm --no-deps -l traefik.enable=false django python backend/manage.py "$@"
+    one_off django python backend/manage.py "$@"
     ;;
   verify)
-    url="https://$APP_HOST/api/v1/health/"
-    for attempt in $(seq 1 "${VERIFY_ATTEMPTS:-12}"); do
-      body="$(curl -fsS --max-time 10 "$url" 2>/dev/null || true)"
+    url="https://$APP_HOST"
+    for attempt in $(seq 1 "${VERIFY_ATTEMPTS:-24}"); do
+      body="$(curl -fsS --max-time 10 "$url/api/v1/version/" 2>/dev/null || true)"
       if [[ "$body" == *"\"version\":\"$APP_VERSION\""* ]] \
-         && curl -fsS --max-time 10 -o /dev/null "https://$APP_HOST/api/v1/health/ready/"; then
-        info "verified: $url reports $APP_VERSION and is ready"; exit 0
+         && curl -fsS --max-time 10 -o /dev/null "$url/api/v1/health/ready/"; then
+        echo "deployed: $url runs $APP_VERSION and is ready"; exit 0
       fi
       info "attempt $attempt: not yet serving $APP_VERSION (${body:-no answer})"; sleep 5
     done

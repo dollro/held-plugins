@@ -83,6 +83,7 @@ The release is created from the pipeline that tested the commit, so the tag pipe
   - **Set:** a new admin gets it; an existing admin whose password differs is updated to it, so a changed variable takes effect on the next deploy or start. An unchanged password keeps its hash (`check_password` first), so sessions survive. It must pass Django's password validators and is never printed.
   - **Unset:** a new admin gets an unusable password and the owner sets one through password reset (the safer default where production mail works: no admin password stored anywhere); an existing admin's password is left alone.
   - An existing non-admin with that email is never promoted.
+  - A weak password, a non-admin with that email or a username clash fails the command on purpose: a deploy stops before `up`, so the previous release keeps serving.
 
 ## Build cache
 
@@ -92,6 +93,12 @@ The release is created from the pipeline that tested the commit, so the tag pipe
   2. `mark_tested` pins them as `cache-tested-<sha>-<stage>`.
   3. The reuse path on develop and main copies `cache-tested-<sha>-*` to `cache-<ref>-*` (regctl or crane manifest copy, no build).
 - **A missing cache never fails a job.** Every cache step logs and continues; the worst case is a slower build. A cache-layout change makes everything cold until the integration branch has really built once; size build timeouts for that.
+
+## Build steps that stay fast on a fresh daemon
+
+- **Dependencies before code, code `COPY` late, parent layers small:** builders start empty, and a busted cache makes every test job pull the whole image again.
+- **No recursive `chown` over dependency trees** and no build output left for a later `rm`: use `COPY --chown` and clean up in the same `RUN`.
+- **No floating fetches in a Dockerfile** (`@latest`): every build misses the cache and is not reproducible.
 
 ## Registry cleanup
 
@@ -114,6 +121,7 @@ Per-commit tags pile up (several per commit and repository). A daily cleanup pol
 - **Trigger jobs forward variables that beat the child's job variables.** A global `DOCKER_TLS_CERTDIR: ""` overrode the build job's `/certs` and the child's Docker-in-Docker client missed its daemon. List what the child needs with `inherit: variables: [...]`.
 - **Services start before the checkout** but see `/builds`; a service that reads code from it can start on a previous job's files. Running services from the image removes the problem.
 - **Non-root job images** cannot install tools to `/usr/local/bin`: install into a directory in the checkout and put it on `PATH`.
+- **Non-root job images write to the checkout only if the runner's umask allows it;** write to a directory the job creates.
 
 ## Runner-location agnostic
 

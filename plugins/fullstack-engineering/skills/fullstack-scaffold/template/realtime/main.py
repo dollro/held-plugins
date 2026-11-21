@@ -28,7 +28,7 @@ def create_app() -> FastAPI:
     logging.basicConfig(level=settings.log_level.upper())
     app = FastAPI(
         title="__PROJECT_TITLE__ realtime",
-        version=settings.app_version,
+        version=settings.version,
         debug=settings.debug,
         lifespan=lifespan,
     )

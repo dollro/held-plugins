@@ -3,7 +3,12 @@
 | Environment | Runs | Settings | Values |
 |-|-|-|-|
 | local | Compose dev stack (`compose.local.yml`), code bind-mounted, Vite dev server | `backend.config.settings.local` | `.envs/local/app.env` |
+<!-- >>> gitlab -->
+| CI | The commit's built images: backend tests in the test image, end-to-end on the production images as job services (`STACK=job`, debug off); smoke test with production settings | test / local / production | Job variables (throwaway values); smoke test: generated throwaway values |
+<!-- <<< gitlab -->
+<!-- >>> !gitlab -->
 | CI | Dev stack plus `compose.ci.yml` (built assets, debug off); smoke test with the release images | test / production | `.envs/local/app.env.example`; smoke test: generated throwaway values |
+<!-- <<< !gitlab -->
 | staging | The release images on a server (`compose.deploy.yml`) | `backend.config.settings.production` | `.envs/staging/` |
 | production | The same release images | `backend.config.settings.production` | `.envs/production/` |
 
@@ -18,7 +23,7 @@ Staging runs the production settings with its own values; there is no `staging.p
 | `.envs/<env>/app.env` | Decrypted working copy | No (gitignored, blocked by pre-commit) |
 | `.envs/<staging\|production>/deploy.env` | Deploy target: host, registry, SSH target (`ssh://user@host[:port]`), proxy network | Yes, plain text |
 
-The version is never stored in a file: the release pipeline passes its tag (`task deploy ENV=<env> VERSION=vX.Y.Z`).
+The version is never stored in a file: the release pipeline passes its tag (`task deploy ENV=<env> VERSION=__VERSION_EXAMPLE__`), which sets `APP_VERSION` in the containers; images carry only their commit (`GIT_SHA`).
 
 ```bash
 task secrets:edit ENV=staging      # edit encrypted values; regenerates the example
@@ -32,6 +37,8 @@ Removing a person means re-encrypting (`secrets:updatekeys`) **and rotating** ev
 
 - **Docker Compose:** `env_file:` passes `app.env` into the containers. `${VAR}` in compose files is resolved on the machine running `docker compose` and is used only for deploy state (image tag, host, network).
 - **Django:** settings read the environment once at startup; secrets have no defaults, so a missing one stops the process at boot.
+- **Empty values:** `KEY=` sets an empty string, not "unset" (django-environ returns it instead of the default). Optional overrides are read as `env.str(KEY, default="") or fallback`, e.g. `DEFAULT_FROM_EMAIL` (empty: the app name with the SMTP login from `EMAIL_URL`, the only sender most SMTP servers accept).
+- **Quoting:** single-quote secrets in env files; Compose expands `$` and treats ` #` as a comment.
 <!-- >>> realtime -->
 - **Realtime service:** a typed settings class with the same variable names as Django for shared values (database, Redis, session cookie name, internal secret).
 <!-- <<< realtime -->
