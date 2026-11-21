@@ -114,16 +114,12 @@ tasks:
     desc: pre-commit hooks on all files (ruff, hygiene, secrets guard)
     cmds: ["uvx pre-commit run --all-files --show-diff-on-failure"]
 
-  # STACK=job (CI): in the current container, a plain node image, from the checkout.
   check:frontend:
-    desc: Type-check, lint and unit-test the frontend; STACK=job in CI
-    vars:
-      STACK: '{{.STACK | default "compose"}}'
-      PNPM: '{{if eq .STACK "job"}}APP_DIR=$PWD docker/frontend/pnpm{{else}}{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm{{end}}'
+    desc: Type-check, lint and unit-test the frontend
     cmds:
-      - "{{.PNPM}} run type-check"
-      - "{{.PNPM}} run ci:lint"
-      - "{{.PNPM}} run ci:test-unit"
+      - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run type-check"
+      - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run ci:lint"
+      - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run ci:test-unit"
 
   # mypy against mypy-baseline.txt: new errors fail, and so do fixed errors still
   # in the baseline. STACK=job (CI): in the commit's test image, on its /app code.
@@ -205,16 +201,9 @@ tasks:
     cmds:
       - scripts/e2e_job.sh {{.CLI_ARGS}}
 
-  # STACK=job (CI): with uv in the current container (the uv image).
   check:docs:
-    desc: Build the docs site strictly (broken links and nav entries fail); STACK=job in CI
-    vars:
-      STACK: '{{.STACK | default "compose"}}'
-    cmds:
-      - cmd: "{{.DC}} --profile docs run --rm --no-deps docs build"
-        if: '{{ne .STACK "job"}}'
-      - cmd: uv run --frozen --only-group docs mkdocs build --strict
-        if: '{{eq .STACK "job"}}'
+    desc: Build the docs site strictly (broken links and nav entries fail)
+    cmds: ["{{.DC}} --profile docs run --rm --no-deps docs build"]
 
   ci:
     desc: Everything CI runs before merge

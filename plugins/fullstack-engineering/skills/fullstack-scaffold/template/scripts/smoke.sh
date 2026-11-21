@@ -103,9 +103,7 @@ docker run -d --name "$TRAEFIK" --network "$NETWORK" \
   --providers.docker.exposedByDefault=false --providers.docker.network="$NETWORK" \
   --entryPoints.websecure.address=:443 >/dev/null
 
-# ── Deploy sequence: scripts/deploy.sh's own migrate and up ─────────────────
-# Reused, not copied, so the smoke test and the deploy cannot drift apart. Images
-# are pulled (or built) above; deploy.sh never pulls here (DEPLOY_PULL=never).
+# ── Deploy sequence as in scripts/deploy.sh ─────────────────────────────────
 info "starting the stack ($APP_VERSION) with $(docker compose version --short 2>/dev/null || echo '?') compose"
 dc pull --quiet postgres redis
 [[ "$PULL" == missing ]] && dc pull --quiet
@@ -116,9 +114,13 @@ if [[ -n "${SMOKE_DUMP:-}" ]]; then
   dc exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-acl --exit-on-error' \
     < "$SMOKE_DUMP"
 fi
-deploy() { DEPLOY_ENV=smoke DEPLOY_PULL=never APP_VERSION="$APP_VERSION" scripts/deploy.sh --local "$@"; }
-deploy migrate   # migrations (Django, Alembic) and ensure_admin
-deploy up
+run() { dc run --rm --no-deps --pull never -l traefik.enable=false "$@"; }
+run django python backend/manage.py migrate --noinput
+# >>> realtime
+run realtime alembic -c realtime/alembic.ini upgrade head
+# <<< realtime
+run django python backend/manage.py ensure_admin
+dc up -d --pull never --remove-orphans --wait
 
 # ── Checks, from a container on the smoke network ──────────────────────────
 info "checking https://$HOST through Traefik"

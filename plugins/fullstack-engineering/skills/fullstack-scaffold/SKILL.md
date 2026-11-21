@@ -64,6 +64,8 @@ Tell the person:
 
 ## What the generated repo contains
 
+The GitHub workflows still build images in the tag pipeline; build once and release from main are GitLab-only for now.
+
 | Area | Content |
 |-|-|
 | `backend/` | Django settings split, custom user (email login), `ensure_admin` (admin from the env on every deploy and dev start), `/api/v1/version/`, `ApiKey` (hashed), all logins through allauth's pages (admin included) styled in the app layout; per audience: company SSO over OpenID Connect (active only when configured), external accounts with email verification by code, MFA (authenticator app, passkeys, recovery codes) and an MFA requirement switch, staff SSO-only rule (mixed); internal `validate-session`/`validate-key`, Celery with an on-commit demo task, tests per audience |
