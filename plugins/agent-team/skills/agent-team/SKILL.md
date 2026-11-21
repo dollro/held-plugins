@@ -1,6 +1,6 @@
 ---
 name: agent-team
-description: "Orchestrates parallel coding agents in Claude Code (Agent Teams, worktree-isolated subagents or parallel sessions): picks the mechanism, classifies parallel safety, writes interface contracts first, assigns file ownership and runs quality gates. Use when the user wants several agents on one build, says \"agent team\", \"parallel build\", \"swarm\", \"run these issues in parallel\", or when a set of issues (prd2issues) or a plan has 3+ independent parts."
+description: "Orchestrates parallel coding agents in Claude Code (Agent Teams, worktree-isolated subagents, parallel sessions, or workers in Docker Sandboxes driven from the host with sbx ask): picks the mechanism, classifies parallel safety, writes interface contracts first, assigns file ownership and runs quality gates. Use when the user wants several agents on one build, says \"agent team\", \"parallel build\", \"swarm\", \"run these issues in parallel\", or when a set of issues (prd2issues) or a plan has 3+ independent parts."
 ---
 
 # Agent Team Orchestration
@@ -43,6 +43,7 @@ Ask two questions: does each item end in its own pull request, and do the worker
 | Several **independent issues**, each its own PR (the usual prd2issues case) | **One agent per issue in its own worktree:** worktree-isolated subagents, `claude --worktree <name>` sessions, or background sessions | Agent Team teammates share one checkout and one branch; separate PRs need separate worktrees |
 | **One issue or feature** split by layer (backend / frontend / tests), workers must coordinate on interfaces | **Agent Team** | Shared task list and messaging; file ownership keeps them apart in one checkout |
 | Research, review or competing hypotheses (no edits, or edits to disjoint files) | **Agent Team** or plain subagents | Cheapest form of parallelism; a good first use of teams |
+| Several **independent issues** that should run **unattended with open permissions**, or on a cloud sandbox | **Sandbox workers:** one `sbx` sandbox per issue on its own worktree, driven by `sandbox.sh ask` (Sandbox workers below) | The sandbox is the boundary instead of permission prompts; the lead gives work and follow-ups and reads the answers from the host |
 | One mechanical change across many files (rename, migration) | Built-in batch splitting or a workflow, one worktree per chunk | Not a team problem |
 
 Rules that apply to every mechanism:
@@ -103,6 +104,7 @@ For risky or unclear items, require the worker to plan first (plan mode) and rev
 
 - **Agent Team:** create the tasks in the shared task list with their dependencies (sequential items as blocked-by), then spawn named teammates with the prompts from Phase 5. Teammates claim tasks; message them by name. One team per session.
 - **Worktree agents / sessions:** one per issue, each on its own branch (`/branch <type>/<name>` naming), each ending in a pull request that links its issue. Never push to the default branch.
+- **Sandbox workers:** see Sandbox workers below.
 
 While they run:
 - **Wait for workers** — do not implement their tasks yourself.
@@ -111,6 +113,30 @@ While they run:
 - **Task status can lag** — if a dependent task stays blocked although its dependency is done, check and update it.
 - **Tracker status** — nothing syncs it automatically. Move issues to in progress / in review yourself, or tell the user.
 - Don't leave a team running unattended for long; `/resume` does not restore in-process teammates.
+
+### Sandbox workers (`sbx` + `ask`)
+
+One Docker Sandbox per issue, each on its own worktree branch; the lead stays on the host and talks to each worker with `sandbox.sh ask`, one headless Claude Code turn inside the sandbox that resumes the worker's session. Needs the engineering-standards plugin 1.16.0 or later (its `sbx` skill and `references/agent-sandbox.md`, Reach the agent from the host).
+
+**The user sets up, the lead drives.** `/sbx` is user-invoked, and the first start inside needs `/login`:
+1. Per issue, the user runs `/sbx <type>/<name>` (worktree `../<repo>-<name>`, sandbox `claude-<repo>-<name>`), attaches once with the printed `sbx run --name …`, runs `/login`, accepts the workspace trust dialog (otherwise the repo's hooks and settings are ignored, `/goal` included) and exits.
+2. The lead finds the script: `ls -d ~/.claude/plugins/cache/*/engineering-standards/*/skills/sbx/scripts/sandbox.sh | sort -V | tail -1`.
+
+**Give the work.** The Phase 5 prompt, with the approval line from the question at the start of Phase 6, goes in once per worker:
+
+```bash
+bash "$SBX" ask claude-<repo>-<name> --new --timeout 3h --max-turns 200 < worker-<name>.prompt.md
+```
+
+Run each as a background command (several sandboxes in parallel, one `ask` per sandbox at a time) and collect the replies; the reply is the worker's final message, so Phase 5's **Output** section decides what comes back. `OK session …` carries turns and cost per call.
+
+**While they run:**
+- **Follow-ups and contract changes** go with a plain `ask` to the worker's sandbox: it resumes the same session, so the worker remembers its task. Send them after its turn has ended; a second `ask` to a busy sandbox exits 7.
+- **Status without waiting:** the tracker, `git -C ../<repo>-<name> log` and the pull request's checks, from the host. `ask --read-only` answers questions but also waits until the running turn is done.
+- **Nobody attaches while a worker runs:** an attached session and an `ask` would be two agents in one worktree. `ask` refuses to edit while a `claude` process runs there (exit 7).
+- **A reply with `FAIL`, a timeout or `is_error`:** read the worktree state first (the turn may have finished part of the work), then send one targeted follow-up; do not restart with `--new`, which loses the worker's context.
+
+**Shut down:** after the merge, `/sbx --done <name>` per sandbox (refuses while work is uncommitted or unpushed).
 
 ## Phase 7: Verify and integrate
 
@@ -159,13 +185,16 @@ The hook input arrives as JSON on stdin; check the hooks docs for its fields.
 6. **Lead implementing** — the lead coordinates and waits.
 7. **Orphaned cross-cutting concerns** — each one has exactly one owner.
 8. **Too many workers** — start with 3; review capacity is the limit.
-9. **Weak checks** — a worker verifies against its checks; if they are wrong, it solves the wrong problem.
+9. **Talking to a busy sandbox** — one `ask` at a time per sandbox, none while someone is attached; read git and the tracker instead.
+10. **Weak checks** — a worker verifies against its checks; if they are wrong, it solves the wrong problem.
 
 ## Orchestration patterns
 
 **Issues in parallel** (prd2issues output) — classify → contract issue first where needed → one worktree agent per independent issue → fresh-eyes review → merge one at a time.
 
 **Parallel specialists** (one feature) — contracts → Agent Team with file ownership per layer → integration check.
+
+**Sandbox fleet** (issues run unattended) — classify → contracts → the user creates one `/sbx <type>/<name>` per issue → `ask --new` with the worker prompt, in parallel → follow-ups by `ask` → fresh-eyes review → merge one at a time → `/sbx --done`.
 
 **Pipeline** — sequential tasks via dependencies; each stage needs the previous output.
 
