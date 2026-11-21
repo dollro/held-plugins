@@ -4,7 +4,7 @@
 |-|-|-|-|
 | local | Compose dev stack (`compose.local.yml`), code bind-mounted, Vite dev server | `backend.config.settings.local` | `.envs/local/app.env` |
 <!-- >>> gitlab -->
-| CI | The commit's built images: backend tests in the test image, end-to-end on the production images (`compose.e2e.yml`, debug off); smoke test with production settings | test / local / production | Job variables and `.envs/local/app.env.example`; smoke test: generated throwaway values |
+| CI | The commit's built images: backend tests in the test image, end-to-end on the production images as job services (`STACK=job`, debug off); smoke test with production settings | test / local / production | Job variables (throwaway values); smoke test: generated throwaway values |
 <!-- <<< gitlab -->
 <!-- >>> !gitlab -->
 | CI | Dev stack plus `compose.ci.yml` (built assets, debug off); smoke test with the release images | test / production | `.envs/local/app.env.example`; smoke test: generated throwaway values |
@@ -37,6 +37,8 @@ Removing a person means re-encrypting (`secrets:updatekeys`) **and rotating** ev
 
 - **Docker Compose:** `env_file:` passes `app.env` into the containers. `${VAR}` in compose files is resolved on the machine running `docker compose` and is used only for deploy state (image tag, host, network).
 - **Django:** settings read the environment once at startup; secrets have no defaults, so a missing one stops the process at boot.
+- **Empty values:** `KEY=` sets an empty string, not "unset" (django-environ returns it instead of the default). Optional overrides are read as `env.str(KEY, default="") or fallback`, e.g. `DEFAULT_FROM_EMAIL` (empty: the app name with the SMTP login from `EMAIL_URL`, the only sender most SMTP servers accept).
+- **Quoting:** single-quote secrets in env files; Compose expands `$` and treats ` #` as a comment.
 <!-- >>> realtime -->
 - **Realtime service:** a typed settings class with the same variable names as Django for shared values (database, Redis, session cookie name, internal secret).
 <!-- <<< realtime -->
