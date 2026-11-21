@@ -15,13 +15,12 @@
 
 ## Tests run on the image that ships
 
-Default with build once (`build-once-and-release.md`):
+Default with build once (`build-once-and-release.md`; the scaffold's `docs/ci.md` shows one implementation):
 
-- **A `test` stage `FROM production`** adds only the test and dev dependencies on top of the final production stage. Every production layer is shared byte for byte; the shipped image has no test tools. Installing test tools at job runtime instead is slow and changes the image under test.
-- **CI tests run against the built image, by digest:** the test job's image is `test@<digest>` recorded by the build job, Postgres and Redis are CI services, and the tests run from the image's app directory, not the checkout. End-to-end runs the app image as a service; the browser image runs the specs.
-- **One command, two runtimes:** `STACK=compose` (default) runs the test targets through the Compose dev stack, `STACK=job` directly in the CI job's container (the test image; for end-to-end the browser image with the app's images as services). CI only calls the Task target.
-- **Every test job reports the digest it ran** (a dotenv artifact); the job that marks the image tested refuses unless all reports equal the digest it marks.
-- **The job checks its own image** (`$CI_JOB_IMAGE` against the recorded digest), so a tag that moved cannot stand in.
+- **A `test` stage `FROM` the final production stage** adds only the test and dev dependencies, so every shipped layer is tested and the shipped image has no test tools. Installing test tools at job runtime instead is slow and changes the image under test.
+- **CI tests run in the built image, by digest,** from the image's app directory, not the checkout; databases are services. End-to-end runs the app's images as services.
+- **One command, two runtimes:** the same Task target runs through the compose stack locally and directly in the CI job's container, switched by one variable.
+- **Every test job reports the digest it ran,** and the image is marked tested only if all reports match.
 
 ## Rules
 

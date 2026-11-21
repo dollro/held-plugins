@@ -1,173 +1,110 @@
 # CI/CD, deployment and operations
 
+The rules for building, releasing and running the app. Build once and the release from main: `build-once-and-release.md`. The scaffold's `docs/ci.md` and `docs/operations.md` show one implementation, with the platform settings and failure triage.
+
 ## Pipeline contract (platform-neutral)
 
 | Stage | Task target | Runs on |
 |-|-|-|
-| Lint | `check:lint` (pre-commit on all files, including the CI wrapper check) | Merge/pull requests, main |
-| Docs | `check:docs` (strict MkDocs build) | same |
-| Frontend | `check:frontend` (type-check, lint, unit tests) | same |
-| Backend | `test:backend` (migration check + pytest against real Postgres/Redis) | same |
-| End-to-end | `test:e2e` (built assets, full stack behind the proxy, Playwright) | same, after backend |
-| Build | `release:build-ci` (production image + `test` stage, push by digest as `<sha>`; skipped when the commit is tested already) | every branch pipeline, before the tests |
-| Mark tested | `release:mark-tested` (the digests every test job ran → `tested-<sha>`) | every branch pipeline, after the tests |
-| Smoke | `release:smoke` (production images and settings, `compose.deploy.yml`, throwaway proxy) | main; release tags (the promoted images) |
-| Create release | `create_release` (`RELEASE_VERSION=X.Y`: validate, annotated tag on the tested commit) | main, manual |
-| Validate | `release:validate VERSION=X.Y` (shape, annotated, newer than the last release) | release tags, first |
-| Promote | `release:await-tested`, `release:promote VERSION=X.Y` (copy the tested digest to the version tag; rebuild only if untested) | release tags, after validate |
-| Deploy | `deploy:preflight`, then `deploy [ENV=staging\|production] VERSION=X.Y [ROLLBACK=1]` | release tags, manual: optional staging, then production; rollback by re-running an older tag's deploy |
-
-Build once, the release from main and the tag pipeline in detail: `build-once-and-release.md`. Tag shape is a project choice (`X.Y`/`X.Y.Z` or `vX.Y.Z`); examples here use `X.Y`.
+| Lint, docs, frontend, type check | `check:lint`, `check:docs`, `check:frontend`, `check:types` | every branch |
+| Build | `release:build-ci` (production image and `test` stage, pushed by digest; skipped when the commit is tested) | every branch, first |
+| Backend, end-to-end | `test:backend`, `test:e2e` (on the built images) | every branch, after the build |
+| Mark tested | `release:mark-tested` | every branch, after all checks |
+| Smoke | `release:smoke` (production images and settings behind a throwaway proxy) | main; release tags |
+| Create release | `release:prepare` (validate, release notes; the platform creates the annotated tag) | main, manual |
+| Validate, promote | `release:validate`, `release:await-tested`, `release:promote` | release tags |
+| Deploy | `deploy:preflight`, then `deploy ENV=<env> VERSION=<tag>` | release tags, manual |
 
 ## Platform-neutral by construction
 
-The rules in this skill name **requirements**; a CI platform is only a way to meet them.
-
-- **Logic lives in Task targets and `scripts/`,** where a developer can run it. CI files hold only what the platform must hold: triggers, secrets, environments, approvals, concurrency and job images.
-- **One variable switches where targets run,** not CI-only logic: e.g. `STACK=compose|job` makes the same `task test:backend` exec into the compose stack locally or run directly in the job's own container. CI jobs only install the task runner and call the targets developers run.
-- **Scripts never read platform variables** (`CI_COMMIT_TAG`, `GITHUB_REF_NAME`). The CI file maps them to neutral ones (`VERSION`, `RELEASE_REGISTRY`, `DEPLOY_SSH_KEY` as a path or as content).
-- **A check enforces it:** `scripts/check_ci.py` (pre-commit) fails when a CI file runs anything but `task ...` or a known setup step, and, when several platforms are configured, when they call different Task targets.
-- **Platform features go in the mapping below,** not into the rules. Another platform (Forgejo/Gitea Actions, Bitbucket, Jenkins) means one more column.
+- **Logic lives in Task targets and scripts,** where a developer can run it; CI files hold only triggers, secrets, environments, approvals, concurrency and job images. A pre-commit check (`check_ci.py` in the scaffold) fails on anything else.
+- **One variable switches where a target runs** (the compose stack locally, the job's own container in CI), never CI-only logic.
+- **Scripts never read platform variables;** the CI file maps them to neutral names (`VERSION`, `REGISTRY`, `COMMIT`).
+- **Platform features go in the mapping below,** not into the rules; another platform is one more column.
 
 | Requirement | GitLab CI | GitHub Actions |
 |-|-|-|
-| One deploy per environment at a time | `resource_group: <env>` | `concurrency: deploy-<env>`, `cancel-in-progress: false` |
-| An older release never overwrites a newer one by accident | "Prevent outdated deployment jobs" with "Allow job retries for rollback deployments"; tag deploy jobs set `ROLLBACK=1`, so only an explicit re-run deploys an older tag | The deploy script refuses it unless the deploy workflow's `rollback` input is set |
-| Deploy secrets and approval per environment | Default (Free): manual deploy jobs on protected tags, variables protected and scoped to the environment (SSH key and known_hosts as file variables). Premium: protected environments with required approvers on top | Environments with required reviewers and environment secrets; the job that declares `environment:` gets them (also in a reusable workflow) |
-| Only maintainers create release tags | Protected tags `*` or the release pattern (only `*` works as a wildcard: `v[0-9]*` matches nothing). Protected variables reach only pipelines of protected refs: without a protected tag pattern a tag pipeline gets none of the deploy variables, and the preflight lists them all as missing. A project that used to deploy from the release branch's pipeline (a protected branch) only finds out on its first tag-pipeline deploy; check the protected tags list (API `protected_tags`, empty means none) before it. Protection is checked when a job runs: after adding it, retrying the failed job in the existing tag pipeline gets the variables, no new tag needed | Tag ruleset `v*` |
-| Annotated tag history available to the validate job | `GIT_DEPTH: 0`, `GIT_FETCH_EXTRA_FLAGS: --tags` | `fetch-depth: 0`; the script re-fetches tags with `--force` (checkout can rewrite annotated tags as lightweight) |
-| Test jobs cancelled by newer commits; deploys never | `interruptible: true` on test jobs only | `concurrency` with `cancel-in-progress: true` on CI workflows only |
-| Image-building jobs end instead of hanging | `timeout:` | `timeout-minutes:` |
-| Rollback | Re-run the deploy job of the older tag's pipeline (a re-run cannot add variables, so none is needed) | Run the deploy workflow with environment, version, `rollback`; it checks out the version's tag |
-| Test jobs in the app image, databases as services | `image:` the app image, `services:` Postgres/Redis/mail catcher; `FF_NETWORK_PER_BUILD: "true"` so services reach each other, `CI_DEBUG_SERVICES: "true"` for their logs. Services start before the checkout: one that reads code from the mounted `/builds` waits for its files. Images from the project's registry need no runner config (job token) | `container:` the app image, `services:` Postgres/Redis. Services do not get the workspace: an app that runs as a service needs its code baked into the image |
-| Deploy history | Operate > Environments | Deployments page of the environment |
-| Smoke test and deploy use the same Docker/Compose versions | One exact job image for all Docker jobs (`docker:29.9.3-cli` + the same `-dind`), never a major-only tag | Compose installed from `scripts/ci/tools.txt`, the version the GitLab job image ships (the check forbids setup actions that download their own) |
-| Third-party CI code pinned | Job images by digest, CI components by version | Actions by commit SHA |
-| CI tool downloads survive an outage of their source | Mirror = the project's generic package registry (`TOOL_MIRROR_URL=$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic`, `TOOL_MIRROR_HEADER="JOB-TOKEN: $CI_JOB_TOKEN"`); mirror job in stage `.pre` on the integration branches and tags, named in the rule (not `CI_COMMIT_REF_PROTECTED`, which is false on an unprotected develop), `allow_failure` | No generic package store: `TOOL_MIRROR_URL` (variable) and `TOOL_MIRROR_HEADER` (secret) point at any store with GET and PUT; mirror job on pushes to main, `continue-on-error`. Unset: original source only |
+| One deploy per environment at a time | `resource_group` | `concurrency`, no cancel |
+| An older release never overwrites a newer one by accident | Block outdated deploy jobs, allow deliberate retries | The deploy script refuses unless `rollback` is set |
+| Deploy secrets and approval per environment | Manual deploy jobs on protected tags, variables protected and scoped to the environment; protected environments on higher tiers | Environments with required reviewers and environment secrets |
+| Only maintainers create release tags | Protected tags (protected variables reach tag pipelines only through them) | Tag ruleset |
+| Superseded runs cancelled; deploys never | `interruptible` on build and test jobs | `concurrency` with cancel on CI workflows only |
+| Tests in the built images, databases as services | Job `image:` plus `services:` | `container:` plus `services:` |
+| Third-party CI code pinned | Job images by digest or exact version | Actions by commit SHA |
 
-## CI hardening
+## CI rules
 
-- Pin third-party actions to a full commit SHA with the version as a comment; let Dependabot or Renovate update the pins. (A 2025 incident repointed tags of a popular action to a secret-stealing commit; SHA pins are the defence.)
-- `permissions:` least privilege at the top (`contents: read`), wider grants per job only where needed (e.g. `packages: write` for releases).
-- Prefer OIDC to long-lived cloud credentials where the registry or cloud supports it.
-- **Optional manual jobs set `allow_failure: true` in their rule** (GitLab): with `rules: ... when: manual` the default is `false`, so a manual job nobody plays leaves the branch pipeline "blocked" instead of green.
-- **Every image-building job has a timeout,** sized from measured cold builds; a stuck push otherwise holds the runner until its global limit.
-- **Registry build cache per branch, falling back to the integration branch's** (`cache-from` both, `cache-to` the branch's own ref). A new branch then starts warm, except right after the cache refs or the build layout change: until the integration branch has run the new layout once, every branch builds cold (a compiled toolchain stage can take 15+ minutes instead of seconds). Merge such a change alone, let the integration pipeline write its cache, then push the other branches; size the timeout for this case. **With build once, a pipeline that reuses an already tested image skips the build and so never writes the cache:** an integration branch fast-forwarded to tested commits (batch merges) then never gets a cache, and every new branch builds cold. The reuse path still has to publish the cache under the integration branch's ref (copy the cache refs of the build that produced the digest, or run a cache-only bake), or branches fall back to a shared ref every build writes.
-- **CI images that tests share are tagged by commit SHA,** never by a mutable branch tag: overlapping pipelines would test each other's images.
-- **Measure before optimising, per job and per phase:** take job durations and queue times from the CI platform, split slow jobs into pull, build, test and wait from the log timestamps, and keep a baseline table (cold and warm runner) that each change reports against. The cost is often image pulls, not builds or tests.
-- **Order jobs by `needs:`, not stages:** the build starts at once beside the checks, backend and end-to-end tests run side by side after it; build and test jobs are `interruptible`, so a newer push cancels a superseded pipeline (deploys never are).
-- **The type checker runs in its own parallel job with a cache keyed on the lockfile.**
-- **Test jobs run in the app image, not in Docker-in-Docker.** Every DinD job starts with an empty image store and pulls the same images again. Instead the job's `image:` is the app's CI image (tagged by commit SHA) and Postgres, Redis and the mail catcher are `services:`. The runner caches job images between jobs, backend tests and end-to-end run side by side on a shared frontend build (artifact + `needs:`), and the tests need no privileged mode. Keep DinD only for jobs that build images. Decide early whether the dev image carries the code or only gets it from a mount: an image with no code baked in is limited as a service.
-- **Merge bursts multiply pipelines:** with interruptible tests the platform cancels superseded runs; otherwise merge one at a time.
-- **CI works wherever its runner is.** Deploys only over SSH; no host Docker socket, host paths or localhost shortcuts to production. The runner's image cache only speeds things up: a cold runner on another host must pass too.
-- **A runner that shares a host with production is isolated,** because Docker-in-Docker needs privileged mode, which is root on the host: no privileged jobs there, protected runners for jobs with secrets, CPU and memory caps, never the production Docker socket.
-- Supply chain, next step: sign images and attach build provenance (cosign or the platform's attestations) and verify before deploy.
-- **Docker and Compose versions are pinned exactly, in one place per platform, and bumped like dependencies** (Renovate, Dependabot). A major-only tag (`docker:29-cli`) floats between the smoke test on main and the deploy days later; an exact pin nobody bumps falls behind. Seen in practice: the deploy job still ran `docker:28.5.2-cli` (Compose 2.40) while the smoke test ran Compose 5.6, and `up --wait` failed only in production. Compose jumped from v2 to v5: read its release notes on every major bump. Both `smoke.sh` and `deploy.sh` print the Compose version they use.
-- GitLab: pin matching `docker:<version>-cli` and `docker:<version>-dind` images with TLS (`DOCKER_TLS_CERTDIR`).
-- **Every tool CI downloads is pinned with its SHA-256 in one file and fetched through a mirror.** `scripts/ci/tools.txt` holds name, exact version, SHA-256 and original URL per tool (Task, sops, Compose; any further one such as `regctl`); `scripts/ci/install-tools.sh` is the only way CI installs them, never `curl | sh`, a "latest" installer or a setup action that downloads at run time. In CI it tries the mirror first (`$TOOL_MIRROR_URL/<name>/<version>/<file>`, any HTTP store with GET and PUT, optional auth header in `TOOL_MIRROR_HEADER`), then the original source; a missing or wrong mirror copy falls back to the source, and the hash is checked either way. Outside CI only the original source is used. A mirror job on protected refs only (it writes), allowed to fail, uploads every pinned version the mirror lacks (`scripts/ci/mirror-tools.sh`), so a bump is mirrored by the first pipeline on a protected branch after it, provided the source is reachable then. Bump with `scripts/ci/pin-tool.sh <name> <version>` (rewrites version and hash) after reading the release notes. Seen in practice: release downloads from a large code host returned 5xx for hours, and every job of every pipeline failed at the Task download before running a single check. Job images are the same risk one level down: a registry pull-through cache or dependency proxy covers them.
-- **Every download is bounded** by a connect and a total timeout, with backoff between retries, so a hanging source fails a try, not the job.
+- **Least privilege:** minimal token permissions, wider grants per job only where needed; OIDC over long-lived cloud credentials where available.
+- **Optional manual jobs are allowed to fail,** or an unplayed one leaves the pipeline blocked.
+- **Every image-building and deploy job has a timeout,** so a stuck push fails instead of holding the runner.
+- **Order jobs by `needs:`, not by stages,** and run independent jobs side by side.
+- **Tests run in the built images, not in Docker-in-Docker;** keep Docker-in-Docker for building images. An empty daemon per job pulls everything again.
+- **The type checker runs in its own job with a cache keyed on the lockfile.**
+- **Measure before optimising,** per job and per phase (pull, build, test, wait), cold and warm runner, and report each change against that baseline; the cost is often pulls, not tests.
+- **CI works wherever its runner is:** deploys only over SSH, never a host Docker socket, host paths or shortcuts to production. A runner that shares a host with production is isolated, since privileged jobs are root on that host.
+- **Docker and Compose versions are pinned exactly, in one place, and bumped like dependencies,** so the smoke test and the deploy run the same Compose.
+- **Every tool CI downloads is pinned with its checksum, fetched with time limits, and mirrored,** so an outage of its source does not stop every pipeline. The mirror job runs on named integration branches, not on a "protected ref" condition that may be false there.
+- **Supply chain, next step:** sign images and attach provenance, verify before deploy.
 
 ## Release
 
-- An **annotated** release tag on main (protected pattern), normally created by the `create_release` job, starts the release pipeline: validate → await the tested images → promote the tested digest to the version tag → preflight → (staging →) production, deploy jobs manual. **The version is not in the image:** the image exists before the tag, so the deploy sets `APP_VERSION` from the tag at runtime and the version endpoint reports it.
-- **Validate first:** shape, annotated, newer than the newest release. It fails in seconds instead of after the build.
-- Images are `<registry>/<project>-<service>:<version>`, copies of `tested-<sha>`. No mutable `latest` for deployment. Registry build caches go to separate `cache-<ref>-<stage>` tags.
-- **Build once is the default:** each commit's production image is built once in its branch pipeline and pushed as `<sha>`, every test runs against it, and a release copies the tested digest to the version tag (regctl or `crane tag` keep the digest and signatures; `docker buildx imagetools create` can change the digest of a single-platform image). Promote by digest, not by tag. Details, cache refs and cleanup policy: `build-once-and-release.md`.
-- **Release from the pipeline that tested the commit.** A tag pushed by hand starts a pipeline that has to wait for the release branch's pipeline to mark the commit tested, and GitLab cannot make one pipeline wait for another: `needs:pipeline` works only inside a parent/child tree, `needs:project` does not wait. Polling the registry for `tested-<sha>` works but holds a runner slot until the timeout. Better: a manual `create_release` job on main, `needs:` the job that marks the images tested, played with the version as a job variable (`RELEASE_VERSION=1.8`). It validates first (shape, newer than the newest release, tag not taken yet), then GitLab's `release:` keyword creates the release and the tag with the job token: `tag_message` makes the tag annotated, `ref: $CI_COMMIT_SHA` pins the tested commit, `description:` takes a file (the commit list since the previous release, `GIT_DEPTH: 0`). Verified on GitLab 19.5: the tag pipeline starts by itself and finds the tested images on its first check. The job image is the official `gitlab-org/cli` (glab) image pinned by digest; it has no entrypoint, so runner scripts work, and it ships `git`. Keep the poll as the fallback for hand-pushed tags (an older commit, an outage). GitHub: a `workflow_dispatch` release workflow that creates the release on the tested SHA.
-- **Fast-forward the release branch when it has not diverged.** A merge commit is a new SHA: build once cannot reuse the integration branch's tested build and the release waits for a full build and test of the merge commit.
-- **Local build from the CI bake file:** it pushes and uses the registry cache, so override both to load into the local Docker instead: `docker buildx bake --set '*.output=type=docker' --set '*.cache-from=' --set '*.cache-to='` (`type=docker` takes one platform).
-- **A bake named context that replaces a pinned base image is keyed by its full digest reference;** with a shorter key BuildKit silently uses the stock image.
-- **Multi-platform:** one bake run with several platforms (`PLATFORMS=linux/amd64,linux/arm64`) pushes a single multi-platform image per tag; no per-architecture tags or manifest-merge scripts. Stages whose output is platform-independent (the frontend bundle) run on `$BUILDPLATFORM`, so they are not emulated per target.
+- **The version is the release tag;** the image does not carry it and the deploy sets it at runtime. No mutable `latest` for deployment.
+- **Validate the tag first** (shape, annotated, newer than the newest release), so a bad tag fails in seconds.
+- **Promote by digest** with a tool that keeps the digest (regctl or crane); some copy tools change single-platform digests.
+- **Multi-platform images come from one build** pushing one multi-platform tag; platform-independent stages run on the build platform.
+- **A local build from the CI bake file** overrides its outputs and caches so nothing is pushed.
 
 ## Deploy (single host)
 
-- **Staging (optional) then production, same images:** production-only is a valid setup. Where staging exists: one compose file and one deploy script for both, selected by an environment parameter; each environment has its own `.envs/<env>/`, compose project name and proxy router names, so both can share a host.
-- **The release pipeline deploys its own tag** (`task deploy ENV=<env> VERSION=$TAG`); the deploy job needs the image release and the preflight. No version is committed per environment, so no bump commit or pin file is needed and no deploy can run before its images exist. `deploy.env` holds only the target (host, registry, SSH target). Deploy variables are protected and scoped to their environment.
-- **Prerelease tags (`X.Y-rc1`, `X.Ya1`) run only the read-only preflight:** a safe way to prove protected variables and SSH on tag pipelines before the first real release.
-- **Laptop deploys name the version** (`VERSION` required, never a default) **from a checkout at that tag:** the compose file and scripts come from the checkout and must match the images. The deploy script checks both.
-- **Caller-driven:** a CI job (or, in an emergency, a laptop) decrypts secrets, resolves `compose.deploy.yml`, and drives the remote Docker daemon through a Docker context over SSH. The host needs no repo checkout, no decryption key and no env file on disk. (Access to the host's Docker socket still means access to the running secrets.)
-- **Sequence:** preflight → backup → pull → migrate as one-shot containers (Django, Alembic) → admin command (when the admin email is set) → `compose up -d --remove-orphans --wait` → verify.
-- **Preflight** proves, before anything changes: SSH login as the deploy user, the remote Docker daemon, registry login on the server and the caller, every image tag present in the registry the server pulls from, that registry equal to the one the release pushed to, and the version not older than the running one. Run it once by hand before the first release (`task deploy:preflight ENV=staging VERSION=...`), not first on release day.
-- **Check images with `docker buildx imagetools inspect` or regctl,** not `docker manifest inspect`, which reports every failure, auth included, as a missing manifest.
-- **Required means required:** the SSH target names user and port (`ssh://deploy@host:2222`); without a user, SSH falls back to the caller's (root in CI containers) and fails.
-- **Backup before migrate** into the backup volume (skipped on a first deploy), written to a temp file and renamed only on success so a failed dump never looks like a good one, rotated by a retention period; off-host copies come from the scheduled backup.
-- **Verify** on the public URL by polling: readiness (`/health/ready`) ok, and `/version` equal to the deployed tag. **A single-replica Compose deploy is not zero-downtime:** behind Traefik the public URL can answer 404 for a few seconds after the switch. State the gap in the operations docs, or remove it with a second replica or a rolling update.
-- **Every long-running service has a real healthcheck,** so `up --wait` gates on it. Never `healthcheck: disable`; Compose versions differ in how they treat services without one.
-- **One deploy path:** every production operation (deploy, one-off management commands, admin creation) runs through the same script and credentials, preferably as a CI job. One-off commands run in the **running** version (`task deploy:manage ENV=production -- <cmd>`), never in whatever a local checkout pins. The admin account comes from the env: one idempotent admin command runs on every deploy after migrate, on every dev stack start and from an optional manual admin job. A set `DJANGO_SUPERUSER_PASSWORD` is the source of truth (applied when it differs, validated, never printed); unset, a new admin gets an unusable password set through the password-reset mail (the safer default where production mail works) and an existing one is left alone (`build-once-and-release.md`).
-- **A command run in the live image exists only once its release is deployed;** a job that calls a new command says from which release on it works.
-- **Migrations stay backward compatible for one release**, so the previous image works against the new schema and rollbacks need no down-migrations.
-- **SSH:** key-based, a dedicated deploy user (only the deploy key, in the `docker` group), known_hosts pinned in CI. **No connection multiplexing for Docker contexts** (`ControlMaster no`): Compose opens one SSH session per service and multiplexing runs into sshd `MaxSessions`; with separate connections `MaxStartups` (default `10:30:100`) is the limit, so the deploy script caps `COMPOSE_PARALLEL_LIMIT`. Check `sshd -T | grep -E 'maxsessions|maxstartups'` on a new server.
-- **The deploy script starts its own `ssh-agent`** and evaluates only its checked stdout; an unchecked `eval "$(ssh-agent -s)"` runs whatever was printed.
-- Larger needs: Kamal is the closest step up for multi-host Docker deploys; avoid exposing self-hosted PaaS panels; Kubernetes only with a real platform team (and then pull-based GitOps).
+- **Caller-driven over SSH:** a CI job (or, in an emergency, a laptop) decrypts secrets and drives the remote Docker daemon through a Docker context. The host holds no checkout, no decryption key and no env file.
+- **The deploy uses the checkout at the release tag** (compose file and scripts must match the images) and names its version explicitly, never a default.
+- **Sequence:** preflight → backup → pull → migrate as one-shot containers → admin command → up and wait for health → verify.
+- **Preflight before anything changes:** SSH login as the deploy user, remote Docker, registry login on both ends, every image present in the registry the server pulls from, the version not older than the running one. Run it once before the first release, not first on release day. Inspect images with a tool that reports the real error.
+- **Backups before migrate,** written to a temp file and renamed only on success, rotated.
+- **Verify on the public URL** until readiness is ok and the reported version is the tag. A single-replica deploy is not zero-downtime; say so in the operations docs.
+- **Every long-running service has a real healthcheck,** so the wait gates on it.
+- **One deploy path:** deploys and one-off commands run through the same script and credentials, in the running version. A new command exists in production only once its release is deployed. The admin account: `security.md`, "Admin account".
+- **Migrations stay backward compatible for one release,** so rollbacks need no down-migrations.
+- **SSH:** a dedicated deploy user with only the deploy key, host keys pinned, a fresh `ssh-agent` per run with its output checked before use, no connection multiplexing for Docker contexts (sshd session limits).
+- Larger needs: Kamal for multi-host Docker deploys; Kubernetes only with a platform team.
 
 ## Rollback
 
-- **Redeploy the previous release, on purpose, through CI** so it uses the CI credentials and leaves an entry in the environment history. With deploy-from-tag, re-running the older tag's deploy job **is** the deliberate act: it must not need a flag (a re-run usually cannot add variables), it logs that it is a rollback, and the verify step after it is the gate. Where the platform blocks outdated deploy jobs itself (GitLab), tag deploy jobs run with `ROLLBACK=1`; where it does not (GitHub), the deploy workflow's `rollback` input carries it.
-- **The version guard never refuses because it cannot read the running version:** that is exactly when production is broken and a rollback is needed. It warns and continues.
-- **From a laptop** (last resort): check out the previous tag, `task deploy ENV=production VERSION=<previous> ROLLBACK=1`. The explicit flag stays here.
-- Restore the backup only for data problems; migrations stay backward compatible for one release.
+- **Redeploy the previous release on purpose, through CI:** re-running the older tag's deploy job is the deliberate act, needs no extra flag, is logged as a rollback and gated by verify.
+- **The version guard never refuses because it cannot read the running version:** that is when production is broken.
+- **From a laptop** only as a last resort, at the previous tag with an explicit rollback flag.
+- Restore a backup only for data problems.
 
-## Release runbook
+## Each release
 
-**Before the first CI deploy**
-- Deploy user on each server: only the deploy key, in the `docker` group; SSH target with user and port in `deploy.env`.
-- Preflight green from the CI deploy job context, e.g. from a prerelease tag pipeline.
-- Release automation (a `create_release` job, tag creation by the job token) proved with a prerelease version from a feature branch through a temporary rule; then delete the probe release and tag, and the probe's images if the registry should not keep them.
-- sshd limits checked; no SSH multiplexing for the Docker context.
-- Deploy secrets protected and scoped per environment; host key pinned; release tags protected (check the protected tags list, empty means none); production deploy is a manual job (approval rules where the tier has them).
-- Registry cleanup policy keeps release tags and integration-branch caches (`build-once-and-release.md`).
-- The registry behind a reverse proxy has upload timeouts above the longest push (Traefik's default read timeout cuts at 60 s).
-
-**Each release**
-1. Release candidate green on main: checks, e2e, smoke test (same job image as the deploy).
-2. Migrations of the release run against a restored recent production backup, on the production host in a throwaway container (`SMOKE_DUMP=... task release:smoke` there); production data never goes to CI. Every migration that repoints a foreign key or deletes a model has a data step or a written decision to drop the data. Long gaps between releases pile up unreleased migrations: check them all.
-   **Config changes ship with the release too:** diff the `.example` env files between the previous release tag and the candidate and apply every renamed, removed or changed value to each environment's real env file before the deploy. Where production's env lives outside the repo (a CI file variable, a vault), this is a manual step that is easy to miss. Seen in practice: a release dropped support for an old model ID, production's env still named it, and the deploy would have passed while every AI run failed. Better still, the app refuses a removed value at settings load, so the deploy's verify step catches it.
-3. Fast-forward main to the tested develop where possible; play `create_release` in main's pipeline after `mark_tested` (or tag by hand as fallback). The tag pipeline validates and promotes the tested images.
-4. Play the preflight, then (staging and) production. The deploy backs up, migrates, starts and verifies the version on the public URL.
-5. Live checks: version, login, one core flow, one real mail end to end (password reset proves SMTP and links), error tracking, security headers, proxy logs.
-
-**Failure triage (real error lines)**
-
-| Error | Cause |
-|-|-|
-| `root@host: Permission denied (publickey,password)` | SSH user missing in the target, CI fell back to root |
-| `ssh: connect to host ... port 22: Connection refused` | SSH port missing in the target |
-| `unauthorized to access repository ... action: pull` | No registry credentials on the caller or the server |
-| `resumable blob upload invalid`, `499` on push | Reverse-proxy read timeout in front of the registry |
-| `ForeignKeyViolation ... is not present in table` during migrate | Migration not tested against existing data (runbook step 2) |
-| `container ... has no healthcheck configured` from `up --wait` | Disabled healthcheck, or Compose version drift between smoke test and deploy |
+- Migrations run against a recent production backup first, on the production host, never in CI; a migration that drops or repoints data has a data step or a written decision.
+- Config changes ship with the release: compare the example env files with the previous release and apply the changes to every environment before the deploy. Better still, the app refuses a removed value at startup.
+- After the deploy: version, login, one core flow, one real mail, error tracking, security headers, proxy logs.
 
 ## Production hardening
 
-- Containers run as a fixed high UID, `cap_drop: [ALL]`, `security_opt: no-new-privileges`, `read_only: true` with `tmpfs: /tmp`; anything that writes files gets an explicit volume (e.g. uploads).
-- **Before `read_only: true`, find every write path** on a run that exercises the code that writes, including libraries that write into the home directory (agent frameworks, document compilers). The smoke test usually does not reach them, so they fail first in production.
-- **The official Postgres and Redis images start as root** to chown their data directory, then drop to their own user. With `cap_drop: [ALL]` add back `CHOWN`, `SETUID`, `SETGID`, plus `DAC_OVERRIDE` and `FOWNER` for Postgres, and prove it with the smoke test.
-- Base images: Debian slim with the suite pinned on purpose (unsuffixed tags switch suites by themselves), and **pinned by digest** with the tag kept for readability (`FROM python:3.13-slim-trixie@sha256:...`): a floating tag can change twice a day and turn every build cold. Renovate (`docker:pinDigests`) or Dependabot opens the bump pull requests; where the same image is pinned in several files, a test keeps the copies in sync. Hardened images (distroless/DHI/Wolfi) are an option once the team has adapted healthchecks and debugging.
-- **An exemption in a pin test must be proven unused,** or it hides a floating image that is still built.
-- **Dockerfile `# syntax=` lines are current or absent;** an old pinned frontend blocks newer build features.
-- **Image users and groups are consistent and there is no sudo:** such bugs show only in a production run.
-- PostgreSQL and Redis are not published to the host network; only the proxy faces the internet.
+- Containers run as a fixed high UID, without capabilities or privilege escalation, with a read-only root filesystem and explicit volumes for anything that writes. Find every write path before going read-only.
+- Postgres and Redis images need back the few capabilities they use to drop root; prove it with the smoke test.
+- Base images are pinned by suite and digest and bumped by a bot; every copy of a pin is kept in sync by a test, with no unproven exemptions.
+- Image users and groups are consistent, there is no sudo, and Dockerfile syntax lines are current or absent.
+- Databases are not published; only the proxy faces the internet.
 
 ## Reverse proxy
 
-TLS termination and routing per host (a registry or large uploads behind the proxy need an explicit read timeout; Traefik's default is 60 s): `/` → Django, `/v1/*` → realtime with immediate flushing for SSE and long read timeouts for streams. Locally and in CI a Caddy container per app mirrors these routes.
-
-On servers: **one shared Traefik per server**, started once, owning the external `proxy` network; app stacks attach by labels and never run their own proxy. Reference setup with setup steps: `assets/traefik-host/` (Traefik behind a read-only Docker socket proxy, `exposedByDefault: false`, HTTP→HTTPS at the entrypoint, `aliasHeadersStrategy: delete`, compression that excludes `text/event-stream`, Mozilla-intermediate TLS, Let's Encrypt, dashboard behind basic auth). Rules for app stacks: router and service names unique per server (project + environment), only internet-facing services join `proxy`, no published ports in production, quoted label values. Caddy is an acceptable alternative where a team already runs it; the same rules apply.
-
-**Request size limits:** the edge cap must fit the largest valid request, a multi-file upload, not the per-file limit. Set the app's own limit just below the edge limit, so users normally get the app's readable JSON 413 instead of the proxy's plain one. Traefik's buffering middleware also buffers responses, so downloads stop streaming: put it on a separate router that matches only requests with a body (`POST`, `PUT`, `PATCH`), with CrowdSec's bouncer before it.
+- **One shared Traefik per server** owns the external network; app stacks attach by labels and never run their own proxy (reference setup: `assets/traefik-host/`). Router names are unique per project and environment.
+- `/` goes to Django, `/v1/*` to the realtime service with immediate flushing for streams; locally and in CI a Caddy container mirrors these routes.
+- **Request size limits:** the edge cap fits the largest valid request; the app's own limit sits just below it, so users get the app's readable error. Body buffering applies only to requests with a body, so downloads keep streaming.
 
 ## Observability baseline
 
-- `/health` (liveness) and a readiness endpoint per service (database, Redis); used by container healthchecks.
-- **Readiness bounds each check with a timeout and names the failed one;** console logging does not depend on `DEBUG`.
-- Logs to stdout, structured, with request or trace IDs; no secrets in logs.
-- Errors to Sentry (or equivalent) for Django, the realtime service, Celery and the frontend, tagged with release (`APP_VERSION`) and environment.
-- **Error-tracking SDK integrations are enabled explicitly, without PII,** so a new dependency does not slow startup or leak data.
-- OpenTelemetry traces recommended across services and agent runs; configure exporters explicitly (auto-configuration defaults change between releases). Langfuse for LLM traces per `agentic-engineering`.
+- Liveness and readiness per service; readiness bounds each check and names the failed one.
+- Structured logs to stdout regardless of `DEBUG`, with request or trace IDs and no secrets.
+- Errors to Sentry (or equivalent) for every service and the frontend, tagged with release and environment; SDK integrations enabled explicitly, without PII.
+- OpenTelemetry traces across services and agent runs, exporters configured explicitly; Langfuse for LLM traces per `agentic-engineering`.
 
 ## Backups
 
-- Scheduled `pg_dump -Fc` with retention, copied **off the host** encrypted (e.g. restic or object storage). A dump on the same machine is not a backup. Media and upload volumes are backed up too.
-- Dumps are written to a temp file and renamed only on success. Retention is a data-protection matter: dumps keep personal data, deleted users included, for as long as they are kept.
-- A restore test on a schedule (monthly), documented in `docs/operations.md`. The same restore feeds the release check of migrations against production data (runbook step 2).
-- WAL archiving (pgBackRest, WAL-G) when the recovery point must be under a day or the database grows large.
+- Scheduled dumps with retention, copied off the host encrypted; media volumes too. A dump on the same machine is not a backup.
+- Dumps keep personal data, deleted users included: retention is a data-protection decision.
+- A scheduled restore test; the same restore feeds the migration rehearsal.
+- WAL archiving when the recovery point must be under a day.
