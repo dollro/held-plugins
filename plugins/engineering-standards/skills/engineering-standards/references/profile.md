@@ -43,7 +43,7 @@ Method in `agent-sandbox.md`. Default sandbox: Docker Sandboxes (`sbx`) with a v
 
 ## E5. Agents and tracker workflow
 
-Settings for the agent rules in `autonomous-runs.md` (sections 9 and 10) and the agent sections in `claude-md.md`. Neutral defaults; a repo's CLAUDE.md names the concrete values.
+Settings for the agent rules in `autonomous-runs.md` (sections 9 and 10) and the agent sections in `claude-md.md`. Neutral defaults; a repo's CLAUDE.md names the concrete values. The "grab your issue" steps that use these settings are in `autonomous-runs.md` §10 only.
 
 | Setting | Default |
 |-|-|
