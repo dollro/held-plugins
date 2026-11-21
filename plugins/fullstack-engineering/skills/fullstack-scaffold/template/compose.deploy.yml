@@ -16,6 +16,10 @@ x-app: &app
     - .envs/${DEPLOY_ENV:?}/deploy.env
   restart: unless-stopped
   pull_policy: always
+  # The release tag: the image does not carry it (it exists before the tag), so
+  # the deploy passes it and the services report it (/api/v1/version/).
+  environment: &app-environment
+    APP_VERSION: ${APP_VERSION:?set by scripts/deploy.sh from the release tag}
   # Hardening: no extra capabilities, no privilege escalation, immutable root fs.
   # Code that writes files needs an explicit volume (e.g. Django MEDIA_ROOT).
   cap_drop: [ALL]
@@ -33,6 +37,7 @@ services:
     <<: *app
     image: ${REGISTRY}/__PROJECT__-django:${APP_VERSION:?set by scripts/deploy.sh from the release tag}
     environment:
+      <<: *app-environment
       DJANGO_INTERNAL_HOSTS: __PROJECT__-${DEPLOY_ENV}-django
     networks:
       default:
@@ -90,6 +95,7 @@ services:
     image: ${REGISTRY}/__PROJECT__-realtime:${APP_VERSION:?set by scripts/deploy.sh from the release tag}
     networks: [default, proxy]
     environment:
+      <<: *app-environment
       DJANGO_INTERNAL_URL: http://__PROJECT__-${DEPLOY_ENV}-django:5000
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health/ready')"]

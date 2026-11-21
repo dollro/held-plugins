@@ -1,0 +1,116 @@
+# End-to-end against built production images (task test:e2e STACK=ci): CI runs
+# it on the commit's images by digest, so the browser tests what ships. No code
+# from the checkout runs in the app containers; Playwright takes its specs from
+# the checkout. Same routing as production through the proxy.
+name: __PROJECT__-e2e
+
+x-app: &app
+  image: ${DJANGO_IMAGE:?the django image to test (task test:e2e STACK=ci DJANGO_IMAGE=...)}
+  env_file: .envs/local/app.env
+  environment:
+    APP_ENVIRONMENT: ci
+    APP_VERSION: e2e
+    # Local settings with DEBUG off: the e2e user may be seeded (refused with
+    # production settings), assets come from the image's bundle.
+    DJANGO_SETTINGS_MODULE: backend.config.settings.local
+    DJANGO_DEBUG: "False"
+    DJANGO_VITE_DEV_MODE: "False"
+    DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,django,proxy
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:__POSTGRES_VERSION__
+    env_file: .envs/local/app.env
+    tmpfs: [/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:__REDIS_VERSION__
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  # >>> accounts
+
+  mailpit:
+    image: axllent/mailpit:__MAILPIT_VERSION__
+  # <<< accounts
+
+  django:
+    <<: *app
+    command: >-
+      bash -c "python backend/manage.py migrate --noinput
+      && python backend/manage.py seed_e2e_user
+      && exec /docker/start-django"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/v1/health/ready/')"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
+
+  celeryworker:
+    <<: *app
+    command: /docker/start-celery-worker
+    depends_on:
+      django:
+        condition: service_healthy
+
+  # >>> realtime
+  realtime:
+    <<: *app
+    image: ${REALTIME_IMAGE:?the realtime image to test (REALTIME_IMAGE=...)}
+    command: >-
+      bash -c "alembic -c realtime/alembic.ini upgrade head
+      && exec /docker/start-realtime"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health/ready')"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
+    depends_on:
+      django:
+        condition: service_healthy
+  # <<< realtime
+
+  proxy:
+    image: caddy:__CADDY_VERSION__
+    volumes:
+      - ./docker/proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      django:
+        condition: service_healthy
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v__PLAYWRIGHT_VERSION__-noble
+    command: /app/docker/frontend/pnpm run test:e2e
+    # Recommended by Playwright for Chromium in containers.
+    ipc: host
+    init: true
+    environment:
+      CI: "true"
+      HOST_UID: ${USER_ID:-1000}
+      HOST_GID: ${GROUP_ID:-1000}
+      # Through the proxy, exactly like production routing.
+      E2E_BASE_URL: http://proxy:8080
+    volumes:
+      - .:/app
+      - frontend_node_modules:/app/frontend/node_modules
+    depends_on:
+      proxy:
+        condition: service_started
+    profiles: ["e2e"]
+
+volumes:
+  frontend_node_modules: {}

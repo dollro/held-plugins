@@ -3,7 +3,12 @@
 | Environment | Runs | Settings | Values |
 |-|-|-|-|
 | local | Compose dev stack (`compose.local.yml`), code bind-mounted, Vite dev server | `backend.config.settings.local` | `.envs/local/app.env` |
+<!-- >>> gitlab -->
+| CI | The commit's built images: backend tests in the test image, end-to-end on the production images (`compose.e2e.yml`, debug off); smoke test with production settings | test / local / production | Job variables and `.envs/local/app.env.example`; smoke test: generated throwaway values |
+<!-- <<< gitlab -->
+<!-- >>> !gitlab -->
 | CI | Dev stack plus `compose.ci.yml` (built assets, debug off); smoke test with the release images | test / production | `.envs/local/app.env.example`; smoke test: generated throwaway values |
+<!-- <<< !gitlab -->
 | staging | The release images on a server (`compose.deploy.yml`) | `backend.config.settings.production` | `.envs/staging/` |
 | production | The same release images | `backend.config.settings.production` | `.envs/production/` |
 
@@ -18,7 +23,7 @@ Staging runs the production settings with its own values; there is no `staging.p
 | `.envs/<env>/app.env` | Decrypted working copy | No (gitignored, blocked by pre-commit) |
 | `.envs/<staging\|production>/deploy.env` | Deploy target: host, registry, SSH target (`ssh://user@host[:port]`), proxy network | Yes, plain text |
 
-The version is never stored in a file: the release pipeline passes its tag (`task deploy ENV=<env> VERSION=vX.Y.Z`).
+The version is never stored in a file: the release pipeline passes its tag (`task deploy ENV=<env> VERSION=__VERSION_EXAMPLE__`), which sets `APP_VERSION` in the containers; images carry only their commit (`GIT_SHA`).
 
 ```bash
 task secrets:edit ENV=staging      # edit encrypted values; regenerates the example

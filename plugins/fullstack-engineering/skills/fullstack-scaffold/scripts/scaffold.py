@@ -4,6 +4,7 @@
     python scaffold.py <target-dir> --name atlas-portal [--title "Atlas Portal"]
         [--app-host app.example.com] [--no-realtime] [--ci github|gitlab|both|none]
         [--audience internal|external|mixed] [--age-recipient age1...] [--skip-install]
+        [--tag-shape x.y|vx.y.z] [--staging] [--gitlab-tier free|premium]
 
 The template holds no dependency versions. Unless --skip-install is given, the
 script resolves the packages in stack.json to their current releases with
@@ -123,10 +124,14 @@ def key_prefix(name: str) -> str:
 
 
 def copy_template(target: Path, ci: str, features: set[str]) -> None:
-    shutil.copytree(
-        TEMPLATE, target, dirs_exist_ok=True,  # an existing empty target is fine
-        ignore=shutil.ignore_patterns("ci", "__pycache__", ".ruff_cache", ".pytest_cache", "node_modules"),
-    )
+    junk = shutil.ignore_patterns("__pycache__", ".ruff_cache", ".pytest_cache", "node_modules")
+
+    def ignore(directory: str, names: list[str]) -> set[str]:
+        # Only the template's top-level ci/ (per platform, copied below), never scripts/ci/.
+        top = {"ci"} if Path(directory) == TEMPLATE else set()
+        return set(junk(directory, names)) | (top & set(names))
+
+    shutil.copytree(TEMPLATE, target, dirs_exist_ok=True, ignore=ignore)  # an empty target is fine
     ci_root = TEMPLATE / "ci"
     if ci in ("github", "both"):
         shutil.copytree(ci_root / "github", target, dirs_exist_ok=True)
@@ -160,7 +165,7 @@ def render(target: Path, values: dict[str, str], features: set[str] | None) -> N
             path.write_text(new)
 
 LATE_PLACEHOLDERS = {"__PLAYWRIGHT_VERSION__", "__PLAYWRIGHT_MCP_VERSION__"}  # known after install
-LATE_PLACEHOLDERS |= {"__TASK_SHA256__", "__SOPS_SHA256__", "__COMPOSE_SHA256__"}  # pin_ci_tools
+LATE_PLACEHOLDERS |= {"__TASK_SHA256__", "__SOPS_SHA256__", "__COMPOSE_SHA256__", "__REGCTL_SHA256__"}  # pin_ci_tools
 # Real identifiers that look like placeholders.
 LITERALS: set[str] = set()
 
@@ -373,6 +378,19 @@ def main() -> int:
     )
     parser.add_argument("--age-recipient", action="append", default=[], help="age public key (repeatable)")
     parser.add_argument("--skip-install", action="store_true", help="do not resolve dependencies")
+    release = STACK["release"]
+    parser.add_argument(
+        "--tag-shape", choices=sorted(release["tag_shapes"]), default=release["defaults"]["tag_shape"],
+        help="release tag shape: x.y (1.8, 1.8.1) or vx.y.z (v1.8.0); one per project",
+    )
+    parser.add_argument(
+        "--staging", action="store_true", default=release["defaults"]["staging"],
+        help="GitLab: deploy each release to staging before production (default: production only)",
+    )
+    parser.add_argument(
+        "--gitlab-tier", choices=["free", "premium"], default=release["defaults"]["gitlab_tier"],
+        help="GitLab tier: free (manual jobs on protected tags) or premium (plus protected environments)",
+    )
     args = parser.parse_args()
 
     if not re.fullmatch(r"[a-z][a-z0-9]*(-[a-z0-9]+)*", args.name):
@@ -395,6 +413,11 @@ def main() -> int:
             raise SystemExit(f"{tool} not found on PATH")
 
     features = set(AUDIENCES[args.audience]) | (set() if args.no_realtime else {"realtime"})
+    features |= {"gitlab"} if args.ci in ("gitlab", "both") else set()
+    features |= {"github"} if args.ci in ("github", "both") else set()
+    features |= {"staging"} if args.staging else set()
+    features |= {"premium"} if args.gitlab_tier == "premium" else set()
+    shape = release["tag_shapes"][args.tag_shape]
     runtimes = STACK["runtimes"]
     recipients = ",".join(args.age_recipient) or "age1REPLACE_WITH_RECIPIENT_PUBLIC_KEYS"
     values = {
@@ -415,6 +438,12 @@ def main() -> int:
         "__COMPOSE_VERSION__": runtimes["compose"],
         "__TASK_VERSION__": ci_tool_version("go-task/task", runtimes["task"]),
         "__SOPS_VERSION__": ci_tool_version("getsops/sops", runtimes["sops"]),
+        "__REGCTL_VERSION__": ci_tool_version("regclient/regclient", runtimes["regctl"]),
+        "__RELEASE_TAG_RE__": shape["release"],
+        "__PRERELEASE_TAG_RE__": shape["prerelease"],
+        "__VERSION_EXAMPLE__": shape["example"],
+        "__PROTECTED_TAG_PATTERN__": shape["protected_pattern"],
+        "__GITHUB_TAG_FILTER__": shape["github_tag_filter"],
         "__UV_VERSION__": tool_version(["uv", "--version"]) if shutil.which("uv") else "latest",
         "__PNPM_VERSION__": tool_version(["pnpm", "--version"]) if shutil.which("pnpm") else "10.0.0",
         "__REALTIME_ENABLED__": "" if args.no_realtime else "true",
