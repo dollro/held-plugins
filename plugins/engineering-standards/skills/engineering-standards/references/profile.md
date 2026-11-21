@@ -41,6 +41,21 @@ Structure as in `claude-md.md`. Every repo has a root CLAUDE.md, a component CLA
 
 Method in `agent-sandbox.md`. Default sandbox: Docker Sandboxes (`sbx`) with a v2 kit in the repo under `.sbx/<name>/`, or none where the repo's CLAUDE.md says so. Code in the sandbox; for agent work the Docker stack runs inside the sandbox too (`/sbx --stack`), so the agent runs integration tests itself; a host stack stays for browser work and for sandbox kinds that cannot run Docker. Workspace UID/GID: the host user's (`id -u`, `id -g`), exported from the Taskfile. Unattended agent runs (`/goal`, skipped permissions, `claude -p` loops): in an `sbx` sandbox on a worktree branch, once the human has chosen that at launch (`autonomous-runs.md`).
 
-## E5. Not yet covered
+## E5. Agents and tracker workflow
+
+Settings for the agent rules in `autonomous-runs.md` (sections 9 and 10) and the agent sections in `claude-md.md`. Neutral defaults; a repo's CLAUDE.md names the concrete values.
+
+| Setting | Default |
+|-|-|
+| Tracker and MCP tool prefix | The team's tracker; tool prefix as its MCP server registers it (e.g. `mcp__<tracker>__*`) |
+| Project key | Per repo, stated in its CLAUDE.md (example: `ACME`) |
+| Worker field | Text custom field `Worker` on the issue; the owner stays assignee |
+| Worker names | Sandbox agent: one name per team (example: `atlas`); host session: `host` |
+| Issue type carrying the Worker field | The tracker's id for that type, stated in the repo's CLAUDE.md; ask if missing |
+| Review column | `In Review` (the only column selected by name; all others by state type) |
+| Review comment | `Review of !NN: <verdict>` (GitLab) or `Review of #NN: <verdict>` (GitHub) on the issue; reply `Fixes applied in <commit>` |
+| Commit trailer | `Refs: <KEY>-<n>` |
+
+## E6. Not yet covered
 
 Tech stack and approved tools, test and eval standards, Definition of Done in detail, review roles and required approvals (the skill's "Review, merge and release" covers when a review pass is needed, not who approves), CI requirements, secrets handling. Until a profile adds them, look them up in the repo's own CLAUDE.md, or ask the team; never invent them.

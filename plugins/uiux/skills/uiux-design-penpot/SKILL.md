@@ -13,7 +13,7 @@ Create professional, user-centered designs in Penpot using the MCP server built 
 |-|-|
 | `mcp__penpot__high_level_overview` | API primer. Call once per session before other Penpot tools (the server asks for this) |
 | `mcp__penpot__execute_code` | Run JavaScript in the Penpot plugin context to create/modify designs |
-| `mcp__penpot__export_shape` | Export shapes as PNG/SVG for visual inspection (`shapeId` or `"selection"` / `"page"`) |
+| `mcp__penpot__export_shape` | Export shapes as PNG/SVG for visual inspection (`shapeId` or `"selection"`; export boards by id, `"page"` can fail with HTTP 500) |
 | `mcp__penpot__penpot_api_info` | Retrieve Penpot API documentation per type/member |
 
 There is **no `import_image` tool** on the built-in server. Import images inside `execute_code` with `await penpot.uploadMediaUrl(name, url)` (set the result as a `fillImage`) or `penpot.createShapeFromSvg(svg)` for icons.
@@ -40,9 +40,10 @@ The server runs inside the user's Penpot instance at `https://<penpot-host>/mcp/
 ### Connection Behaviour (2.18)
 
 - **One tab** holds the MCP connection (choose it with the MCP status button). Code runs against that tab's current page.
-- **Background tabs get throttled or frozen** and tool calls hang until the tab is focused again. Keep the tab visible during long sessions.
+- **Background tabs get suspended**: calls hang until the 120 s timeout, then fail with `The Penpot plugin tab appears to be suspended by the browser`. Ask the user to focus the tab. Keep it visible during long sessions.
 - **Idle sessions close after ~60 min.** If calls start failing, reconnect the tab (File → MCP Server → Connect).
-- **Tool timeout**: `PENPOT_MCP_TOOL_TIMEOUT_S` (default 120 s). Split large generations into several calls.
+- **Tool timeout**: `PENPOT_MCP_TOOL_TIMEOUT_S` (default 120 s). Split large generations into several calls. **A timeout does not mean the work failed**: the tab may have finished all or part of it. Verify the end state with a read-only call before re-running, and write batches so a re-run skips finished items.
+- **Reloading the tab wipes `storage`**; design changes persist. For long write sessions (bulk binding, re-filing), follow [setup-troubleshooting.md § Long-Running Sessions](references/setup-troubleshooting.md).
 - **`await` works** inside `execute_code`. Wait for async updates in the same call (`await new Promise(r => setTimeout(r, 150))`) instead of a follow-up call.
 - **No rollback**: shapes created before an exception stay in the file. Store created ids in `storage` so you can clean up.
 - **`penpot.currentUser` throws** `Permission user:read is not granted` on 2.18. Don't read user info.
@@ -168,7 +169,7 @@ For the complete token tables with light/dark mode values, read `uiux-design-sys
 - `"fill"` token property maps to `fillColor` of the first fill, not the fills array
 - **`createText('')` returns null** — empty strings produce null, not a Text shape. Always guard: `if (!content?.trim()) return null`. Spaces (`'  '`) work fine
 - **Slash normalization** — `board.name = 'atoms/button'` becomes `'atoms / button'` (spaces injected). Normalise `" / "` before comparing names, never exact `===` on raw input
-- **Component names**: name the shape with the full path (`'Card/Default'`) *before* `createComponent`. The result is `comp.path` `"Card"`, `comp.name` `"Default"`, main instance `"Card / Default"`. Setting `comp.name` with slashes afterwards **appends** to the existing path (`"Button / Button"`), so rename the leaf only. See [mcp-known-issues.md](references/mcp-known-issues.md)
+- **Component names**: name the shape with the full path (`'Card/Default'`) *before* `createComponent`. The result is `comp.path` `"Card"`, `comp.name` `"Default"`, main instance `"Card / Default"`. Setting `comp.name` with slashes afterwards **appends** to the existing path (`"Button / Button"`), so rename the leaf only. To re-file an existing component, set `comp.path = 'organisms / data-table'` directly. See [mcp-known-issues.md](references/mcp-known-issues.md)
 - **`openPage()` is async**: `penpot.currentPage` switches ~300 ms later. `await` before creating shapes and check `currentPage.id`. `createPage()` does not switch pages
 - **`layoutChild` is null before parenting** — always `parent.appendChild(child)` first, then access `child.layoutChild`
 - **`applyToken()` property names**: on 2.18, `['fontFamilies']` and `['all']` throw `should be a set of strings` (the binding key is `fontFamily`). Pass `'fill'`/`'strokeColor'` only for color tokens. For all other types, **omit the properties arg** and read the key from `shape.tokens`. See [mcp-known-issues.md](references/mcp-known-issues.md)

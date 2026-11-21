@@ -19,6 +19,12 @@
 - Images: No import_image Tool
 - Orphaned Shapes After a Failed Call
 - WASM Renderer Crash on Bulk Font Changes + Page Switch
+- Multi-Page Read-Only Audits
+- Shadow Tokens: resolvedValue Throws
+- penpot.root.children Can Hold Non-Containers
+- Library Typography: remove()
+- export_shape: Export Boards, Not "page"
+- Guarded Calls Hide Wrong Method Names
 - Quick Reference: Common Pitfalls (2.18)
 
 ---
@@ -138,7 +144,8 @@ Some binding property names differ from the documented `TokenProperty` names. On
 
 **Safe pattern:**
 - Color tokens: pass `'fill'` or `'strokeColor'` to choose fill or stroke.
-- Every other type: **omit the properties argument**, then read the key Penpot used from `shape.tokens`.
+- Every other type: **omit the properties argument**, then read the key Penpot used from `shape.tokens`. Verified for borderRadius, fontSizes and fontWeights.
+- **Exception, spacing tokens:** per upstream PR [#10668](https://github.com/penpot/penpot/pull/10668), omitting `properties` for a spacing token applies nothing on current releases (the call succeeds silently). **UNVERIFIED** on 2.18.5: pass explicit spacing properties (`paddingLeft`, `rowGap`, ...) and check `shape.tokens` afterwards.
 - If you get `should be a set of strings`, the property name is wrong for this version. It is not a wrong argument shape.
 - 2.19 accepts `fontFamilies` as the property name (CHANGES.md #11405). On 2.18, use `fontFamily` or omit the argument.
 
@@ -261,6 +268,22 @@ comp.mainInstance().name;  // "Button / Button / Primary"
 
 If you must rename after registration, set only the leaf (`comp.name = 'Primary'`). On a component with an empty path, a slashed name is safe (`'Chip'` → `comp.name = 'Chip/Selected'` gives path `Chip`, name `Selected`).
 
+### Re-filing Components: Set comp.path
+
+**Status: BY DESIGN** (verified on 2.18, Oct 2026)
+
+`LibraryComponent.path` is writable. It is the clean way to move existing components into another group without the append problem above:
+
+```javascript
+// comp.path === "tables", comp.name === "variants"
+comp.path = 'organisms / data-table';
+comp.path;                 // "organisms / data-table"
+comp.name;                 // "variants" (unchanged)
+comp.mainInstance().name;  // "organisms / data-table / variants"
+```
+
+To re-file, set `path` first, then `name` (leaf only) if the leaf should change too. This also works for components whose path is empty.
+
 ---
 
 ## Absolute vs Relative Positioning
@@ -374,6 +397,71 @@ Bulk `fontFamily` changes across several pages in one `execute_code` call have c
 
 ---
 
+## Multi-Page Read-Only Audits
+
+**Status: BY DESIGN** (verified on 2.18, Oct 2026)
+
+Reading across pages in one call works. Keep **writes** to one page per call.
+
+```javascript
+const out = [];
+for (const page of penpot.currentFile.pages) {
+  await penpot.openPage(page);
+  await new Promise(r => setTimeout(r, 600));
+  out.push({ page: page.name, boards: (penpot.root.children || []).length });
+}
+return out;
+```
+
+---
+
+## Shadow Tokens: resolvedValue Throws
+
+**Status: PRESENT (2.18)** (verified Oct 2026)
+
+Reading `token.resolvedValue` on a `shadow` token throws, surfaced as `…forEach is not a function`. When you inventory all tokens, wrap the read:
+
+```javascript
+let resolved;
+try { resolved = token.resolvedValue; } catch { resolved = null; }
+```
+
+---
+
+## penpot.root.children Can Hold Non-Containers
+
+**Status: BY DESIGN** (verified on 2.18, Oct 2026)
+
+Top-level children are not always boards. A stray text or rectangle on the canvas has `children === undefined`. Guard every walk: `for (const c of (b.children || []))`.
+
+---
+
+## Library Typography: remove()
+
+**Status: BY DESIGN** (verified on 2.18, Oct 2026)
+
+`LibraryTypography.remove()` deletes a library typography. Nothing warns you if it is still in use, so check first, for example by scanning text shapes for its font size and weight combination.
+
+---
+
+## export_shape: Export Boards, Not "page"
+
+**Status: PRESENT (2.18)** (verified Oct 2026)
+
+`export_shape` with `shapeId: "page"` failed on a components page with HTTP 500 from `/api/export` (`locator.waitFor: Timeout 10000ms exceeded … #screenshot-00000000-…`). Exporting the top-level boards one by one by id works. Prefer board ids over `"page"`.
+
+---
+
+## Guarded Calls Hide Wrong Method Names
+
+**Status: BY DESIGN** (verified Oct 2026)
+
+A guard like `s.isComponentCopy && s.isComponentCopy()` never throws when the method does not exist. It just evaluates to `undefined`, so the filter silently does nothing. In a real sweep, a "skip component copies" filter built on the non-existent `isComponentCopy()` let every shape through. The correct method is `isComponentCopyInstance()` (also: `isComponentInstance()`, `isComponentMainInstance()`, `isComponentRoot()`).
+
+Check unfamiliar member names with `penpot_api_info` (`type: "ShapeBase", member: "<name>"`) before relying on them, and call methods directly (no `&&` guard) so a wrong name throws instead of passing silently.
+
+---
+
 ## Quick Reference: Common Pitfalls (2.18)
 
 | Pitfall | Correct Pattern |
@@ -392,3 +480,9 @@ Bulk `fontFamily` changes across several pages in one `execute_code` call have c
 | `child.x = N` inside a board | `penpotUtils.setParentXY(child, relX, relY)` |
 | `penpot.currentUser` | Not permitted. Don't read it |
 | Importing images | `penpot.uploadMediaUrl()` / `createShapeFromSvg()` inside `execute_code` |
+| Re-filing an existing component | `comp.path = 'group / sub'`, then rename the leaf if needed |
+| `token.resolvedValue` on shadow tokens | Throws. Wrap in try/catch |
+| Walking `penpot.root.children` | Guard `(b.children \|\| [])` |
+| `export_shape` with `"page"` | Can fail with HTTP 500. Export boards by id |
+| Re-running after a timeout | The call may have completed. Verify first. See [setup-troubleshooting.md § Long-Running Sessions](setup-troubleshooting.md) |
+| `s.method && s.method()` guards | A wrong method name passes silently. Verify with `penpot_api_info`, call directly |
