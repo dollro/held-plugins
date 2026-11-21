@@ -46,6 +46,7 @@ jobs:
       - run: cp .envs/local/app.env.example .envs/local/app.env
       - run: task check:lint
       - run: task check:types:baseline BRANCH="${{ github.event.repository.default_branch }}"
+      - run: task test:scripts
 
   docs:
     runs-on: ubuntu-latest

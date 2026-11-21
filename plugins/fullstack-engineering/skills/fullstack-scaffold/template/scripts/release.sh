@@ -5,8 +5,8 @@
 #
 # Shape of this project (one shape, never mixed; sorting and protected tag
 # patterns depend on it):
-#   release      __VERSION_EXAMPLE__   (__RELEASE_TAG_RE__)
-#   prerelease   (__PRERELEASE_TAG_RE__): runs the tag pipeline up to the read-only
+#   release      1.8   (^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$)
+#   prerelease   (^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?-?(a|b|rc)[0-9]+$): runs the tag pipeline up to the read-only
 #                preflight, never deploys
 #
 # Usage:
@@ -22,8 +22,8 @@
 #   scripts/release.sh newest              the newest release tag (empty if none)
 set -euo pipefail
 
-RELEASE_RE='__RELEASE_TAG_RE__'
-PRERELEASE_RE='__PRERELEASE_TAG_RE__'
+RELEASE_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$'
+PRERELEASE_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?-?(a|b|rc)[0-9]+$'
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -52,7 +52,7 @@ is_newer() {  # is_newer A B: A sorts after B
 
 require_shape() {
   shape "$1" >/dev/null \
-    || die "'$1' is not a release (like __VERSION_EXAMPLE__) or prerelease tag of this project"
+    || die "'$1' is not a release (like 1.8) or prerelease tag of this project"
 }
 
 validate() {

@@ -133,6 +133,10 @@ tasks:
       - cmd: cd /app && mypy | mypy-baseline filter --no-colors --baseline-path "{{.ROOT_DIR}}/mypy-baseline.txt"
         if: '{{eq .STACK "job"}}'
 
+  test:scripts:
+    desc: Tests of the release and build-once scripts (no Docker; needs git and bash)
+    cmds: ["uv run --frozen --only-group dev pytest -c scripts/tests/pytest.ini scripts/tests {{.CLI_ARGS}}"]
+
   check:types:sync:
     desc: Rewrite mypy-baseline.txt from the current errors (after fixing some; on the merged tree)
     cmds: ["{{.RUN}} --no-deps django bash -c 'mypy | mypy-baseline sync'"]
@@ -212,6 +216,7 @@ tasks:
       - task: check:docs
       - task: check:frontend
       - task: check:types
+      - task: test:scripts
       - task: test:backend
       - task: test:e2e
 
@@ -257,7 +262,7 @@ tasks:
   # used here (REGISTRY, COMMIT, VERSION, CACHE_REF, REGISTRY_HOST/USER/PASSWORD);
   # nothing here knows the CI platform. Details: docs/operations.md.
   release:validate:
-    desc: Check a release tag (shape __VERSION_EXAMPLE__, annotated, newer than the newest release; ALLOW_PRERELEASE=1 also takes prereleases)
+    desc: Check a release tag (shape 1.8, annotated, newer than the newest release; ALLOW_PRERELEASE=1 also takes prereleases)
     requires: { vars: [VERSION] }
     cmds: ["ALLOW_PRERELEASE={{.ALLOW_PRERELEASE | default 0}} scripts/release.sh validate {{.VERSION}}"]
 
@@ -311,21 +316,15 @@ tasks:
     cmds: ["scripts/ci/tested_images.sh mark ran-backend.env ran-e2e.env"]
 
   release:await-tested:
-    desc: "Wait up to TIMEOUT s for tested-<sha>; copy ON_TESTED or (timeout) ON_UNTESTED to OUT"
-    requires: { vars: [REGISTRY, COMMIT, OUT, ON_TESTED, ON_UNTESTED] }
+    desc: "Wait up to TIMEOUT s for tested-<sha>; write TESTED=true|false to the dotenv file OUT"
+    requires: { vars: [REGISTRY, COMMIT, OUT] }
     vars:
       TIMEOUT: '{{.TIMEOUT | default "1800"}}'
     env:
       IMAGE_BASE: "{{.REGISTRY | lower}}/__PROJECT__"
       COMMIT: "{{.COMMIT}}"
     cmds:
-      - |
-        rc=0; scripts/ci/tested_images.sh await {{.TIMEOUT}} || rc=$?
-        case $rc in
-          0) cp {{.ON_TESTED}} {{.OUT}} ;;
-          3) echo "not tested in time: rebuild and test this commit first"; cp {{.ON_UNTESTED}} {{.OUT}} ;;
-          *) exit "$rc" ;;
-        esac
+      - scripts/ci/tested_images.sh await {{.TIMEOUT}} {{.OUT}}
 
   release:promote:
     desc: Copy the tested images of COMMIT to the release tag VERSION, digest checked
@@ -336,7 +335,7 @@ tasks:
     cmds: ["scripts/ci/tested_images.sh promote {{.VERSION}}"]
 
   release:build:
-    desc: Build and push production images tagged VERSION without the build-once path, e.g. task release:build REGISTRY=registry.example.com/acme VERSION=__VERSION_EXAMPLE__
+    desc: Build and push production images tagged VERSION without the build-once path, e.g. task release:build REGISTRY=registry.example.com/acme VERSION=1.8
     requires: { vars: [REGISTRY, VERSION] }
     vars:
       PLATFORMS: '{{.PLATFORMS | default "linux/amd64"}}'
@@ -351,7 +350,7 @@ tasks:
       - '{{if .VERSION}}REGISTRY={{.REGISTRY | lower}} VERSION={{.VERSION}} {{end}}scripts/smoke.sh'
 
   deploy:
-    desc: Deploy a release - preflight, backup, pull, migrate (+ admin), up, verify. task deploy ENV=staging|production VERSION=__VERSION_EXAMPLE__ [ROLLBACK=1]
+    desc: Deploy a release - preflight, backup, pull, migrate (+ admin), up, verify. task deploy ENV=staging|production VERSION=1.8 [ROLLBACK=1]
     requires: { vars: [ENV, VERSION] }
     # Inline on purpose: an exported DEPLOY_ENV in the shell must never win over ENV.
     vars:
@@ -365,7 +364,7 @@ tasks:
       - "{{.RUN}} verify"
 
   deploy:*:
-    desc: Any deploy.sh verb, e.g. task deploy:preflight ENV=production VERSION=__VERSION_EXAMPLE__, task deploy:admin ENV=production, task deploy:logs ENV=production -- django
+    desc: Any deploy.sh verb, e.g. task deploy:preflight ENV=production VERSION=1.8, task deploy:logs ENV=production -- django
     requires: { vars: [ENV] }
     vars:
       VERB: "{{index .MATCH 0}}"

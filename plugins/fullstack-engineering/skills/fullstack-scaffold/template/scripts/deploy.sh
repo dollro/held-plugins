@@ -10,12 +10,12 @@
 # Platform-neutral on purpose: CI files only set the variables below and call
 # `task deploy`; nothing here knows whether it runs in GitHub, GitLab or a shell.
 #
-# Usage: DEPLOY_ENV=staging|production [APP_VERSION=__VERSION_EXAMPLE__] scripts/deploy.sh [--local] <verb> [args]
+# Usage: DEPLOY_ENV=staging|production [APP_VERSION=1.8] scripts/deploy.sh [--local] <verb> [args]
 #   DEPLOY_ENV    required (no default); Task passes it from ENV=... .
 #   APP_VERSION   the release to deploy (Task: VERSION=...; CI: the release tag).
 #                 The images do not carry it: the containers get it from here and
 #                 report it at /api/v1/version/, which verify compares.
-#                 Required for preflight, pull, migrate, admin and up (never a default);
+#                 Required for preflight, pull, migrate and up (never a default);
 #                 preflight also takes a prerelease tag (read-only check);
 #                 the other verbs default to the version that is running. For
 #                 these four the checkout must be at that tag: compose.deploy.yml
@@ -40,8 +40,6 @@
 #   pull       pull the images of APP_VERSION on the server
 #   migrate    run Django migrations (and Alembic) as one-shot containers, then
 #              the admin command (when DJANGO_SUPERUSER_EMAIL is set)
-#   admin      only the admin command (ensure_admin), against the running version:
-#              applies a changed DJANGO_SUPERUSER_PASSWORD without a release
 #   up         start or update the stack and wait until healthy
 #   verify     poll the public URL until /api/v1/health/ready/ is ok and
 #              /api/v1/version/ reports APP_VERSION
@@ -214,7 +212,7 @@ registry_login() {
 require_version() {
   local kind
   kind="$("$ROOT/scripts/release.sh" shape "${APP_VERSION:-}")" \
-    || die "APP_VERSION must be a release tag like __VERSION_EXAMPLE__ (task deploy ENV=... VERSION=...), got '${APP_VERSION:-}'"
+    || die "APP_VERSION must be a release tag like 1.8 (task deploy ENV=... VERSION=...), got '${APP_VERSION:-}'"
   [[ "$kind" == release || "${1:-}" == prerelease ]] \
     || die "$APP_VERSION is a prerelease: only the read-only preflight runs for it"
 }
@@ -307,15 +305,6 @@ case "$VERB" in
     # >>> realtime
     one_off realtime alembic -c realtime/alembic.ini upgrade head
     # <<< realtime
-    ensure_admin
-    ;;
-  admin)
-    # The running version only: a one-off container of another version could
-    # meet a schema it does not know.
-    running="$(running_version || true)"
-    [[ -n "$running" ]] || die "nothing running in $DEPLOY_ENV"
-    [[ "$running" == "$APP_VERSION" ]] \
-      || die "$DEPLOY_ENV runs $running, not $APP_VERSION; run the admin job of the running release"
     ensure_admin
     ;;
   up)

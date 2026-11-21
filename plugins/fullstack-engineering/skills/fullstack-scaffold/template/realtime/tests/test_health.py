@@ -12,5 +12,5 @@ def test_version_is_the_release_tag_else_the_commit(monkeypatch):
     monkeypatch.setenv("GIT_SHA", "0123456789abcdef0123")
     monkeypatch.delenv("APP_VERSION", raising=False)
     assert Settings().version == "dev-0123456789ab"
-    monkeypatch.setenv("APP_VERSION", "__VERSION_EXAMPLE__")
-    assert Settings().version == "__VERSION_EXAMPLE__"
+    monkeypatch.setenv("APP_VERSION", "1.8")
+    assert Settings().version == "1.8"

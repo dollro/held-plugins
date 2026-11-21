@@ -1,5 +1,5 @@
 # Build once, test, mark tested. Included by .gitlab-ci.yml for branch
-# pipelines and by child-rebuild.yml for the child pipeline a release tag starts
+# pipelines and by rebuild.yml for the child pipeline a release tag starts
 # when its commit has no tested images.
 #
 # Runner-location agnostic: no Docker socket, no host paths; per-commit tags
@@ -8,7 +8,7 @@
 
 .build-test:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline" && $TESTED != "true"
     - if: $CI_COMMIT_BRANCH
 
 # The only image build of a pipeline. One bake run builds the production images
@@ -28,7 +28,7 @@ build_images:
   timeout: 45m
   rules:
     # A release tag's rebuild child uses main's cache: a cache per tag is junk.
-    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline" && $TESTED != "true"
       variables:
         CACHE_REF: main
     - if: $CI_COMMIT_BRANCH

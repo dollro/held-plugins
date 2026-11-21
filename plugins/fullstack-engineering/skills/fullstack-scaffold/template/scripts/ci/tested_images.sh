@@ -15,8 +15,9 @@
 #   tested_images.sh mark RAN...           <image>@DIGEST_* -> tested-<sha> (test image:
 #                                          test-tested-<sha>), only if every RAN file
 #                                          names exactly these digests; pins the cache
-#   tested_images.sh await SECONDS         exit 0 once tested-<sha> exists for every
-#                                          service, 3 after SECONDS without
+#   tested_images.sh await SECONDS OUT     wait for tested-<sha> of every service;
+#                                          dotenv OUT: TESTED=true, or TESTED=false
+#                                          after SECONDS (the tag pipeline rebuilds)
 #   tested_images.sh promote VERSION       tested-<sha> -> VERSION, digest checked
 #   tested_images.sh record-cache OUT      append the digests of the cache refs this
 #                                          build wrote (CACHE_*) to OUT
@@ -174,13 +175,13 @@ missing_tested() {
 }
 
 await() {
-  timeout="$1" interval="${AWAIT_INTERVAL:-30}"
+  timeout="$1" out="$2" interval="${AWAIT_INTERVAL:-30}"
   start="$(date +%s)" errors=0
   echo "Waiting up to ${timeout}s for tested-$(commit) ($SERVICES)"
   while :; do
     if missing="$(missing_tested)"; then
       errors=0
-      [ -n "$missing" ] || { echo "tested-$(commit) found for every service"; return 0; }
+      [ -n "$missing" ] || { echo "tested-$(commit) found for every service"; echo "TESTED=true" >"$out"; return 0; }
     else
       errors=$((errors + 1))
       echo "Registry read failed ($errors/3)" >&2
@@ -189,8 +190,8 @@ await() {
     fi
     elapsed=$(($(date +%s) - start))
     if [ "$elapsed" -ge "$timeout" ]; then
-      echo "No tested-$(commit) after ${elapsed}s (missing: $missing)"
-      return 3
+      echo "No tested-$(commit) after ${elapsed}s (missing: $missing): build and test it first"
+      echo "TESTED=false" >"$out"; return 0
     fi
     echo "${elapsed}s: missing tested-$(commit) for $missing"
     sleep "$interval"
@@ -259,7 +260,7 @@ restore_cache() {
 
 usage() {
   echo "usage: $0 record METADATA OUT | reuse OUT | check-image REF DIGEST | ran OUT |" \
-    "mark RAN... | await SECONDS | promote VERSION | record-cache OUT | restore-cache REF" >&2
+    "mark RAN... | await SECONDS OUT | promote VERSION | record-cache OUT | restore-cache REF" >&2
   exit 2
 }
 
@@ -270,7 +271,7 @@ case "$cmd" in
   check-image) [ "$#" -eq 2 ] || usage; check_image "$1" "$2" ;;
   ran) [ "$#" -eq 1 ] || usage; ran "$1" ;;
   mark) login; mark "$@" ;;
-  await) [ "$#" -eq 1 ] || usage; login; await "$1" || exit $? ;;
+  await) [ "$#" -eq 2 ] || usage; login; await "$1" "$2" ;;
   promote) [ "$#" -eq 1 ] || usage; login; promote "$1" ;;
   record-cache) [ "$#" -eq 1 ] || usage; record_cache "$1" ;;
   restore-cache) [ "$#" -eq 1 ] || usage; login || true; restore_cache "$1" ;;

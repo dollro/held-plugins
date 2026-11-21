@@ -43,7 +43,6 @@ ONE_PLATFORM_TARGETS = {
     "release:promote",
     "release:build",
     "deploy:preflight",
-    "deploy:admin",
 }
 COMMAND_KEYS = {"script", "before_script", "after_script", "run"}
 

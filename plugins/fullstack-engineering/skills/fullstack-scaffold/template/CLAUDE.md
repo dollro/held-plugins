@@ -35,10 +35,10 @@ Access points (admin, Flower, mail catcher): `backend/CLAUDE.md`.
 
 ### Release & deploy
 
-The version is the release tag (`__VERSION_EXAMPLE__`), never a file; the deploy sets `APP_VERSION` at runtime and `/api/v1/version/` reports it. Each deploy is `task deploy ENV=<env> VERSION=__VERSION_EXAMPLE__` (preflight, backup, pull, migrate, admin, up, verify), from a checkout at that tag.
+The version is the release tag (`1.8`), never a file; the deploy sets `APP_VERSION` at runtime and `/api/v1/version/` reports it. Each deploy is `task deploy ENV=<env> VERSION=1.8` (preflight, backup, pull, migrate, admin, up, verify), from a checkout at that tag.
 <!-- >>> gitlab -->
 
-GitLab, build once: every branch commit is built once, tested on that exact image and tagged `tested-<sha>`. Release: in `main`'s pipeline play `create_release` with `RELEASE_VERSION=__VERSION_EXAMPLE__`; the tag pipeline promotes the tested digests to the tag (no rebuild), smoke-tests them, then offers the manual `deploy_preflight` and `deploy_production`<!-- >>> staging --> (after `deploy_staging`)<!-- <<< staging -->. Rollback: re-run the older tag's deploy job.
+GitLab, build once: every branch commit is built once, tested on that exact image and tagged `tested-<sha>`. Release: in `main`'s pipeline play `create_release` with `RELEASE_VERSION=1.8`; the tag pipeline promotes the tested digests to the tag (no rebuild), smoke-tests them, then offers the manual `deploy_preflight` and `deploy_production`. Rollback: re-run the older tag's deploy job.
 <!-- <<< gitlab -->
 <!-- >>> github -->
 
@@ -72,7 +72,7 @@ From a laptop (last resort): at the previous tag with `ROLLBACK=1`. The admin ac
 <!-- >>> internal -->- Login: company SSO (OpenID Connect, e.g. Entra ID) where configured; local login only for development and tests.
 <!-- <<< internal --><!-- >>> external -->- External users: email verification by code, MFA (required in production), invite-only unless `SIGNUP_OPEN`.
 <!-- <<< external --><!-- >>> mixed -->- Staff and SSO-linked accounts log in via the company identity provider only (once configured); external users via verified accounts with MFA. Staff rights are never granted at signup.
-<!-- <<< mixed -->- Deploys name an explicit release version (`VERSION=__VERSION_EXAMPLE__`), never `latest`; deploy from a checkout at that tag; an older version than the running one needs `ROLLBACK=1` on a laptop.
+<!-- <<< mixed -->- Deploys name an explicit release version (`VERSION=1.8`), never `latest`; deploy from a checkout at that tag; an older version than the running one needs `ROLLBACK=1` on a laptop.
 
 ## Git
 

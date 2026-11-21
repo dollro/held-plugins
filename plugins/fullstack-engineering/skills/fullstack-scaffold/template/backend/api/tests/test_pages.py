@@ -25,8 +25,8 @@ def test_health_reports_version_and_environment(client, settings):
 
 
 def test_version_reports_the_release(client, settings):
-    settings.APP_VERSION = "__VERSION_EXAMPLE__"
-    assert client.get("/api/v1/version/").json() == {"version": "__VERSION_EXAMPLE__"}
+    settings.APP_VERSION = "1.8"
+    assert client.get("/api/v1/version/").json() == {"version": "1.8"}
 
 
 def test_readiness_checks_database_and_cache(client):

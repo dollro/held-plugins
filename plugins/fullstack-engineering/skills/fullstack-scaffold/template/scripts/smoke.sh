@@ -7,7 +7,7 @@
 #
 # Usage (Task: task release:smoke [REGISTRY=... VERSION=...]):
 #   scripts/smoke.sh                         build the images locally, then test
-#   REGISTRY=r VERSION=__VERSION_EXAMPLE__ scripts/smoke.sh   test pushed images (a release,
+#   REGISTRY=r VERSION=1.8 scripts/smoke.sh   test pushed images (a release,
 #                 or CI's tested-<sha>)
 #   SMOKE_DUMP=path/to/prod.dump ...       restore a production backup (pg_dump -Fc)
 #                 first, so the release's migrations run against real data. Only

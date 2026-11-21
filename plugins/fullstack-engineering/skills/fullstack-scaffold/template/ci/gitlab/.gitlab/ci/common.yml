@@ -1,5 +1,5 @@
 # Shared by the main pipeline and the rebuild child pipeline of a release tag
-# (child-rebuild.yml): stages, variables and job templates.
+# (rebuild.yml): stages, variables and job templates.
 stages: [check, build, test, mark, promote, verify, release, deploy]
 
 variables:
@@ -14,6 +14,9 @@ variables:
   REGISTRY_USER: $CI_REGISTRY_USER
   REGISTRY_PASSWORD: $CI_REGISTRY_PASSWORD
   COMMIT: $CI_COMMIT_SHA
+  # Release and prerelease tag patterns (same as scripts/release.sh).
+  RELEASE_TAG: '/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$/'
+  PRERELEASE_TAG: '/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?-?(a|b|rc)[0-9]+$/'
   # Pinned CI tools go into the checkout, so job images that run as a non-root
   # user (the test image) can use them too; each job puts BIN on its PATH.
   BIN: $CI_PROJECT_DIR/.cache/bin

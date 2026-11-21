@@ -1,49 +1,11 @@
 # Thin wrapper: every job runs a Task target, identical to what developers run.
-# The CI files hold only what the platform must hold: triggers, secrets,
-# environments, approvals and concurrency. Logic lives in Taskfile.yml and
-# scripts/; scripts/check_ci.py (pre-commit) keeps it that way.
-#
-# Build once, release from main (docs/operations.md):
-# - Every branch pipeline builds the commit once (build_images: production
-#   images and the test image, pushed by digest as <sha>), runs every test on
-#   exactly those digests and tags them tested-<sha> (mark_tested). A commit
-#   tested before (develop or main fast-forwarded to it) is reused, not rebuilt.
-#   Jobs: .gitlab/ci/build-test.yml.
-# - Release: in main's pipeline, play create_release with the job variable
-#   RELEASE_VERSION=__VERSION_EXAMPLE__. It tags the tested commit (annotated).
-# - The tag pipeline validates the tag, waits for tested-<sha> (rebuilds and
-#   tests in a child pipeline only if the commit was never tested), copies the
-#   tested digests to the version tag, smoke-tests them and offers the manual
-#   preflight and deploy jobs. Prerelease tags stop after the preflight.
-#   Jobs: .gitlab/ci/release.yml.
-# - Rollback: re-run the deploy job of the older tag's pipeline; the deploy logs
-#   it as a rollback and verify is the gate.
-#
-# Project settings this relies on (GitLab Free is enough):
-# - Repository > Protected tags: `__PROTECTED_TAG_PATTERN__` (Maintainers), so only maintainers
-#   create releases and protected variables reach tag pipelines. Without it the
-#   preflight lists every deploy variable as missing.
-# - CI/CD > Variables, protected, scoped to their environment: SOPS_AGE_KEY,
-#   DEPLOY_SSH_KEY and DEPLOY_KNOWN_HOSTS (file variables) for `production`
-# >>> staging
-#   and for `staging`
-# <<< staging
-#   The admin account (DJANGO_SUPERUSER_EMAIL, optional DJANGO_SUPERUSER_PASSWORD)
-#   lives in the environment's encrypted env file, like every app setting.
-# - CI/CD > General pipelines: "Prevent outdated deployment jobs" on, with
-#   "Allow job retries for rollback deployments" (the rollback path)
-# >>> premium
-# - Operate > Environments > Protected: `production` with required approvers
-#   (Premium): the manual deploy job then also waits for an approval.
-# <<< premium
-# >>> !premium
-# - Approval is the manual deploy job on a protected tag. On Premium, protect
-#   the `production` environment with required approvers on top.
-# <<< !premium
-# - Deploy > Container registry: a cleanup policy that keeps releases and the
-#   integration branches' caches (docs/operations.md, "Registry cleanup")
-# - Deploy > Package registry available (default): pinned CI tools are mirrored
-#   into this project's generic packages (job mirror-tools)
+# Logic lives in Taskfile.yml and scripts/; scripts/check_ci.py keeps it that way.
+# Build once, release from main, and the project settings this relies on
+# (protected tags, deploy variables, cleanup policy): docs/ci.md.
+#   .gitlab/ci/common.yml      stages, variables, job templates
+#   .gitlab/ci/build-test.yml  build once, test the digests, mark tested
+#   .gitlab/ci/release.yml     create_release on main, the tag pipeline, deploy
+#   .gitlab/ci/rebuild.yml     child of a tag pipeline whose commit is untested
 
 include:
   - local: .gitlab/ci/common.yml
@@ -102,6 +64,7 @@ lint:
     - cp .envs/local/app.env.example .envs/local/app.env
     - task check:lint
     - task check:types:baseline BRANCH="$CI_DEFAULT_BRANCH"
+    - task test:scripts
 
 # TODO: run docs and frontend in plain uv/node job images once that is shorter
 # than this; for now they use the compose dev stack like developers do.

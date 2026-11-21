@@ -22,7 +22,7 @@ on:
         options: [staging, production]
         default: staging
       version:
-        description: Release to deploy (__VERSION_EXAMPLE__)
+        description: Release to deploy (1.8)
         type: string
         required: true
       rollback:

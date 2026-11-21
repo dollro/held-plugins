@@ -37,7 +37,7 @@ frontend/e2e-results.xml
 images.env
 build-metadata.json
 ran-*.env
-child-pipeline.yml
+tested.env
 release-notes.md
 
 # Docs site build output
