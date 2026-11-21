@@ -93,6 +93,37 @@ test_backend:
     reports:
       junit: backend-results.xml
 
+# mypy in its own job, beside the tests: the commit's test image (it carries
+# mypy and the stubs), the image's /app code, no services (the Django plugin
+# imports the settings but never connects). The cache survives pipelines, keyed
+# on uv.lock, so a warm run only rechecks changed files.
+typecheck:
+  stage: test
+  extends: .build-test
+  interruptible: true
+  needs:
+    - job: build_images
+      artifacts: true
+  image:
+    name: $CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO_TEST
+    entrypoint: [""]
+  variables:
+    MYPY_CACHE_DIR: $CI_PROJECT_DIR/.cache/mypy
+    DATABASE_URL: postgres://ci:ci-only@postgres:5432/ci
+    REDIS_URL: redis://redis:6379/0
+    DJANGO_SECRET_KEY: ci-only-not-secret
+    INTERNAL_API_SECRET: ci-only-internal-secret
+  cache:
+    key:
+      files: [uv.lock]
+      prefix: mypy
+    paths: [.cache/mypy]
+  before_script:
+    - export PATH="$BIN:$PATH"
+  script:
+    - task release:check-image IMAGE="$CI_JOB_IMAGE" DIGEST="$DIGEST_DJANGO_TEST"
+    - task check:types STACK=job
+
 # The app as job services from the commit's production images, by digest; the
 # job image is the official Playwright image (its tag equals @playwright/test),
 # which runs the proxy and the checkout's specs (task test:e2e STACK=job,
@@ -186,6 +217,9 @@ mark_tested:
       artifacts: true
     - job: test_e2e
       artifacts: true
+    # A new type error keeps the commit from being tested.
+    - job: typecheck
+      artifacts: false
     - job: lint
       artifacts: false
       optional: true

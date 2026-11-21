@@ -44,6 +44,8 @@ ONE_PLATFORM_TARGETS = {
     "release:build",
     "deploy:preflight",
     "deploy:admin",
+    # GitLab runs the checks in plain job images (STACK=job), without the env file.
+    "env:local",
 }
 COMMAND_KEYS = {"script", "before_script", "after_script", "run"}
 

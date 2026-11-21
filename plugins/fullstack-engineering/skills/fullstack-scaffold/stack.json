@@ -40,7 +40,11 @@
       "pytest-cov",
       "flower",
       "django-debug-toolbar",
-      "pre-commit"
+      "pre-commit",
+      "mypy",
+      "django-stubs[compatible-mypy]",
+      "djangorestframework-stubs",
+      "mypy-baseline"
     ]
   },
   "node": {

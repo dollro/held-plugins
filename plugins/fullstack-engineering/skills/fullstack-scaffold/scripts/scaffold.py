@@ -352,6 +352,25 @@ def initial_migrations(target: Path) -> None:
         shutil.rmtree(cache)
 
 
+def mypy_baseline(target: Path) -> None:
+    """Record the type errors the fresh project starts with, so CI fails only on
+    new ones (task check:types). Usually empty; never hand-edited."""
+    env = {
+        **os.environ,
+        "DJANGO_SECRET_KEY": "scaffold",
+        "DATABASE_URL": "sqlite:////tmp/scaffold.db",
+        "REDIS_URL": "redis://localhost:6379/0",
+        "INTERNAL_API_SECRET": "scaffold",
+    }
+    log("uv run mypy | uv run mypy-baseline sync")
+    subprocess.run(
+        ["bash", "-c", "uv run mypy | uv run mypy-baseline sync --no-colors"],
+        cwd=target, env=env, text=True, capture_output=True, stdin=subprocess.DEVNULL,
+    )
+    errors = len([line for line in (target / "mypy-baseline.txt").read_text().splitlines() if line])
+    log(f"mypy baseline: {errors} error(s)")
+
+
 def secrets(target: Path, recipients: list[str]) -> None:
     local = target / ".envs/local"
     shutil.copy(local / "app.env.example", local / "app.env")
@@ -475,6 +494,7 @@ def main() -> int:
         mcp = run(["pnpm", "view", "@playwright/mcp", "version"], target)  # pinned, never @latest
         render(target, {"__PLAYWRIGHT_VERSION__": playwright, "__PLAYWRIGHT_MCP_VERSION__": mcp}, None)
         initial_migrations(target)
+        mypy_baseline(target)
         run(["uvx", "pre-commit", "autoupdate"], target)
         if (target / ".github" / "workflows").exists():
             log("pinning GitHub Actions to commit SHAs")
