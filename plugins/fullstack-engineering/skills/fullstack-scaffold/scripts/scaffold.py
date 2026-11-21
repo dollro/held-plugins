@@ -183,7 +183,8 @@ def assert_rendered(target: Path, allow: set[str]) -> None:
 def install_python(target: Path, features: set[str]) -> None:
     python = STACK["python"]
     extras = sorted(extra for feature, extra in python["allauth_extras"].items() if feature in features)
-    core = [*python["core"], f"django-allauth[{','.join(extras)}]"]
+    allauth = python["allauth"].replace("django-allauth", f"django-allauth[{','.join(extras)}]", 1)
+    core = [*python["core"], allauth]
     if "realtime" in features:
         core += python["realtime"]
     run(["uv", "add", "--no-sync", *core], target)

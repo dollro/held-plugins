@@ -14,7 +14,7 @@ def mfa_setup_required(request, user) -> bool:
     if not settings.MFA_REQUIRED or not user.is_authenticated:
         return False
     # >>> mixed
-    if signed_in_via_sso(request):
+    if signed_in_via_sso(request, user):
         # This session came through the identity provider, which enforces MFA.
         return False
     # <<< mixed
@@ -22,10 +22,12 @@ def mfa_setup_required(request, user) -> bool:
 # >>> mixed
 
 
-def signed_in_via_sso(request) -> bool:
+def signed_in_via_sso(request, user) -> bool:
     """Decided by how this session authenticated, not by whether the user has a
-    provider link: a password login never counts, even for a linked account."""
-    methods = {record.get("method") for record in get_authentication_records(request)}
+    provider link: a password login never counts, even for a linked account.
+    allauth only returns the records of the user they were written for."""
+    records = get_authentication_records(request, user)
+    methods = {record.get("method") for record in records}
     return "socialaccount" in methods and "password" not in methods
 # <<< mixed
 

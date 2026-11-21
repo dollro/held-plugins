@@ -20,6 +20,7 @@
       "sso": "socialaccount",
       "accounts": "mfa"
     },
+    "allauth": "django-allauth>=65.21",
     "realtime": [
       "fastapi",
       "uvicorn[standard]",
@@ -82,6 +83,7 @@
   "floors": {
     "gunicorn>=26": "start-django passes --no-control-socket (the control socket, new in 26, fails on the read-only production filesystem).",
     "django-vite>=3": "The DJANGO_VITE settings dict and {% vite_asset %} tags used by the templates arrived in 3.x.",
+    "django-allauth>=65.21": "users/policy.py reads the login methods with get_authentication_records(request, user); since 65.21 the records are bound to the user and the call without a user returns none.",
     "psycopg[binary]>=3": "psycopg2 is in maintenance; Django and the guideline use psycopg 3.",
     "sqlalchemy[asyncio]>=2": "The realtime service uses the 2.0 typed ORM (Mapped, mapped_column) and async engine.",
     "pydantic-settings>=2": "Settings moved out of pydantic core in v2.",
