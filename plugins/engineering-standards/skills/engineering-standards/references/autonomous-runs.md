@@ -181,6 +181,8 @@ Rules for every agent that works on a repo other people and agents also use. Put
 With more than one agent on a repo (typically one sandboxed agent and one session on the host), each issue says which agent works it. Names, the field and the issue type are in the profile (E5).
 
 - **The owner stays assignee** of every issue. A text custom field `Worker` names the AI agent that works it: one name for the sandbox agent (e.g. `atlas`), one for the host session (e.g. `host`). The assignee answers for the result; the Worker field only routes the work.
+- **Worker names appear nowhere else in issue text** (not a common word, product or tool name), because "grab your issue" starts with a plain text search for the name.
+- **Production access goes to the host worker:** deploys, production env files and the production database are never the sandbox agent's work.
 - **No Worker → the owner's to hand out.** An agent never picks up an issue whose Worker is empty or another agent's name.
 - **Work that needs both agents is split into two issues,** one per Worker, linked with a `blocks` link when one must finish first (e.g. the host session sets up a credential, the sandbox agent builds on it).
 - **New issues get the issue type that carries the field** (profile: issue type id); on another type the field does not exist and the issue cannot be routed. An agent that creates an issue sets the type and a Worker.
