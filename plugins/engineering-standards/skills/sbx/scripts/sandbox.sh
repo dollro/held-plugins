@@ -13,12 +13,15 @@
 #                     [--no-git-auth] [--host-key '<alg> <base64>'] [--no-harness]
 #   sandbox.sh check  <sandbox-name>
 #   sandbox.sh done   <sandbox-name> [--force]
+#   sandbox.sh ask    <sandbox-name> [--new] [--read-only] [--cloud] [--json]
+#                     [--max-turns N] [--timeout 60m] [prompt | stdin]
 #
 # Output lines start with OK, WARN, FAIL, INFO or ATTACH. Exit codes:
 # 0 ok, 1 usage/error, 2 preflight failed, 3 no kit found,
 # 4 git auth prerequisite missing (fix printed; or pass --no-git-auth),
 # 5 harness selection needs review (edit harness.selection.json, then --yes),
-# 6 another sandbox already mounts the worktree (create only).
+# 6 another sandbox already mounts the worktree (create only),
+# 7 sandbox busy: a session already runs there, or another ask (ask only).
 set -uo pipefail
 
 # Docker's contributed kits that pin a git host's SSH key in the sandbox; the
@@ -599,11 +602,96 @@ cmd_done() {
   fi
 }
 
+# Ask the agent in a sandbox: one headless turn (`claude -p`) that resumes the
+# sandbox's ask session, so follow-ups keep context. Prompt from the arguments
+# or stdin; it goes in over stdin, never through a shell command line.
+cmd_ask() {
+  local name="" new=0 cloud=0 ro=0 json=0 turns="" tmo=60m prompt=""
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --new) new=1 ;;
+      --cloud) cloud=1 ;;
+      --read-only) ro=1 ;;
+      --json) json=1 ;;
+      --max-turns) turns=${2:?}; shift ;;
+      --timeout) tmo=${2:?}; shift ;;
+      --) shift; prompt="$*"; break ;;
+      -*) die "unknown option $1" ;;
+      *) if [ -z "$name" ]; then name=$1; else prompt="$*"; break; fi ;;
+    esac
+    shift
+  done
+  [ -n "$name" ] || die "usage: sandbox.sh ask <sandbox-name> [options] [prompt]"
+  { [ -z "$prompt" ] || [ "$prompt" = "-" ]; } && prompt=$(cat)
+  [ -n "$prompt" ] || die "empty prompt"
+  command -v python3 >/dev/null || die "python3 needed on the host"
+
+  local sbxc=(sbx); [ $cloud -eq 1 ] && sbxc=(sbx --cloud)
+  if [ $cloud -eq 0 ]; then sbx_exists "$name" || die "no sandbox $name"; fi
+
+  local state=${XDG_STATE_HOME:-$HOME/.local/state}/sbx-ask
+  mkdir -p "$state"
+  local key=$name; [ $cloud -eq 1 ] && key="cloud-${name//\//_}"
+  local sfile="$state/$key.session"
+  exec 9>"$state/$key.lock"
+  flock -n 9 || { fail "another ask to $name is still running"; exit 7; }
+
+  # A second agent in the same worktree overwrites the first one's files.
+  if [ $ro -eq 0 ] && "${sbxc[@]}" exec "$name" pgrep -x claude </dev/null >/dev/null 2>&1; then
+    fail "a Claude Code session already runs in $name; a second agent would edit the same worktree. Ask with --read-only, message that session instead, or wait until it ends"
+    exit 7
+  fi
+
+  local sid=""; [ $new -eq 0 ] && [ -s "$sfile" ] && sid=$(cat "$sfile")
+  local args=(-p --output-format json)
+  if [ $ro -eq 1 ]; then args+=(--permission-mode plan); else args+=(--permission-mode bypassPermissions); fi
+  [ -n "$turns" ] && args+=(--max-turns "$turns")
+
+  local out err rc
+  err=$(mktemp)
+  _ask_run() {
+    local a=("${args[@]}"); [ -n "$sid" ] && a+=(--resume "$sid")
+    printf '%s' "$prompt" | timeout "$tmo" "${sbxc[@]}" exec -i "$name" claude "${a[@]}" 2>"$err"
+  }
+  out=$(_ask_run); rc=$?
+  if [ -n "$sid" ] && { cat "$err"; printf '%s' "$out"; } | grep -qi 'no conversation found'; then
+    warn "session $sid is gone (sandbox recreated?); starting a new one"
+    sid=""; out=$(_ask_run); rc=$?
+  fi
+  [ $rc -eq 124 ] && { rm -f "$err"; fail "no reply within $tmo (the turn may still run inside; sbx exec $name pgrep -af claude)"; exit 1; }
+  grep -q 'has not been trusted' "$err" && [ $json -eq 0 ] && warn "workspace not trusted inside: the repo's .claude/settings.json permissions are ignored; attach once (sbx run --name $name) and accept the trust dialog"
+  local json_line; json_line=$(printf '%s\n' "$out" | grep '^{' | tail -1)
+  if [ -z "$json_line" ]; then
+    fail "no reply from claude in $name (exit $rc): $(tail -3 "$err" | tr '\n' ' ')"
+    grep -qiE 'login|auth|401' "$err" && info "Claude Code inside is not logged in: attach once (sbx run --name $name) and /login"
+    rm -f "$err"; exit 1
+  fi
+  rm -f "$err"
+  [ $json -eq 1 ] && printf '%s\n' "$json_line"
+  printf '%s' "$json_line" | SFILE="$sfile" QUIET=$json python3 -c '
+import json, os, sys
+d = json.load(sys.stdin)
+sid = d.get("session_id") or ""
+if sid:
+    open(os.environ["SFILE"], "w").write(sid)
+if os.environ["QUIET"] == "1":
+    sys.exit(1 if d.get("is_error") else 0)
+tag = "FAIL " if d.get("is_error") else "OK   "
+cost = d.get("total_cost_usd")
+turns, sub = d.get("num_turns"), d.get("subtype")
+print(f"{tag} session {sid} · {turns} turn(s) · {sub}" + (f" · ${cost:.2f}" if cost is not None else ""))
+print("REPLY:")
+print(d.get("result") or "")
+sys.exit(1 if d.get("is_error") else 0)
+'
+}
+
 case "${1:-}" in
+  ask) shift; cmd_ask "$@" ;;
   preflight) shift; cmd_preflight "$@" ;;
   harness) shift; cmd_harness "$@" ;;
   create) shift; cmd_create "$@" ;;
   check) shift; cmd_check "$@" ;;
   done) shift; cmd_done "$@" ;;
-  *) sed -n '2,21p' "$0"; exit 1 ;;
+  *) sed -n '2,24p' "$0"; exit 1 ;;
 esac

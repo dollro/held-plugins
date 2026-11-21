@@ -1,6 +1,6 @@
 ---
 name: sbx
-description: "Moves Claude Code work into a Docker Sandbox (sbx): by default on a worktree (from the main checkout: ../<repo>-sbx on branch sbx/idle; from a linked worktree: that worktree), or on a new worktree branch or a private clone; the sandbox with the repo's kit and git push over SSH, checks it and prints the line to attach; can carry the user's Claude Code harness; tears it down after the merge. Invoke as /sbx, /sbx <type>/<name>, /sbx --clone, /sbx harness, /sbx --done <name>. Background: engineering-standards references/agent-sandbox.md."
+description: "Moves Claude Code work into a Docker Sandbox (sbx): by default on a worktree (from the main checkout: ../<repo>-sbx on branch sbx/idle; from a linked worktree: that worktree), or on a new worktree branch or a private clone; the sandbox with the repo's kit and git push over SSH, checks it and prints the line to attach; can carry the user's Claude Code harness; sends a prompt to the agent in a sandbox and returns its reply; tears it down after the merge. Invoke as /sbx, /sbx <type>/<name>, /sbx --clone, /sbx harness, /sbx ask <name> <prompt>, /sbx --done <name>. Background: engineering-standards references/agent-sandbox.md."
 disable-model-invocation: true
 ---
 
@@ -19,6 +19,7 @@ Argument `$ARGUMENTS`, one of:
 - `--clone`: a sandbox on a private clone of the repo, nothing on the host checkout changes
 - `--done <sandbox-name>`: tear down after the work is merged
 - `harness`: build or refresh the personal harness kit (Harness below)
+- `ask <sandbox-name> <prompt>`: send a prompt to the agent in that sandbox and show its reply (Ask the agent in a sandbox below)
 - `--stack` added to any of the above: the agent will run the Docker stack and its integration tests inside the sandbox (its own Docker engine). The sandbox gets a 40 GB Docker disk and 12 GB memory (`--docker-size`, `--memory` to change); sizes are fixed at creation
 - `--recreate` added to any of the above: rebuild an existing sandbox (needed after a kit change)
 - `--no-git-auth` added to any of the above: skip the git push setup below; `git push` then runs on the host
@@ -101,6 +102,18 @@ Argument `$ARGUMENTS`, one of:
 - Optional: before the final report, a reviewer subagent checks the diff against the spec and reports only correctness gaps (bugs, missing requirements, broken contracts, security).
 
 **Review afterwards:** read the final report and its evidence; `git log` and `git diff <base>...` of the branch; run the check once on the host (or in a fresh sandbox); then open the pull request, split per the size guide. The human reviews the diff before merge.
+
+## Ask the agent in a sandbox (`ask`)
+
+`sandbox.sh ask <name> "<prompt>"` runs one headless turn of Claude Code inside the sandbox (`sbx exec -i <name> claude -p`, prompt over stdin) and prints `OK session <id> · <turns> · <cost>`, then `REPLY:` and the agent's answer. The session id is kept on the host (`${XDG_STATE_HOME:-~/.local/state}/sbx-ask/<name>.session`), so the next `ask` resumes it with `--resume` and the agent remembers the conversation. This is how a host session or orchestrator gives a sandboxed agent work and reads the result, local or in the cloud. Background and other routes: engineering-standards `references/agent-sandbox.md`, Reach the agent from the host.
+
+- `--new` starts a new session (new task, or context grew large). `--read-only` runs it in plan mode: it reads and answers, edits nothing. `--max-turns N` and `--timeout 60m` (default) bound the turn. `--json` prints Claude Code's JSON result (fields `result`, `session_id`, `is_error`, `total_cost_usd`) for scripts. `--cloud` targets a cloud sandbox by ID or name (`sbx --cloud ls`; untested here). Prompt from stdin when none is given or `-`.
+- Edits run with open permissions (`bypassPermissions`), like `sbx run claude`; the sandbox is the boundary. Before a task that changes files, the same Ask first as Hand over an autonomous task applies; put the task, the check command and the approval line in the prompt.
+- Exit 7: another `ask` to the sandbox still runs (one at a time per sandbox), or an interactive session runs there and the prompt is not `--read-only`. Two agents in one worktree overwrite each other's files: wait, ask read-only, or let the attached session do it.
+- `WARN workspace not trusted inside`: Claude Code inside ignores the repo's `.claude/settings.json` permissions and hooks (a `/goal` needs hooks). The user attaches once (`sbx run --name <name>`) and accepts the trust dialog.
+- `FAIL no reply … not logged in`: the user attaches once and runs `/login`; `ask` uses the login stored in the sandbox.
+- Each `ask` is a full turn that is billed: keep follow-ups short, and use `--new` when the earlier conversation no longer matters.
+- `sbx exec` starts a stopped sandbox; it stays running afterwards (`sbx stop <name>`).
 
 ## Harness (`harness`)
 
