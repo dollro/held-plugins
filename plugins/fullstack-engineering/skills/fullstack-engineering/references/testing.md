@@ -5,13 +5,23 @@
 | Layer | Tooling | Runs in CI | What it proves |
 |-|-|-|-|
 | Lint and format | pre-commit (Ruff, hygiene, secrets guards), Oxlint + ESLint, vue-tsc | yes | Style, types, no plaintext secrets |
-| Backend unit/integration | pytest, pytest-django, pytest-asyncio, against real PostgreSQL and Redis in the dev containers | yes | Models, views, permissions, internal API, Celery tasks (eager), realtime auth |
+| Backend unit/integration | pytest, pytest-django, pytest-asyncio, against real PostgreSQL and Redis (dev containers locally; in CI the commit's `test` image with database services) | yes | Models, views, permissions, internal API, Celery tasks (eager), realtime auth |
 | Migration check | `makemigrations --check --dry-run` | yes | No model change without a migration |
 | Frontend unit | Vitest (jsdom) | yes | Pure logic, composables, components where it pays off |
-| End-to-end | Playwright in its official image, against built assets behind the proxy | yes | The real user path through production routing |
+| End-to-end | Playwright in its official image, against the commit's built image (as a service) behind the proxy | yes | The real user path through production routing |
 | Production smoke test | Release images, production settings, `compose.deploy.yml` behind a throwaway proxy; HTTP checks from a container on its network | main and release tags | Static files with `DEBUG` off, 404 vs 500, account and admin pages, readiness, version, security headers |
 | Migrations on real data | The smoke test after restoring a recent production backup | before each release, where production data may be | Migrations work on existing rows and do not drop data |
 | Evals | per `agentic-engineering` | for agent behaviour | Agent quality, not code correctness |
+
+## Tests run on the image that ships
+
+Default with build once (`build-once-and-release.md`):
+
+- **A `test` stage `FROM production`** adds only the test and dev dependencies on top of the final production stage. Every production layer is shared byte for byte; the shipped image has no test tools. Installing test tools at job runtime instead is slow and changes the image under test.
+- **CI tests run against the built image, by digest:** the test job's image is `test@<digest>` recorded by the build job, Postgres and Redis are CI services, and the tests run from the image's app directory, not the checkout. End-to-end runs the app image as a service; the browser image runs the specs.
+- **One command, several runtimes:** `STACK=local` (default) runs `task test:backend` through Compose, `STACK=ci` reproduces CI with Compose and the commit's CI images, `STACK=job` runs it directly in the CI job's container (a small script loads the test env file without overriding job variables). CI only calls the Task target.
+- **Every test job reports the digest it ran** (a dotenv artifact); the job that marks the image tested refuses unless all reports equal the digest it marks.
+- **The job checks its own image** (`$CI_JOB_IMAGE` against the recorded digest), so a tag that moved cannot stand in.
 
 ## Rules
 

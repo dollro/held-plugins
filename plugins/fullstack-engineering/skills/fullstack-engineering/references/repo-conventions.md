@@ -17,7 +17,7 @@ What a repo built on this stack must tell an agent, so that anyone (person or ag
 | Tests | CI suites and local-only suites, each with its command (table) | `task check:lint`, `task check:docs`, `task check:frontend`, `task test:backend`, `task test:e2e`, `task ci` |
 | Docs | How to view the docs site | `task docs:serve` |
 | Secrets and environments | How env files are edited per environment and where deploy state lives | `task secrets:edit ENV=local\|staging\|production`, `.envs/<env>/deploy.env` |
-| Release and deploy | The promotion path in one line | tag → staging → production with `task deploy ENV=…` |
+| Release and deploy | The promotion path in one line | tested commit on main → `create_release` → tag pipeline → (staging →) production with `task deploy … VERSION=<tag>` |
 | Constraints | Package managers, size limits, one table owner, HTTP client rule, login rule | see the template's CLAUDE.md |
 
 Component CLAUDE.md files (`backend/`, `frontend/`, `realtime/`) hold the component's commands, access points (admin, Flower, mail catcher, dev servers) and key patterns, each pointing to its `docs/` page.

@@ -17,7 +17,7 @@ Small apps may skip staging. Then the release pipeline's smoke test is the last 
 
 ## Build once, promote the same artifact
 
-- A version tag builds each image **once**. The smoke test, staging and production use the same tag; promotion is the release pipeline's production deploy of the version staging ran (after approval).
+- Each commit's image is built **once** and tested as built; a release tag copies the tested digest (`build-once-and-release.md`). The smoke test, staging and production use the same tag; promotion is the release pipeline's production deploy of the version staging ran (where staging exists). The version reaches the app at runtime (`APP_VERSION` from the tag), never from the build.
 - **No per-environment builds**, Dockerfile targets or bake files. A separate staging image tests something other than what production runs.
 - **Build arguments** carry only properties of the artifact: runtime versions, the app version, the target platform. Never URLs, hostnames, feature flags or secrets; build arguments and anything they set end up in image layers.
 - Multi-platform images (amd64 + arm64) come from one build with several platforms; platform-independent stages (the frontend bundle) run once on the build platform.
