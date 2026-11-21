@@ -7,7 +7,8 @@
 #
 # Usage (Task: task release:smoke [REGISTRY=... VERSION=...]):
 #   scripts/smoke.sh                         build the images locally, then test
-#   REGISTRY=r VERSION=v1.2.3 scripts/smoke.sh   test the pushed release images
+#   REGISTRY=r VERSION=__VERSION_EXAMPLE__ scripts/smoke.sh   test pushed images (a release,
+#                 or CI's tested-<sha>)
 #   SMOKE_DUMP=path/to/prod.dump ...       restore a production backup (pg_dump -Fc)
 #                 first, so the release's migrations run against real data. Only
 #                 where production data may be (never as a CI artifact).
@@ -115,10 +116,10 @@ if [[ -n "${SMOKE_DUMP:-}" ]]; then
 fi
 run() { dc run --rm --no-deps --pull never -l traefik.enable=false "$@"; }
 run django python backend/manage.py migrate --noinput
-run django python backend/manage.py ensure_superuser
 # >>> realtime
 run realtime alembic -c realtime/alembic.ini upgrade head
 # <<< realtime
+run django python backend/manage.py ensure_admin
 dc up -d --pull never --remove-orphans --wait
 
 # ── Checks, from a container on the smoke network ──────────────────────────

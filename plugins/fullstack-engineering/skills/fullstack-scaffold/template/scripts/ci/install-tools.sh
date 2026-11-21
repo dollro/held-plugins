@@ -1,10 +1,13 @@
 #!/bin/sh
 # CI setup only: install pinned tools from scripts/ci/tools.txt on any runner
 # image (Alpine docker:cli, Debian, Ubuntu), mirror first in CI, hash checked.
-# Usage: scripts/ci/install-tools.sh task [sops] [docker-compose]
+# Usage: scripts/ci/install-tools.sh task [sops] [docker-compose] [regctl]
+# BIN: target directory (default /usr/local/bin). Jobs whose image runs as a
+# non-root user install into the checkout instead (BIN=$CI_PROJECT_DIR/.cache/bin).
 set -eu
 . "$(dirname "$0")/tools-lib.sh"
 BIN="${BIN:-/usr/local/bin}"
+mkdir -p "$BIN" 2>/dev/null || true
 PLUGINS="${DOCKER_CONFIG:-$HOME/.docker}/cli-plugins"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT

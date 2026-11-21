@@ -60,9 +60,11 @@ for _ in range(30):
 
 status, _, body = get("/api/v1/health/ready/")
 check("readiness through the proxy", status == 200, f"{status}")
-status, _, body = get("/api/v1/health/")
+status, _, body = get("/api/v1/version/")
 check(
-    "health reports the release version", f'"version":"{VERSION}"' in body, body[:200]
+    "version reports the deployed tag (APP_VERSION at runtime)",
+    f'"version":"{VERSION}"' in body,
+    body[:200],
 )
 
 status, headers, home = get("/")

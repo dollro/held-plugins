@@ -43,4 +43,4 @@ repos:
         entry: uv run --frozen --only-group docs python scripts/check_ci.py
         language: system
         pass_filenames: false
-        files: '^(\.gitlab-ci\.yml|\.github/workflows/.*\.ya?ml|scripts/check_ci\.py)$'
+        files: '^(\.gitlab-ci\.yml|\.gitlab/ci/.*\.ya?ml|\.github/workflows/.*\.ya?ml|scripts/check_ci\.py)$'

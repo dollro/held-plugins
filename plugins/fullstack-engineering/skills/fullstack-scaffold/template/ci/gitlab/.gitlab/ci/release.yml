@@ -1,0 +1,200 @@
+# Release from main and the tag pipeline. A release tag never rebuilds: it
+# copies the digests its commit was tested on to the version tag. Tag shape:
+# release __VERSION_EXAMPLE__ (scripts/release.sh); prerelease tags run up to the
+# read-only preflight and never deploy. The patterns below match the ones in
+# scripts/release.sh; change both together.
+
+.release-tag:
+  rules:
+    - if: $CI_COMMIT_TAG =~ /__RELEASE_TAG_RE__/
+
+.any-release-tag:
+  rules:
+    - if: $CI_COMMIT_TAG =~ /__RELEASE_TAG_RE__/
+    - if: $CI_COMMIT_TAG =~ /__PRERELEASE_TAG_RE__/
+
+# One click on main after the tests: play with RELEASE_VERSION=__VERSION_EXAMPLE__. It checks
+# the version (shape, not taken, newer than the newest release) and that this
+# commit contains the newest release (the job stays playable in older main
+# pipelines), then creates the release and its annotated tag on this tested
+# commit with the job token. The tag pipeline finds the tested images at once.
+# Tagging by hand (git tag -a ... && git push) still works: it waits or rebuilds.
+create_release:
+  stage: release
+  # Official GitLab CLI image (glab, git), pinned by digest; no entrypoint.
+  image: registry.gitlab.com/gitlab-org/cli:v1.128.0@sha256:00884510ffcbb6b03c0abc5dd058d7728a646cab2a419de4a7108d073ce90a03
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      # An unplayed manual job must not leave every main pipeline "blocked".
+      allow_failure: true
+  needs:
+    - job: mark_tested
+      artifacts: false
+    - job: smoke
+      artifacts: false
+  interruptible: false
+  variables:
+    # Full history and tags: version order and the release notes.
+    GIT_DEPTH: "0"
+    RELEASE_VERSION: ""
+  before_script:
+    - export PATH="$BIN:$PATH"
+    - apk add --no-cache bash curl
+    - scripts/ci/install-tools.sh task
+  script:
+    - task release:prepare VERSION="$RELEASE_VERSION" COMMIT="$COMMIT"
+  release:
+    tag_name: $RELEASE_VERSION
+    # A tag message makes the tag annotated, as validate_release requires.
+    tag_message: Release $RELEASE_VERSION
+    ref: $CI_COMMIT_SHA
+    name: $RELEASE_VERSION
+    description: ./release-notes.md
+
+# Fails a bad tag in seconds: shape, annotated, newer than the newest release.
+validate_release:
+  stage: check
+  extends: [.registry, .any-release-tag]
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - task release:validate VERSION="$CI_COMMIT_TAG" ALLOW_PRERELEASE=1
+
+# Waits for tested-<sha> of the tagged commit (its branch pipeline may still be
+# running), at most AWAIT_TESTED_TIMEOUT seconds; a registry read error fails
+# after a few tries instead of counting as "not tested yet". Writes the child
+# pipeline: a no-op when tested, build + test + mark after the timeout.
+await_tested:
+  stage: build
+  extends: [.registry, .any-release-tag]
+  needs: [validate_release]
+  timeout: 45m
+  variables:
+    AWAIT_TESTED_TIMEOUT: "1800"
+  script:
+    - task release:await-tested REGISTRY="$RELEASE_REGISTRY" COMMIT="$COMMIT" TIMEOUT="$AWAIT_TESTED_TIMEOUT" OUT=child-pipeline.yml ON_TESTED=.gitlab/ci/child-tested.yml ON_UNTESTED=.gitlab/ci/child-rebuild.yml
+  artifacts:
+    expire_in: 1 week
+    paths: [child-pipeline.yml]
+
+# Dotenv variables cannot drive rules:, so the path is a generated child
+# pipeline. mirror: this job has the child's status. No variables forwarded:
+# forwarded variables beat the child's own job variables; the child includes
+# common.yml and has everything it needs.
+rebuild_untested:
+  stage: test
+  extends: .any-release-tag
+  needs: [await_tested]
+  inherit:
+    variables: false
+  trigger:
+    include:
+      - artifact: child-pipeline.yml
+        job: await_tested
+    strategy: mirror
+
+# tested-<sha> -> <version>, digest checked. Registry calls only.
+promote_tested:
+  stage: promote
+  extends: [.registry, .any-release-tag]
+  needs: [rebuild_untested]
+  timeout: 15m
+  script:
+    - task release:promote REGISTRY="$RELEASE_REGISTRY" COMMIT="$COMMIT" VERSION="$CI_COMMIT_TAG"
+
+# The promoted images with production settings, behind a throwaway proxy, with
+# the deploy job's Docker and Compose.
+smoke_release:
+  stage: verify
+  extends: [.docker, .release-tag]
+  needs: [promote_tested]
+  timeout: 20m
+  script:
+    - task release:smoke REGISTRY="$RELEASE_REGISTRY" VERSION="$CI_COMMIT_TAG"
+
+# Never interruptible. One deploy per environment at a time (resource_group).
+# "Prevent outdated deployment jobs" stops a stale pipeline; only an explicit
+# re-run deploys an older tag, so ROLLBACK=1 here lets that re-run through.
+# Deploys only over SSH (scripts/deploy.sh): the runner can be anywhere.
+.deploy:
+  stage: deploy
+  image: docker:__DOCKER_VERSION__-cli
+  interruptible: false
+  timeout: 30m
+  variables:
+    VERSION: $CI_COMMIT_TAG
+    ROLLBACK: "1"
+  before_script:
+    - export PATH="$BIN:$PATH"
+    - apk add --no-cache bash curl git openssh-client
+    - scripts/ci/install-tools.sh task sops
+
+# Read-only: SSH login, remote Docker, registry login, images of the tag, the
+# version guard. Its own blocking manual job for release tags, so a missing
+# variable or key shows before anything changes. On prerelease tags it is the
+# last job: a safe way to prove protected variables and SSH in a tag pipeline.
+deploy_preflight:
+  extends: .deploy
+  needs: [promote_tested]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /__RELEASE_TAG_RE__/
+      when: manual
+    - if: $CI_COMMIT_TAG =~ /__PRERELEASE_TAG_RE__/
+      when: manual
+      allow_failure: true
+  environment:
+    name: production
+    action: verify
+  script:
+    - task deploy:preflight ENV=production VERSION="$VERSION"
+# >>> staging
+
+# Staging first, same tag and images, automatically once the smoke test passed.
+deploy_staging:
+  extends: [.deploy, .release-tag]
+  needs: [smoke_release]
+  environment:
+    name: staging
+  resource_group: staging
+  script:
+    - task deploy ENV=staging VERSION="$VERSION" ROLLBACK="$ROLLBACK"
+# <<< staging
+
+# Deploys this pipeline's tag: preflight, backup, pull, migrate, admin, up,
+# verify (/api/v1/health/ready/ ok and /api/v1/version/ == the tag).
+deploy_production:
+  extends: .deploy
+  needs:
+    - smoke_release
+    - deploy_preflight
+    # >>> staging
+    - deploy_staging
+    # <<< staging
+  rules:
+    - if: $CI_COMMIT_TAG =~ /__RELEASE_TAG_RE__/
+      when: manual
+  environment:
+    name: production
+    url: https://__APP_HOST__
+    deployment_tier: production
+  resource_group: production
+  script:
+    - task deploy ENV=production VERSION="$VERSION" ROLLBACK="$ROLLBACK"
+
+# Optional: applies the admin account from the production env file (email,
+# optional DJANGO_SUPERUSER_PASSWORD) without a release. Every deploy runs the
+# same command anyway. Refuses unless production still runs this tag.
+deploy_admin:
+  extends: .deploy
+  needs: [deploy_production]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /__RELEASE_TAG_RE__/
+      when: manual
+      allow_failure: true
+  environment:
+    name: production
+    action: access
+  resource_group: production
+  script:
+    - task deploy:admin ENV=production VERSION="$VERSION"

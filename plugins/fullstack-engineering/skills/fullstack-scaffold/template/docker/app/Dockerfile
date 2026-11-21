@@ -2,10 +2,14 @@
 # One Dockerfile for both Python services. Targets:
 #   dev       local development (code mounted, all dependency groups)
 #   django    production web + Celery image, includes the built Vue assets
+#   test      FROM django plus test and dev dependencies: CI runs the tests on
+#             the image that ships (never promoted, never deployed)
 # >>> realtime
 #   realtime  production FastAPI image
 # <<< realtime
 # Runtime versions are set once here and in compose.local.yml (ARG defaults).
+# The release version is not baked in: the image exists before its release tag,
+# so the deploy sets APP_VERSION at runtime. GIT_SHA is the fallback.
 
 ARG PYTHON_VERSION=__PYTHON_VERSION__
 ARG NODE_VERSION=__NODE_VERSION__
@@ -38,6 +42,10 @@ FROM base AS deps-prod
 COPY pyproject.toml uv.lock .python-version ./
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-install-project --no-dev
 
+# Production dependencies plus the dev group (pytest, linters); no docs group.
+FROM deps-prod AS deps-test
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-install-project
+
 # ---------------------------------------------------------------------------
 # Built once on the build machine's platform: the output is plain JS/CSS, so a
 # multi-platform build does not repeat (or emulate) it per target platform.
@@ -69,7 +77,6 @@ ENTRYPOINT ["/docker/entrypoint"]
 
 # ---------------------------------------------------------------------------
 FROM base AS runtime
-ARG APP_VERSION=development
 # High, fixed IDs and no sudo: a compromised process gains nothing on the host.
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10000 --gid app --home-dir /app app
@@ -80,13 +87,15 @@ COPY --chown=app:app backend/ /app/backend/
 # >>> realtime
 COPY --chown=app:app realtime/ /app/realtime/
 # <<< realtime
-RUN echo "${APP_VERSION}" > /app/VERSION.txt
 ENTRYPOINT ["/docker/entrypoint"]
 
 # >>> realtime
 FROM runtime AS realtime
 USER app
 CMD ["/docker/start-realtime"]
+# Last, so a new commit only changes this layer's metadata.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA}
 # <<< realtime
 
 FROM runtime AS django
@@ -99,3 +108,17 @@ RUN DJANGO_SETTINGS_MODULE=backend.config.settings.production \
     && chown -R app:app /app/backend/staticfiles
 USER app
 CMD ["/docker/start-django"]
+# Last, so a new commit only changes this layer's metadata.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA}
+
+# ---------------------------------------------------------------------------
+# Branches off the final production stage, so every production layer is shared
+# byte for byte and the tests run on what ships. Adds only the dev dependencies,
+# as copies (no package manager run per commit). Never promoted or deployed.
+FROM django AS test
+COPY --from=deps-test /opt/venv /opt/venv
+# pytest reads its configuration from pyproject.toml in /app.
+COPY pyproject.toml uv.lock .python-version /app/
+# The code is read-only for the app user: no pytest cache, no bytecode files.
+ENV PYTEST_ADDOPTS="-p no:cacheprovider"

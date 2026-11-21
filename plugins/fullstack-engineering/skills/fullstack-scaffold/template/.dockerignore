@@ -11,3 +11,7 @@ backend/media
 .envs/**/app.env
 plans
 site
+.cache
+images.env
+build-metadata.json
+ran-*.env
