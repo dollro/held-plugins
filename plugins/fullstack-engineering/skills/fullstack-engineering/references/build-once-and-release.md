@@ -65,7 +65,7 @@ The release is created from the pipeline that tested the commit, so the tag pipe
 | `promote_tested` | Copies `tested-<sha>` to `<version>`, checks the digests match | Registry calls only (regctl or crane), no Docker-in-Docker |
 | `deploy_preflight` | Read-only checks (`ci-cd-and-deploy.md`, Deploy) | Own job, manual, **blocking**; `environment: action: verify` |
 | `deploy_production` | Deploys the pipeline's tag, `needs: [promote_tested, deploy_preflight]` | Manual, blocking, `resource_group: production`; release tags only |
-| `deploy_admin` | Creates the admin account (below) | Manual, `allow_failure: true`, `needs: [deploy_production]`, `environment: action: access` |
+| `deploy_admin` | Runs the admin command (below) without a release; every deploy runs it anyway | Optional, manual, `allow_failure: true`, `needs: [deploy_production]`, `environment: action: access` |
 
 - **Prerelease tags** (`1.8a1`, `1.8-rc1`, or `v1.8.0-rc.1`) run validate, await, promote and only the preflight: a safe way to prove protected variables and SSH in a tag pipeline before the first real release. They never move `latest`.
 - **Tag shape is a project choice:** `X.Y`/`X.Y.Z` or `vX.Y.Z`. Pick one and never mix them; version sorting (`sort -V`) and protected tag patterns depend on it.
@@ -79,7 +79,10 @@ The release is created from the pipeline that tested the commit, so the tag pipe
 - **Protected variables reach only protected refs:** without protected tags the tag pipeline gets none of the deploy variables and the preflight lists all as missing. A project that used to deploy from a protected branch finds out on its first tag deploy; check the protected tags list before it. Protection is checked when a job runs: after adding it, retry the failed job, no new tag needed.
 - **Approval = manual jobs** on protected tags, plus "Prevent outdated deployment jobs" and "Allow job retries for rollback deployments".
 - Protected environments with required approvers are the Premium option; use them where available, not as a requirement.
-- **Admin account:** a separate manual job creates the superuser from the admin email in the production env, with a verified address. If an admin password variable is set (e.g. `DJANGO_SUPERUSER_PASSWORD`, a masked and protected CI variable or a value in the production env file), the account gets that password. Otherwise it gets an unusable password and the owner sets one through password reset, which also proves production mail. The reset path is the safer default where production mail works, since no admin password is stored anywhere; the upfront password is the option for when mail is not ready yet. An existing admin with a usable password is never overwritten; an existing admin without one gets the provided password. An existing non-admin with that address is not promoted. The job can be played again and runs against the live version only.
+- **Admin account, env is the source of truth:** one idempotent command (e.g. `ensure_admin`) runs on **every** production deploy after migrate (when the admin email is set), on every local dev stack start, and from an optional manual admin job (`environment: action: access`) to apply a change without a release. Dev, staging and production use the same command and env keys. The admin email is required; `DJANGO_SUPERUSER_PASSWORD` (masked, protected CI variable or env file) is optional:
+  - **Set:** a new admin gets it; an existing admin whose password differs is updated to it, so a changed variable takes effect on the next deploy or start. An unchanged password keeps its hash (`check_password` first), so sessions survive. It must pass Django's password validators and is never printed.
+  - **Unset:** a new admin gets an unusable password and the owner sets one through password reset (the safer default where production mail works: no admin password stored anywhere); an existing admin's password is left alone.
+  - An existing non-admin with that email is never promoted.
 
 ## Build cache
 
