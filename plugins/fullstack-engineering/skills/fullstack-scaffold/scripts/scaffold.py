@@ -165,7 +165,7 @@ def render(target: Path, values: dict[str, str], features: set[str] | None) -> N
             path.write_text(new)
 
 LATE_PLACEHOLDERS = {"__PLAYWRIGHT_VERSION__", "__PLAYWRIGHT_MCP_VERSION__"}  # known after install
-LATE_PLACEHOLDERS |= {"__TASK_SHA256__", "__SOPS_SHA256__", "__COMPOSE_SHA256__", "__REGCTL_SHA256__"}  # pin_ci_tools
+LATE_PLACEHOLDERS |= {"__TASK_SHA256__", "__SOPS_SHA256__", "__COMPOSE_SHA256__", "__REGCTL_SHA256__", "__CADDY_SHA256__"}  # pin_ci_tools
 # Real identifiers that look like placeholders.
 LITERALS: set[str] = set()
 
@@ -323,7 +323,7 @@ def pin_ci_tools(target: Path) -> None:
             name, version, _, url = fields
             fields[2] = "REPLACE_WITH_SHA256"
             if "REPLACE" not in version:
-                url = url.replace("{version}", version)
+                url = url.replace("{version}", version).replace("{bare}", version.removeprefix("v"))
                 try:
                     digest = hashlib.sha256()
                     with urllib.request.urlopen(url, timeout=120) as response:  # noqa: S310 (https URL from the template)
@@ -439,6 +439,7 @@ def main() -> int:
         "__TASK_VERSION__": ci_tool_version("go-task/task", runtimes["task"]),
         "__SOPS_VERSION__": ci_tool_version("getsops/sops", runtimes["sops"]),
         "__REGCTL_VERSION__": ci_tool_version("regclient/regclient", runtimes["regctl"]),
+        "__CADDY_TOOL_VERSION__": ci_tool_version("caddyserver/caddy", f"v{runtimes['caddy']}"),
         "__RELEASE_TAG_RE__": shape["release"],
         "__PRERELEASE_TAG_RE__": shape["prerelease"],
         "__VERSION_EXAMPLE__": shape["example"],

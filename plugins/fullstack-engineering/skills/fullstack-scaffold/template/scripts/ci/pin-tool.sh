@@ -6,7 +6,7 @@ set -eu
 . "$(dirname "$0")/tools-lib.sh"
 [ $# -eq 2 ] || { echo "usage: $0 <name> <version>" >&2; exit 2; }
 tool_fields "$1"
-url="$(awk -v n="$1" '$1 == n { print $4; exit }' "$TOOLS_FILE" | sed "s/{version}/$2/g")"
+url="$(awk -v n="$1" '$1 == n { print $4; exit }' "$TOOLS_FILE" | sed -e "s/{version}/$2/g" -e "s/{bare}/${2#v}/g")"
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 curl -fsSL --retry 3 -o "$tmp" "$url"

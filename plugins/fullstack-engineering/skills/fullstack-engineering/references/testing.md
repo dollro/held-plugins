@@ -19,7 +19,7 @@ Default with build once (`build-once-and-release.md`):
 
 - **A `test` stage `FROM production`** adds only the test and dev dependencies on top of the final production stage. Every production layer is shared byte for byte; the shipped image has no test tools. Installing test tools at job runtime instead is slow and changes the image under test.
 - **CI tests run against the built image, by digest:** the test job's image is `test@<digest>` recorded by the build job, Postgres and Redis are CI services, and the tests run from the image's app directory, not the checkout. End-to-end runs the app image as a service; the browser image runs the specs.
-- **One command, several runtimes:** `STACK=local` (default) runs `task test:backend` through Compose, `STACK=ci` reproduces CI with Compose and the commit's CI images, `STACK=job` runs it directly in the CI job's container (a small script loads the test env file without overriding job variables). CI only calls the Task target.
+- **One command, two runtimes:** `STACK=compose` (default) runs `task test:backend` and `task test:e2e` through the Compose dev stack, `STACK=job` runs them directly in the CI job's container: the test image for the backend (env from job variables or a small script that loads the test env file without overriding them), the Playwright image for end-to-end with the app's images as job services and the proxy started in the job. CI only calls the Task target.
 - **Every test job reports the digest it ran** (a dotenv artifact); the job that marks the image tested refuses unless all reports equal the digest it marks.
 - **The job checks its own image** (`$CI_JOB_IMAGE` against the recorded digest), so a tag that moved cannot stand in.
 

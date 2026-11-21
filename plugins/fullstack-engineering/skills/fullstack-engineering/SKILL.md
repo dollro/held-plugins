@@ -137,7 +137,6 @@ Details and checklists: `references/identity.md`, `references/security.md`.
 
 - **Environments: local, CI, staging (optional, recommended for teams), production.** Settings modules describe the kind of runtime (development, test, production), not the environment: staging runs the production settings with its own values.
 - **Build once, promote the same image:** each commit's image is built once in its branch pipeline and tested as built; a release copies the tested digest to the version tag, and the smoke test, staging and production use it. No per-environment builds; build arguments carry only artifact properties (runtime versions, platform, commit). The version comes from the release tag at runtime (`APP_VERSION`), never from the build.
-- **Scaffold status:** the `/fullstack-scaffold` template moves to this model in a follow-up change; until then it still ships the older model that builds images in the tag pipeline.
 - **All configuration comes from the environment at runtime**; code has no environment-specific values. Per environment: encrypted `app.env` for secrets and config, plain `deploy.env` for the deploy target (host, registry, SSH target).
 - **The frontend bundle holds nothing environment-specific:** relative API URLs, and runtime values rendered by Django into the page. `VITE_*` variables are public build constants.
 - **The environment name is a label** (logs, error reports, a badge outside production); behaviour differs only through settings and explicit variables.

@@ -6,13 +6,15 @@
 # repo (build output, test reports) is handed back to the host user on exit.
 # The pnpm store lives inside the node_modules volume, never in the repo.
 set -uo pipefail
-cd /app/frontend
-export pnpm_config_store_dir=/app/frontend/node_modules/.pnpm-store
+# APP_DIR: the repo root (/app in the compose services; the checkout in a CI job).
+APP_DIR="${APP_DIR:-/app}"
+cd "$APP_DIR/frontend" || exit 1
+export pnpm_config_store_dir="$APP_DIR/frontend/node_modules/.pnpm-store"
 
 give_back() {
   chown -R "${HOST_UID:-1000}:${HOST_GID:-1000}" \
-    /app/backend/static/vue /app/frontend/playwright-report /app/frontend/test-results \
-    /app/frontend/e2e-results.xml /app/frontend/pnpm-lock.yaml /app/frontend/package.json \
+    "$APP_DIR/backend/static/vue" "$APP_DIR/frontend/playwright-report" "$APP_DIR/frontend/test-results" \
+    "$APP_DIR/frontend/e2e-results.xml" "$APP_DIR/frontend/pnpm-lock.yaml" "$APP_DIR/frontend/package.json" \
     2>/dev/null || true
 }
 trap give_back EXIT

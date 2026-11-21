@@ -1,3 +1,4 @@
+# shellcheck shell=sh
 # Shared by install-tools.sh, mirror-tools.sh and pin-tool.sh (sourced, POSIX sh).
 #
 # Pinned tools come from scripts/ci/tools.txt. In CI (CI=true, set by every
@@ -19,7 +20,8 @@ tool_fields() {
   [ -n "$line" ] || { echo "unknown tool: $1 (not in $TOOLS_FILE)" >&2; return 1; }
   set -- $line
   VERSION="$2" SHA256="$3"
-  URL="$(printf '%s' "$4" | sed "s/{version}/$VERSION/g")"
+  # {version} as pinned (v1.2.3), {bare} without the leading v (1.2.3)
+  URL="$(printf '%s' "$4" | sed -e "s/{version}/$VERSION/g" -e "s/{bare}/${VERSION#v}/g")"
   FILE="${URL##*/}"
 }
 

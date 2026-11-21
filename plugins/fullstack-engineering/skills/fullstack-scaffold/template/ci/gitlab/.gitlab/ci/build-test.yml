@@ -21,6 +21,8 @@
 build_images:
   stage: build
   extends: .docker
+  # Starts at once, beside the checks: stages never serialize the pipeline.
+  needs: []
   interruptible: true
   # Sized from measured cold builds; a stuck push fails instead of hanging.
   timeout: 45m
@@ -32,14 +34,19 @@ build_images:
     - if: $CI_COMMIT_BRANCH
       variables:
         CACHE_REF: $CI_COMMIT_REF_SLUG
+  before_script:
+    - export PATH="$BIN:$PATH"
+    - apk add --no-cache bash curl git python3 openssh-client
+    # task and caddy are handed to the test jobs as artifacts: their images
+    # (non-root test image, Playwright image) do not install tools.
+    - scripts/ci/install-tools.sh task regctl caddy
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - docker buildx create --use --driver docker-container
     - task release:build-ci REGISTRY="$RELEASE_REGISTRY" COMMIT="$COMMIT" CACHE_REF="$CACHE_REF"
   artifacts:
     expire_in: 1 week
-    # Task for the test job, whose image (non-root, no curl) cannot install it.
-    paths: [.cache/bin/task]
+    paths: [.cache/bin/task, .cache/bin/caddy]
     reports:
       dotenv: images.env
 
@@ -86,32 +93,80 @@ test_backend:
     reports:
       junit: backend-results.xml
 
-# The full stack from the commit's production images, by digest, behind the
-# proxy (task test:e2e STACK=ci, compose.e2e.yml); Playwright runs the
-# checkout's specs. Docker-in-Docker because the stack needs Celery, the proxy
-# and Playwright side by side.
+# The app as job services from the commit's production images, by digest; the
+# job image is the official Playwright image (its tag equals @playwright/test),
+# which runs the proxy and the checkout's specs (task test:e2e STACK=job,
+# scripts/e2e_job.sh). No Docker-in-Docker: the runner caches job and service
+# images, so a warm runner pulls nothing. Runs beside test_backend.
 test_e2e:
   stage: test
-  extends: [.docker, .build-test]
+  extends: .build-test
   interruptible: true
   timeout: 30m
   needs:
     - job: build_images
       artifacts: true
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - task env:local
+  image: mcr.microsoft.com/playwright:v__PLAYWRIGHT_VERSION__-noble
+  services:
+    - name: postgres:__POSTGRES_VERSION__
+      alias: postgres
+    - name: redis:__REDIS_VERSION__
+      alias: redis
+    # >>> accounts
+    - name: axllent/mailpit:__MAILPIT_VERSION__
+      alias: mailpit
+    # <<< accounts
+    - name: $CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO
+      alias: django
+      command: ["bash", "-c", "python backend/manage.py migrate --noinput && python backend/manage.py seed_e2e_user && exec /docker/start-django"]
+    - name: $CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO
+      alias: celeryworker
+      command: ["/docker/start-celery-worker"]
     # >>> realtime
-    - task test:e2e STACK=ci DJANGO_IMAGE="$CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO" REALTIME_IMAGE="$CI_REGISTRY_IMAGE/__PROJECT__-realtime@$DIGEST_REALTIME"
+    - name: $CI_REGISTRY_IMAGE/__PROJECT__-realtime@$DIGEST_REALTIME
+      alias: realtime
+      command: ["bash", "-c", "alembic -c realtime/alembic.ini upgrade head && exec /docker/start-realtime"]
     # <<< realtime
-    # >>> !realtime
-    - task test:e2e STACK=ci DJANGO_IMAGE="$CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO"
-    # <<< !realtime
+  variables:
+    # Services reach each other by alias (django -> postgres, realtime -> django).
+    FF_NETWORK_PER_BUILD: "true"
+    # Service logs in the job log, for failures on start.
+    CI_DEBUG_SERVICES: "true"
+    # For every service (throwaway values). Local settings with DEBUG off: the
+    # e2e user may be seeded (refused with production settings), assets come
+    # from the image's bundle.
+    POSTGRES_DB: ci
+    POSTGRES_USER: ci
+    POSTGRES_PASSWORD: ci-only
+    DATABASE_URL: postgres://ci:ci-only@postgres:5432/ci
+    REDIS_URL: redis://redis:6379/0
+    APP_ENVIRONMENT: ci
+    APP_VERSION: e2e
+    DJANGO_SETTINGS_MODULE: backend.config.settings.local
+    DJANGO_DEBUG: "False"
+    DJANGO_VITE_DEV_MODE: "False"
+    DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,django
+    DJANGO_SECRET_KEY: ci-only-not-secret
+    INTERNAL_API_SECRET: ci-only-internal-secret
+    DJANGO_INTERNAL_URL: http://django:5000
+    # >>> accounts
+    EMAIL_URL: smtp://mailpit:1025
+    # <<< accounts
+    # >>> !accounts
+    EMAIL_URL: consolemail://
+    # <<< !accounts
+  before_script:
+    - export PATH="$BIN:$PATH"
+  script:
+    # Logs the digests the services were pulled by (an empty one fails the pull).
+    - task release:check-image IMAGE="$CI_REGISTRY_IMAGE/__PROJECT__-django@$DIGEST_DJANGO" DIGEST="$DIGEST_DJANGO"
+    - task test:e2e STACK=job
+    # Last: only a passing run writes the digests it ran (mark_tested checks).
     - task release:ran OUT=ran-e2e.env
   artifacts:
     when: always
     expire_in: 1 day
-    paths: [ran-e2e.env, frontend/playwright-report/]
+    paths: [ran-e2e.env, frontend/playwright-report/, caddy.log]
     reports:
       junit: frontend/e2e-results.xml
 
@@ -123,6 +178,7 @@ test_e2e:
 mark_tested:
   stage: mark
   extends: [.registry, .build-test]
+  interruptible: true
   needs:
     - job: build_images
       artifacts: true
