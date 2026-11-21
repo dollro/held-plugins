@@ -22,6 +22,8 @@ x-app: &app
     APP_VERSION: ${APP_VERSION:?set by scripts/deploy.sh from the release tag}
   # Hardening: no extra capabilities, no privilege escalation, immutable root fs.
   # Code that writes files needs an explicit volume (e.g. Django MEDIA_ROOT).
+  # Its mount point must exist in the image, owned by app (Dockerfile:
+  # install -d), or Docker creates the new volume as root and writes fail.
   cap_drop: [ALL]
   security_opt: ["no-new-privileges:true"]
   read_only: true

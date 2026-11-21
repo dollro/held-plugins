@@ -213,5 +213,6 @@ repo/
 | Separate staging build or `staging.py` settings | Same image and production settings; values from `.envs/staging/` |
 | CI logic that developers cannot run locally | CI calls the Task targets |
 | Secrets in plaintext in git, or in images | SOPS-encrypted env files, injected at runtime |
+| Upload returns 500 only in production: named volume mounted at a path the image lacks (or `.dockerignore` excludes), so Docker creates it as root | `install -d -o app -g app <path>` in the image for every mount; smoke test and verify write into each volume as the app user; `chown` existing volumes once |
 | Root-owned files in the repo after a container run | Hand files back to the host user; caches in volumes |
 | API used from memory | Check the lockfile version and the docs (context7 or web) first |

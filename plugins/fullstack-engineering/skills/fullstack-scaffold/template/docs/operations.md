@@ -119,6 +119,7 @@ Bump pins like dependencies, after reading the release notes, one at a time:
 | `resumable blob upload invalid`, `499` on push | Reverse-proxy read timeout in front of the registry |
 | `ForeignKeyViolation ... is not present in table` during migrate | Migration not rehearsed on production data |
 | `container ... has no healthcheck configured` from `up --wait` | Disabled healthcheck, or Compose version drift between smoke test and deploy |
+| `PermissionError: [Errno 13]` on the first upload, only in production | Volume mount point missing in the image, so Docker created the volume as root. `install -d -o app -g app <path>` in the Dockerfile, then `chown` the existing volume once; check with `id` and `ls -ld <mount>` in the container |
 | Every deploy variable missing in the preflight of a tag pipeline | Release tags not protected |
 
 ## Backups

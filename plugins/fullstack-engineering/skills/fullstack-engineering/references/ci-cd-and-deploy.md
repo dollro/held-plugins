@@ -84,6 +84,9 @@ The rules for building, releasing and running the app. Build once and the releas
 ## Production hardening
 
 - Containers run as a fixed high UID, without capabilities or privilege escalation, with a read-only root filesystem and explicit volumes for anything that writes. Find every write path before going read-only.
+- **Every named-volume mount point exists in the image, owned by the app user** (`RUN install -d -o app -g app <path>`). Docker seeds a new, empty volume with the owner of the image's directory; a path the image lacks becomes `root:root`, and the non-root app gets `Permission denied` on the first write. A path excluded in `.dockerignore` (e.g. `backend/media`) is also gone as a mount point: keep the `install -d` next to the `COPY`, with a comment. Dev stacks hide this: the bind-mounted checkout belongs to the developer.
+- **A Dockerfile fix does not repair an existing volume:** a volume created as root stays root. Fix it once by hand (`chown` in a one-off root container, or recreate the volume) and record that in the release notes.
+- Debug a write that fails only in the production image: compare `id` with `ls -ld <mount>` inside the container, and `docker inspect --format '{{json .Mounts}}' <container>`.
 - Postgres and Redis images need back the few capabilities they use to drop root; prove it with the smoke test.
 - Base images are pinned by suite and digest and bumped by a bot; every copy of a pin is kept in sync by a test, with no unproven exemptions.
 - Image users and groups are consistent, there is no sudo, and Dockerfile syntax lines are current or absent.

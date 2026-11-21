@@ -84,6 +84,10 @@ COPY --from=deps-prod /opt/venv /opt/venv
 COPY docker/app/ /docker/
 RUN chmod +x /docker/entrypoint /docker/start-*
 COPY --chown=app:app backend/ /app/backend/
+# Mount points for named volumes, owned by app: Docker seeds a new volume with
+# this owner; a missing path (backend/media is in .dockerignore) becomes
+# root:root and every upload fails. One line per volume mounted in compose.
+RUN install -d -o app -g app /app/backend/media
 # >>> realtime
 COPY --chown=app:app realtime/ /app/realtime/
 # <<< realtime
