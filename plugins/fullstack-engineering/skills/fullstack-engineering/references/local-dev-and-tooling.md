@@ -21,6 +21,7 @@ Conventions:
 - **Every task has a `desc`;** `task --list` (the default task) is the menu for people and agents. Internal helper tasks without `desc` stay hidden.
 - **Namespaces by area** (`dev:`, `deps:`, `check:`, `test:`, `docs:`, `secrets:`, `release:`, `deploy:`), verbs after the colon. One `ci` task aggregates exactly what CI runs.
 - **Parameters:** variables for choices (`ENV=staging`, `VERSION=v1.2.3`, `PLATFORMS=…`), with `requires` wherever a wrong default would be dangerous (secrets, deploys: `task deploy` without `ENV` refuses), and passed inline to scripts (`DEPLOY_ENV={{.ENV}} scripts/deploy.sh`) because an exported shell variable otherwise wins over Task's `env:`; free arguments after `--` (`task test:backend -- -k auth`).
+- **A `vars:` entry derived from a CLI switch can silently ignore it:** a task-level `vars:` default computed from another variable may be evaluated before the CLI value applies, so `task x STACK=job` runs the default path. Pass switches through one `{{.VAR | default ...}}` per task and run every CLI switch CI uses at least once from CI.
 - **Idempotent setup:** `status:` or `sources:`/`generates:` so repeated runs skip finished work; `preconditions:` with a clear message for missing tools or files.
 - **Repos with several components** (e.g. web app plus desktop client): a root Taskfile `includes:` each component's Taskfile with its own `dir:`, giving namespaced commands (`task webapp:dev:up`, `task client:test`) and one root `setup`/`ci`.
 - **Logic lives in Task or scripts, never only in CI files;** a developer reproduces every CI failure with the same target.
@@ -85,6 +86,8 @@ Containers that write into the bind-mounted repo must not leave root-owned files
 `.pre-commit-config.yaml` with hygiene hooks, Ruff (`ruff-check --fix`, `ruff-format`) and local hooks that block plaintext env files and check that `.example` env files are current. Hook revisions are updated with `pre-commit autoupdate` (Dependabot does not cover them). The config also works with compatible runners such as prek.
 
 **Checkers that import app settings run in the app container,** not in pre-commit's isolated environment: mypy with the Django plugin needs the app's dependencies and settings, so it is a Task target (`check:types`) that runs where the app runs. When introducing or upgrading a checker, commit a baseline of the existing errors so only new ones fail, and file the burn-down as its own issue. The comparison checks the checker's own exit code (`PIPESTATUS`, `set -o pipefail`): a crashed checker reports no errors and would pass as "nothing new".
+
+- **shellcheck every repo script in pre-commit** (`shellcheck-py`, `-x` to follow sourced files, warnings and errors fail): it finds `set -e` masked by `local x=$(cmd)` or by a command substitution in a condition, unquoted expansions and unset variables before CI does.
 
 ## Pitfalls
 

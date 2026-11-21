@@ -26,7 +26,7 @@ The version is the release tag, shape `__VERSION_EXAMPLE__` (`scripts/release.sh
 **Build once (GitLab).** Every branch commit is built once (`build_images`: production images and the `test` stage on top of them, pushed as `<sha>`), backend and end-to-end tests run on exactly those digests, and `mark_tested` tags them `tested-<sha>`. A commit tested before (develop or main fast-forwarded to it) is reused, not rebuilt. A release copies `tested-<sha>` to the version tag: what ships is what was tested.
 
 1. **Candidate green on `main`:** checks, tests, `mark_tested` and the smoke test (`task release:smoke`: the tested images with production settings behind a throwaway Traefik). Fast-forward `main` to the tested `develop` where possible: a merge commit is a new SHA and is built and tested again.
-2. **Migrations on real data:** restore a recent production backup into the smoke stack and migrate on top of it, only where production data may be: `SMOKE_DUMP=<file.dump> task release:smoke`. A migration that repoints a foreign key or deletes a model needs a data step or a written decision to drop the data. Diff the `.example` env files against the previous release and apply changed values to each environment.
+2. **Migrations on real data:** restore a recent production backup into the smoke stack and migrate on top of it, on the production host (over SSH, a throwaway stack; production data never goes to CI or laptops): `SMOKE_DUMP=<file.dump> task release:smoke`. A migration that repoints a foreign key or deletes a model needs a data step or a written decision to drop the data. Diff the `.example` env files against the previous release and apply changed values to each environment.
 3. **Create the release:** in `main`'s pipeline play `create_release` with the job variable `RELEASE_VERSION=__VERSION_EXAMPLE__`. It checks the shape, that the version is new and newer than the newest release, and that the commit contains the newest release, then creates the release and its annotated tag on the tested commit. (A tag pushed by hand works too; its pipeline waits for `tested-<sha>`, or builds and tests the commit in a child pipeline.)
 4. **Tag pipeline:** `validate_release` → `await_tested` → `promote_tested` (copy by digest, no build) → `smoke_release` → `deploy_preflight` (manual)<!-- >>> staging --> → `deploy_staging`<!-- <<< staging --> → `deploy_production` (manual). Prerelease tags stop after the preflight.
 5. **Live checks:** version on `/api/v1/version/`, login, one core flow, one real password-reset mail end to end, error tracking, security headers, proxy logs.
@@ -36,7 +36,7 @@ The version is the release tag, shape `__VERSION_EXAMPLE__` (`scripts/release.sh
 **GitHub:**
 
 1. **Candidate green on `main`:** checks, end-to-end, production smoke test (`task release:smoke`).
-2. **Migrations on real data:** `SMOKE_DUMP=<file.dump> task release:smoke`, only where production data may be.
+2. **Migrations on real data:** `SMOKE_DUMP=<file.dump> task release:smoke` on the production host; production data never goes to CI.
 3. **Tag:** `git tag -a __VERSION_EXAMPLE__ -m "..." && git push origin __VERSION_EXAMPLE__`. The release workflow validates the tag, builds and pushes the images, smoke-tests them and deploys to staging; approve production in CI.
 4. **Live checks:** version on `/api/v1/version/`, login, one core flow, one real password-reset mail end to end, error tracking, security headers, proxy logs.
 <!-- <<< github -->
