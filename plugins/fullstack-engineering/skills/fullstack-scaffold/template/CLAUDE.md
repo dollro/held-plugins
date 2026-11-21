@@ -54,6 +54,7 @@ From a laptop (last resort): at the previous tag with `ROLLBACK=1`. The admin ac
 | Lint (pre-commit: ruff, hygiene, secrets guard) | `task check:lint` |
 | Docs build (strict: broken links fail) | `task check:docs` |
 | Frontend type-check, eslint, vitest | `task check:frontend` |
+| Python type check (mypy against `mypy-baseline.txt`; the baseline may only shrink) | `task check:types`, after fixes `task check:types:sync` |
 | Django<!-- >>> realtime --> + realtime<!-- <<< realtime --> (pytest, real Postgres/Redis), migration check | `task test:backend` |
 | End-to-end (Playwright, built assets) | `task test:e2e` |
 | Production smoke test (main and release tags) | `task release:smoke` |

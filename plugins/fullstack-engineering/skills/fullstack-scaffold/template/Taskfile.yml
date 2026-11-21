@@ -114,12 +114,50 @@ tasks:
     desc: pre-commit hooks on all files (ruff, hygiene, secrets guard)
     cmds: ["uvx pre-commit run --all-files --show-diff-on-failure"]
 
+  # STACK=job (CI): in the current container, a plain node image, from the checkout.
   check:frontend:
-    desc: Type-check, lint and unit-test the frontend
+    desc: Type-check, lint and unit-test the frontend; STACK=job in CI
+    vars:
+      STACK: '{{.STACK | default "compose"}}'
+      PNPM: '{{if eq .STACK "job"}}APP_DIR=$PWD docker/frontend/pnpm{{else}}{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm{{end}}'
     cmds:
-      - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run type-check"
-      - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run ci:lint"
-      - "{{.RUN}} --no-deps frontend /app/docker/frontend/pnpm run ci:test-unit"
+      - "{{.PNPM}} run type-check"
+      - "{{.PNPM}} run ci:lint"
+      - "{{.PNPM}} run ci:test-unit"
+
+  # mypy against mypy-baseline.txt: new errors fail, and so do fixed errors still
+  # in the baseline. STACK=job (CI): in the commit's test image, on its /app code.
+  check:types:
+    desc: Python type check (mypy) against mypy-baseline.txt; STACK=job in CI
+    vars:
+      STACK: '{{.STACK | default "compose"}}'
+    cmds:
+      - cmd: "{{.RUN}} --no-deps django bash -c 'mypy | mypy-baseline filter --no-colors'"
+        if: '{{ne .STACK "job"}}'
+      - cmd: cd /app && mypy | mypy-baseline filter --no-colors --baseline-path "{{.ROOT_DIR}}/mypy-baseline.txt"
+        if: '{{eq .STACK "job"}}'
+
+  check:types:sync:
+    desc: Rewrite mypy-baseline.txt from the current errors (after fixing some; on the merged tree)
+    cmds: ["{{.RUN}} --no-deps django bash -c 'mypy | mypy-baseline sync'"]
+
+  # The baseline may only shrink: compared with the merge base of BRANCH (on
+  # BRANCH itself: the previous commit). ALLOW_GROWTH=1 for a deliberate case.
+  check:types:baseline:
+    desc: Fail when mypy-baseline.txt grew against BRANCH (default main)
+    vars:
+      BRANCH: '{{.BRANCH | default "main"}}'
+    cmds:
+      - |
+        git fetch --quiet origin "{{.BRANCH}}" 2>/dev/null || true
+        base="$(git merge-base HEAD "origin/{{.BRANCH}}" 2>/dev/null || true)"
+        if [ -z "$base" ] || [ "$base" = "$(git rev-parse HEAD)" ]; then base="HEAD~1"; fi
+        before="$(git show "$base:mypy-baseline.txt" 2>/dev/null | grep -c . || true)"
+        after="$(grep -c . mypy-baseline.txt || true)"
+        echo "mypy baseline: ${before:-0} -> ${after:-0} errors (against $base)"
+        if [ "${after:-0}" -gt "${before:-0}" ] && [ "{{.ALLOW_GROWTH}}" != 1 ]; then
+          echo "the mypy baseline grew: fix the new errors instead (ALLOW_GROWTH=1 to accept)"; exit 1
+        fi
 
   # One command, two runtimes. STACK=compose (default): through the dev stack.
   # STACK=job: directly in the current container, which CI sets to the commit's
@@ -167,9 +205,16 @@ tasks:
     cmds:
       - scripts/e2e_job.sh {{.CLI_ARGS}}
 
+  # STACK=job (CI): with uv in the current container (the uv image).
   check:docs:
-    desc: Build the docs site strictly (broken links and nav entries fail)
-    cmds: ["{{.DC}} --profile docs run --rm --no-deps docs build"]
+    desc: Build the docs site strictly (broken links and nav entries fail); STACK=job in CI
+    vars:
+      STACK: '{{.STACK | default "compose"}}'
+    cmds:
+      - cmd: "{{.DC}} --profile docs run --rm --no-deps docs build"
+        if: '{{ne .STACK "job"}}'
+      - cmd: uv run --frozen --only-group docs mkdocs build --strict
+        if: '{{eq .STACK "job"}}'
 
   ci:
     desc: Everything CI runs before merge
@@ -177,6 +222,7 @@ tasks:
       - task: check:lint
       - task: check:docs
       - task: check:frontend
+      - task: check:types
       - task: test:backend
       - task: test:e2e
 

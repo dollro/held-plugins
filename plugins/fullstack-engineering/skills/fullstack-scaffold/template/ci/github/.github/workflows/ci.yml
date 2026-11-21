@@ -38,10 +38,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The mypy baseline is compared with the merge base.
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v10
       - run: scripts/ci/install-tools.sh task
       - run: cp .envs/local/app.env.example .envs/local/app.env
       - run: task check:lint
+      - run: task check:types:baseline BRANCH="${{ github.event.repository.default_branch }}"
 
   docs:
     runs-on: ubuntu-latest
@@ -67,6 +71,7 @@ jobs:
       - run: scripts/ci/install-tools.sh task
       - uses: docker/setup-buildx-action@v4
       - run: task env:local
+      - run: task check:types
       - run: task test:backend -- --junitxml=backend-results.xml
       - uses: actions/upload-artifact@v7
         if: always()
