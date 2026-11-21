@@ -30,11 +30,11 @@
     {
       "name": "agent-team",
       "source": "./plugins/agent-team",
-      "description": "Orchestrate parallel coding agents — Agent Teams, worktree-isolated agents or parallel sessions — with mechanism choice, parallel-safety classification, contract-first interfaces and quality gates. Picks up prd2issues issue cuts. Adds a /agent-team skill.",
-      "version": "2.1.0",
+      "description": "Orchestrate parallel coding agents — Agent Teams, worktree-isolated agents, parallel sessions or Docker Sandbox workers driven from the host with sbx ask — with mechanism choice, parallel-safety classification, contract-first interfaces and quality gates. Picks up prd2issues issue cuts. Adds a /agent-team skill.",
+      "version": "2.2.0",
       "category": "workflows",
       "tags": ["agent-teams", "orchestration", "parallel-build", "contracts", "coordination"],
-      "keywords": ["agent-team", "parallel", "swarm", "coordination", "delegate", "worktree", "issues"]
+      "keywords": ["agent-team", "parallel", "swarm", "coordination", "delegate", "worktree", "issues", "sandbox", "sbx"]
     },
     {
       "name": "brainstorming",
