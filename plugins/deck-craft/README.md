@@ -43,6 +43,7 @@ cd "$(mktemp -d)"
 python <plugin>/skills/deck-craft/examples/consult_example.py
 python <plugin>/skills/deck-craft/examples/keynote_example.py            # black stage
 python <plugin>/skills/deck-craft/examples/keynote_example.py brand.pptx # inside your master
+python <plugin>/skills/deck-craft/examples/atlas_keynote.py <motion-project>/renders/clips.json  # video slides
 python <plugin>/skills/deck-craft/scripts/check_deck.py consult_example.pptx
 python <plugin>/skills/deck-craft/scripts/render.py keynote_example.pptx
 python <plugin>/skills/deck-design-guide/scripts/template_profile.py brand.pptx design-guides/brand --sampler

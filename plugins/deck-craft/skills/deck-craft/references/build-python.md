@@ -1,6 +1,6 @@
 # Building with deckkit (Python)
 
-Read this before writing `build_deck.py`. Requirements: Python 3.9+, `python-pptx` (`pip install python-pptx`, in a virtual environment where possible). LibreOffice and poppler (`pdftoppm`) are optional, for rendering; Pillow for the contact sheet.
+Read this before writing `build_deck.py`. Requirements: Python 3.9+, `python-pptx` 1.0.x (`pip install "python-pptx>=1.0,<1.1"`, in a virtual environment where possible; `video_slide()` uses `add_movie`, which python-pptx does not promise to keep stable, so stay on the tested minor version). LibreOffice and poppler (`pdftoppm`) are optional, for rendering; Pillow for the contact sheet.
 
 ## Skeleton
 
@@ -64,11 +64,24 @@ In a template deck the title box is the master's; call `body_top(s)` and pass `y
 - Unit line above every chart: measure, scope, period, unit.
 - Number formats: one decimal under 10, none above; currency in the unit line, not on every label.
 
+## Video slides (clips from motion-craft)
+
+```python
+s = video_slide(prs, "renders/beats/B02.mp4", "renders/beats/B02.jpg", beat="B02")   # full bleed
+s = video_slide_from_clips(prs, "renders/clips.json", "B12")                           # resolve from clips.json
+notes(s, "...")
+```
+
+- The clip is embedded (the .pptx grows by its size) and plays on click; nothing autoplays. The poster is required: PowerPoint shows it before play, LibreOffice and thumbnails show only it.
+- H.264 MP4 with AAC or no audio plays in PowerPoint for Windows and Mac and imports into Keynote. motion-qa's beat export writes that format; re-encode other sources with `ffmpeg -i in.mov -c:v libx264 -pix_fmt yuv420p -c:a aac -movflags +faststart out.mp4`.
+- Before a deck with clips goes out, open it in PowerPoint and play each clip once; the checker confirms media and poster are present but cannot play them.
+- `clips.json` paths resolve against its folder, then its parent (the motion project root), then the working folder.
+
 ## Check and render
 
-`check_deck.py` reads the mode from the deck (or `--mode`). It prints the spine (titles or statements in order) first: read it as the argument. ERRORs: missing or topic-style titles, titles over 95 characters, duplicate titles, data without source (consult), Illustrative labels missing on a sample-data deck, shapes off the slide. WARNINGs: overflow estimate, more than 5 bullets, text under 12 pt (consult) or 18 pt (keynote), more than 20 words or bullets on a keynote slide, number claims without fine print, image placeholders left, missing speaker notes, title overlapping the body, more than one font family.
+`check_deck.py` reads the mode from the deck (or `--mode`). It prints the spine (titles or statements in order) first: read it as the argument. ERRORs: missing or topic-style titles, titles over 95 characters, duplicate titles, data without source (consult), Illustrative labels missing on a sample-data deck, shapes off the slide. WARNINGs: overflow estimate, more than 5 bullets, text under 12 pt (consult) or 18 pt (keynote), more than 20 words or bullets on a keynote slide, number claims without fine print, image placeholders left, missing speaker notes, clips without poster frame or over 60 s / 50 MB (missing clip media is an ERROR), title overlapping the body, more than one font family.
 
-`render.py` converts through LibreOffice. LibreOffice substitutes missing fonts, so judge layout, not exact typography. No LibreOffice: open the file in PowerPoint and look at every slide.
+`render.py` converts through LibreOffice. LibreOffice substitutes missing fonts, so judge layout, not exact typography. No LibreOffice: open the file in PowerPoint and look at every slide. Video slides render as their poster frame and are marked `VIDEO <beat>` on the contact sheet.
 
 ## Common failures
 

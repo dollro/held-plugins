@@ -23,6 +23,8 @@ Usage:
 Override colours or font AFTER new_deck(): set_theme("consult", accent="C8102E", font="Calibri").
 Inline accent: any text helper renders [[words]] in the accent colour.
 """
+import json
+import os
 import re
 
 from lxml import etree
@@ -1051,6 +1053,56 @@ def image_slide(prs, image=None, caption=None, placeholder="Product shot", full_
     return slide
 
 
+def video_slide(prs, clip, poster, beat=None, caption=None, layout=None, full_bleed=True):
+    """Clip slide for a beat, e.g. a motion-craft render (renders/beats/B02.mp4). poster: the
+    still PowerPoint shows before play and renderers show instead of the video; required. The clip
+    is embedded, plays on click (no autoplay) and is named Clip; its alt text records the beat.
+    layout: a role from use_layouts() (default: the statement / blank layout). Without full_bleed
+    the clip sits at 16:9 in the upper area with an optional caption beneath."""
+    if not poster:
+        raise ValueError("video_slide needs a poster frame (renders/beats/<beat>.jpg)")
+    for path in (clip, poster):
+        if not os.path.exists(path):
+            raise FileNotFoundError(path)
+    slide = _new_slide(prs, layout or "statement")
+    if full_bleed:
+        x, y, w, h = 0, 0, SLIDE_W, SLIDE_H
+    else:
+        w = SLIDE_W - 3.0
+        h = w * 9 / 16
+        x, y = 1.5, 0.5
+    movie = slide.shapes.add_movie(clip, Inches(x), Inches(y), Inches(w), Inches(h),
+                                   poster_frame_image=poster, mime_type="video/mp4")
+    movie.name = "Clip"
+    movie._element.nvPicPr.cNvPr.set("descr", f"beat {beat or '–'} · {os.path.basename(clip)}")
+    if caption and not full_bleed:
+        text(slide, caption, 1.0, y + h + 0.2, SLIDE_W - 2.0, 0.7, size=24, bold=True, align=PP_ALIGN.CENTER,
+             name="Caption")
+    return slide
+
+
+def video_slide_from_clips(prs, clips_json, beat, cut=None, **kw):
+    """video_slide() for one beat of a motion-craft clips.json ([{beat, cut, file, poster, ...}]).
+    Paths in clips.json are resolved against the folder of clips.json, then its parent, then the
+    working folder. cut: pick the clip from this cut when several cuts have the beat."""
+    with open(clips_json, encoding="utf-8") as f:
+        clips = json.load(f)
+    hits = [c for c in clips if c.get("beat") == beat and (cut is None or c.get("cut") == cut)]
+    if not hits:
+        raise KeyError(f"no clip for {beat} in {clips_json}" + (f" (cut {cut})" if cut else ""))
+    base = os.path.dirname(os.path.abspath(clips_json))
+
+    def resolve(path):
+        for root in (base, os.path.dirname(base), os.getcwd()):
+            candidate = os.path.join(root, path)
+            if os.path.exists(candidate):
+                return candidate
+        return path
+
+    clip = hits[0]
+    return video_slide(prs, resolve(clip["file"]), resolve(clip["poster"]), beat=beat, **kw)
+
+
 def quote(prs, value, attribution):
     """Customer or expert voice. Only real, attributable quotes; never invent one."""
     slide = _new_slide(prs, "statement")
@@ -1084,4 +1136,4 @@ def keynote_chart_slide(prs, headline, sub=None):
 
 
 __all__ = [n for n in dir() if not n.startswith("_") and n not in (
-    "re", "etree", "Presentation", "CategoryChartData", "RGBColor", "qn", "Emu")]
+    "json", "os", "re", "etree", "Presentation", "CategoryChartData", "RGBColor", "qn", "Emu")]

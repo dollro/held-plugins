@@ -31,3 +31,4 @@ Keynote slides: Blank layout, template fonts, statements 40-96 pt, one number pe
 - Complex masters can still produce off-template output; always review.
 - Animations and transitions: suggest them in the notes; do not rely on them for the story (use one-slide-per-step reveals instead).
 - Images: only what the user provides; otherwise insert a labelled placeholder shape.
+- Video clips: the add-in cannot embed them. If a `clips.json` from motion-craft exists, list the clips it names for the deck's beats (beat, file, poster, duration) and ask the user to insert each via Insert → Video → This Device on the slide of that beat, then set the poster frame (Video Format → Poster Frame → Image from File, the clip's .jpg) and keep playback "On Click".

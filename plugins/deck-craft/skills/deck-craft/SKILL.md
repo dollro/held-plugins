@@ -104,6 +104,7 @@ Do not write python-pptx code (or touch the slides in the add-in) before step 4 
 | product reveal / hero image | `image_slide(prs, image, caption)` |
 | real customer voice | `quote(prs, text, attribution)` |
 | keynote close | `closing(prs, headline, details, cta)` |
+| film clip for a beat (motion-craft) | `video_slide(prs, clip, poster, beat)` or `video_slide_from_clips(prs, clips_json, beat)` |
 | one simple chart on stage | `keynote_chart_slide` + `bar_chart(...)` |
 
 Every consult content slide starts with `content_slide(prs, title, section=...)` and ends with `source(s, ...)`. `[[word]]` in any text renders in the accent colour.
@@ -113,4 +114,4 @@ Every consult content slide starts with `content_slide(prs, title, section=...)`
 - `references/build-python.md`: deckkit API, layout grid, template handling, check and render, common failures.
 - `references/powerpoint-addin.md`: working in Claude for PowerPoint with the same rules.
 - `scripts/deckkit.py`, `scripts/check_deck.py`, `scripts/render.py`.
-- `examples/consult_example.py` (10-slide steering-committee deck), `examples/keynote_example.py` (14-slide launch; pass a template path to see it inside a master).
+- `examples/consult_example.py` (10-slide steering-committee deck), `examples/keynote_example.py` (14-slide launch; pass a template path to see it inside a master), `examples/atlas_keynote.py` (18 slides from a story-craft narrative; pass a motion-craft `clips.json` to play the B02 and B12 clips).
