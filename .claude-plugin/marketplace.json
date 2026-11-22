@@ -157,7 +157,7 @@
       "name": "deck-craft",
       "source": "./plugins/deck-craft",
       "description": "PowerPoint decks two ways, template-first: consulting-grade analyst decks (pyramid storyline, action titles, one message per slide, native editable charts, sources) and bold keynote or launch decks (sparkline arc, few words, huge type, one number per slide, reveals, speaker notes), always inside the slide master when one exists. Captures a master or brand book into a design guide, builds with python-pptx (deckkit) or in the PowerPoint add-in, and checks and renders the result. Adds the deck-craft, deck-storyline, deck-keynote, deck-exhibits, deck-design-guide and deck-review skills.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "presentations",
       "tags": ["powerpoint", "pptx", "slides", "presentation", "consulting", "keynote", "pyramid-principle", "design-guide", "template"],
       "keywords": ["powerpoint", "pptx", "deck", "slides", "presentation", "action titles", "pyramid principle", "SCQA", "executive summary", "storyline", "keynote", "product launch", "slide master", "corporate design", "design guide", "chart", "deck review", "python-pptx", "Folien", "Präsentation"]
@@ -165,8 +165,8 @@
     {
       "name": "story-craft",
       "source": "./plugins/story-craft",
-      "description": "The story before any slide or frame: a guided stock-take of purpose, audience, outputs, evidence and assets (intake.md), then a medium-neutral narrative with headline, villain, promise, numbered beats and cuts per output (narrative.md), the contract that keynote decks (deck-craft) and launch films (motion-craft) both build from. Adds the stock-take and narrative skills.",
-      "version": "0.2.0",
+      "description": "The story before any slide or frame: a guided stock-take of purpose, audience, outputs, evidence and assets (intake.md), a medium-neutral narrative with headline, villain, promise, numbered beats and cuts per output (narrative.md), and a review gate with validator and expert panel. The contract that keynote decks (deck-craft) and launch films (motion-craft) both build from. Adds the stock-take, narrative and story-review skills.",
+      "version": "0.3.0",
       "category": "presentations",
       "tags": ["storytelling", "narrative", "launch", "keynote", "presentation", "video"],
       "keywords": ["story", "stock-take", "intake", "launch story", "keynote", "product launch", "product film", "evidence", "audience", "Bestandsaufnahme", "Präsentation"]

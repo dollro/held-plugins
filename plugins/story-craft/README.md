@@ -9,7 +9,17 @@ The story before any slide or frame. story-craft settles what a launch, keynote 
 | `stock-take` | Interview + inventory: purpose (belief before → after), ask, audience, outputs with channel and runtime, evidence tagged solid / likely / missing, assets, constraints | `intake.md` |
 | `narrative` | Medium-neutral dramaturgy: headline, villain, cost, promise, three storylines then one, sparkline, reveal, rule of three, proof per claim, STAR moment, close; numbered beats `B01..Bn` with roles and evidence IDs; cuts per output | `narrative.md` |
 
-Planned: `story-review` (review gate with validator).
+| `story-review` | Gate before any medium: validator, one-sentence test, so-what per beat, credibility against the evidence, four-seat expert panel with scorecard; PASS / REVISE appended to `narrative.md` | review in `narrative.md` |
+
+### Validator
+
+```bash
+pip install pyyaml
+python <plugin>/scripts/validate_narrative.py examples/atlas/narrative.md   # intake.md next to it
+python <plugin>/scripts/test_validate_narrative.py                         # example passes, mutations fail
+```
+
+Each finding prints as `beat · problem → fix`; exit 1 on any error.
 
 An end-to-end example for the dummy product `atlas` is in `examples/atlas/`.
 
@@ -33,6 +43,8 @@ claude plugin install story-craft@held-plugins
 - Nancy Duarte, Resonate (audience belief before and after, the sparkline of what is and what could be, the STAR moment).
 - Carmine Gallo's analyses of product-launch keynotes (headline, villain and hero, rule of three, meaningful numbers); the launch dramaturgy was moved here from deck-craft:deck-keynote.
 - "Three storylines, then one", hook rules and the tells of a generic film adapted from the story reference of HyperFrames (heygen-com/hyperframes, Apache-2.0).
+- Panel review with role lenses and a scorecard: idea from remotion-video-director (bayramannakov/remotion-video-director), rewritten; no text taken.
+- One-sentence and so-what tests reused from deck-craft:deck-storyline.
 - Cutdown rules ("drop beats from the middle, never the hook or the payoff") adapted from video-director (SallyRS/video-director, MIT).
 
 License: MIT (see `LICENSE`).
