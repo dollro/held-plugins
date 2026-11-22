@@ -1,0 +1,3 @@
+# One command per line; sandbox.sh check runs each inside the sandbox.
+uv --version
+uvx --version
