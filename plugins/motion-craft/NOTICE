@@ -1,0 +1,11 @@
+motion-craft
+Copyright 2026 the motion-craft authors
+
+Parts of the shot-forge skill (critique.schema.json, the critique rubric and
+scripts/validate_shots.py) are adapted from Shotkit (Apache-2.0):
+
+  Shotkit
+  Copyright 2026 Yuri Strohm / WhyStrohm
+  This product includes software developed by WhyStrohm (https://whystrohm.com).
+
+The adapted files were rewritten for video takes; see README "Sources and credits".

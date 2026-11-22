@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "motion-craft/shot-forge/critique.schema.json",
+  "title": "Take critique",
+  "description": "Verdict for one generated take, judged against its shot spec in shots.json, the character sheet and the shots before and after it. One file per take: motion/shots/critiques/<shot>-t<take>.json. Adapted from an Apache-2.0 critique schema (changes: video takes instead of stills, per-criterion scores, change_approach verdict, take counting); attribution in the plugin README.",
+  "type": "object",
+  "required": ["shot", "take", "provider", "model", "file", "verdict", "scores", "issues"],
+  "additionalProperties": false,
+  "properties": {
+    "shot": {"type": "string", "pattern": "^S\\d{2}$"},
+    "take": {"type": "integer", "minimum": 1},
+    "beat": {"type": "string", "pattern": "^B\\d{2}$"},
+    "provider": {"type": "string", "minLength": 1, "description": "The connected generation MCP, as named in takes.md."},
+    "model": {"type": "string", "minLength": 1},
+    "seed": {"oneOf": [{"type": "null"}, {"type": "integer"}, {"type": "string", "minLength": 1}]},
+    "file": {"type": "string", "minLength": 1, "description": "The clip judged, relative to motion/shots/."},
+    "file_sha256": {"oneOf": [{"type": "null"}, {"type": "string", "pattern": "^[0-9a-f]{64}$"}], "description": "Hash of the clip as judged, so a regenerated file cannot inherit an old accept."},
+    "prompt_sha256": {"oneOf": [{"type": "null"}, {"type": "string", "pattern": "^[0-9a-f]{64}$"}]},
+    "created_at": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"},
+    "verdict": {
+      "type": "string",
+      "enum": ["accept", "revise_prompt", "change_approach"],
+      "description": "accept: use it (trim in the edit). revise_prompt: a named prompt change can fix it and takes are left. change_approach: the shot spec is the problem, or max_takes is reached."
+    },
+    "approach": {
+      "type": "string",
+      "enum": ["motion", "still_push", "split", "drop"],
+      "description": "Required when verdict is change_approach: motion graphics instead, a still with a slow push, two shots joined on a cut, or drop the shot."
+    },
+    "scores": {
+      "type": "object",
+      "description": "1 = unusable, 3 = usable with trims, 5 = as specified. Any criterion at 1 blocks accept; clean_frame below 5 blocks accept.",
+      "required": ["spec_match", "character", "continuity", "motion", "anatomy", "clean_frame", "light"],
+      "additionalProperties": false,
+      "properties": {
+        "spec_match": {"type": "integer", "minimum": 1, "maximum": 5, "description": "Subject, action, camera and duration as in the shot spec."},
+        "character": {"type": "integer", "minimum": 1, "maximum": 5, "description": "Matches the character sheet: face, check mark, hair, wardrobe."},
+        "continuity": {"type": "integer", "minimum": 1, "maximum": 5, "description": "Props, wardrobe state, screen side and eyeline match the continuity sheet."},
+        "motion": {"type": "integer", "minimum": 1, "maximum": 5, "description": "Weight, speed, no floating, no morphing."},
+        "anatomy": {"type": "integer", "minimum": 1, "maximum": 5, "description": "Hands, eyes, teeth, limbs."},
+        "clean_frame": {"type": "integer", "minimum": 1, "maximum": 5, "description": "No visible screen content, readable text, letters or logos anywhere in the clip."},
+        "light": {"type": "integer", "minimum": 1, "maximum": 5, "description": "Source, direction and time of day as in the scene light line."}
+      }
+    },
+    "working": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["criterion", "severity", "note", "fix"],
+        "additionalProperties": false,
+        "properties": {
+          "criterion": {"type": "string", "enum": ["spec_match", "character", "continuity", "motion", "anatomy", "clean_frame", "light"]},
+          "severity": {"type": "string", "enum": ["minor", "major", "blocking"], "description": "minor: trim or fix in the edit. major: a prompt change or a new take fixes it. blocking: no prompt fixes it."},
+          "at_s": {"type": "number", "minimum": 0, "description": "Second in the clip where it shows."},
+          "note": {"type": "string", "minLength": 1, "description": "What is visible, not a mood ('left hand has six fingers at 2.1 s')."},
+          "fix": {"type": "string", "minLength": 1, "description": "The exact prompt change, the trim, or the new approach."}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"verdict": {"const": "change_approach"}}}, "then": {"required": ["approach"]}}
+  ]
+}
