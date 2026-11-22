@@ -1,6 +1,6 @@
 {
   "name": "story-craft",
-  "description": "The story before any slide or frame: a guided stock-take of purpose, audience, outputs, evidence and assets, written to intake.md, as the medium-neutral start for keynote decks (deck-craft) and launch films (motion-craft). Adds the stock-take skill.",
-  "version": "0.1.0",
+  "description": "The story before any slide or frame: a guided stock-take of purpose, audience, outputs, evidence and assets (intake.md), then a medium-neutral narrative with headline, villain, promise, numbered beats and cuts per output (narrative.md), the contract that keynote decks (deck-craft) and launch films (motion-craft) both build from. Adds the stock-take and narrative skills.",
+  "version": "0.2.0",
   "license": "MIT"
 }
