@@ -17,6 +17,7 @@ permissions:
     allow:
       # Python toolchain
       - astral.sh
+      - releases.astral.sh
       - pypi.org
       - files.pythonhosted.org
       # Node toolchain (design-parity, uiux-visual-review scripts)
