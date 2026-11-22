@@ -271,8 +271,8 @@ git_check() {
 # host's API, not just git push. Looks for a gateway server (harness static-mcp)
 # whose URL points at the remote's host; a stdio server or a host API kit
 # (gitlab/github kit with glab/gh) cannot be detected and is mentioned instead.
-# For github.com it tries gh inside the sandbox, since no gateway route for
-# GitHub's MCP server works (see agent-sandbox.md, Merge request and pipeline status).
+# For github.com it tries gh inside the sandbox: the github service secret is
+# the working route (GitHub's remote MCP server needs a pre-registered OAuth app).
 api_check() {
   local ws=$1 name=${2:-} ri proto host port r path s url hit="" servers
   ri=$(remote_info "$ws") || return 0
@@ -292,7 +292,7 @@ api_check() {
     if [ -n "$name" ] && sbx exec "$name" gh api "repos/${path%.git}" --jq .full_name </dev/null >/dev/null 2>&1; then
       ok "git host API: gh in the sandbox reaches api.github.com (pull request and check status)"
     else
-      warn "git host API: the agent cannot read pull request or check status on github.com (gh api fails inside; no sbx route for GitHub's API is known to work, see agent-sandbox.md, Merge request and pipeline status). Check status from the host, or ignore if the workflow never asks the agent to."
+      warn "git host API: gh api fails inside, so the agent cannot read pull request or check status on github.com. On the host: sbx secret set github (fine-grained token, paste at the prompt); an empty value shows up as 'resolved empty' or 'empty credential' in the sbx daemon log. See agent-sandbox.md, Merge request and pipeline status. Ignore if the workflow never asks the agent to."
     fi
     return 0
   fi

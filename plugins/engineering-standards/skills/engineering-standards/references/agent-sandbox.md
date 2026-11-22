@@ -246,15 +246,19 @@ Push is not enough. An agent that moves its issue to review "when the pipeline i
 | GitLab's own MCP server through the gateway (preferred) | On the host: `sbx mcp add gitlab --url https://git.example.com/api/v4/mcp`; OAuth consent in the browser. Enable it in the harness selection so `--static-mcp` carries it | No token enters the sandbox. `sbx mcp load <server> --sandbox <name>` adds it to a running sandbox only if that sandbox has a gateway already; otherwise recreate |
 | `gitlab` kit (glab) | Docker's contributed kit, token as an `sbx` secret at the proxy | API only, never git (Why HTTPS fails for GitLab); handy for `glab ci status` |
 
-**GitHub: no working route found (sbx 0.47).** Tried and failed:
+**GitHub: the built-in `github` secret and `gh`** (checked on sbx 0.47):
 
-- `sbx mcp add github --url https://api.githubcopilot.com/mcp/`: refused, `advertises no registration endpoint (no dynamic client registration); --client-id is required`.
-- The same with `--header 'Authorization: Bearer ${api-key}'`: still refused. With a dummy `--client-id … --skip-auth` it registers, but stays `needs secret` (`header_secrets … stored: false`) although `sbx secret ls` lists `mcp:github:api-key`.
-- The registry image (`…/servers/io.github.github%2Fgithub-mcp-server/versions/<v>`): registers, but sbx has no way to pass its `GITHUB_PERSONAL_ACCESS_TOKEN`.
-- The `github` service secret plus `gh` in the sandbox, the route Docker documents (credentials page in `sources.md`: injected for `api.github.com` and other GitHub hosts, no restart needed): `gh` gets `HTTP 401: Bad credentials` with a token that works on the host. `sbx policy log` shows `api.github.com` as `forward-bypass`, and `GH_TOKEN` inside is a 40-character value, not the documented `proxy-managed` sentinel. A restart and a recreate did not change it.
-- A custom secret instead (`sbx secret set-custom --host api.github.com --env GH_TOKEN --value "$T"`), plus an HTTP-level rule so the proxy inspects the traffic (`sbx policy allow network api.github.com --method ANY`; the default policy allows `**.github.com:443` as plain TCP, which is why the log says `forward-bypass`): the log then shows `forward l7-required`, but the placeholder still gets `401 Bad credentials` (as `token …` and `Bearer …`), and `GH_TOKEN` inside stays the built-in 40-character value instead of the custom placeholder, so `gh` goes out unauthenticated. sbx's built-in GitHub handling seems to own `api.github.com`.
+1. Create a fine-grained token limited to the repos the agent works on, read-only: Contents, Pull requests, Issues, Actions, Commit statuses. Check it on the host first: `read -rs T; GH_TOKEN=$T gh api repos/<owner>/<repo> --jq .full_name; unset T`.
+2. `sbx secret set github` and paste it at the prompt (or `--command 'gh auth token'` for your own login, which is broader). It applies to existing sandboxes without a restart.
+3. Inside, `gh` works as is: `GH_TOKEN` holds sbx's stand-in `gho_sbxproxymanaged…` (40 characters), and the proxy swaps in the real token for `api.github.com`, `github.com` and the other GitHub hosts. Check: `gh api repos/<owner>/<repo> --jq .full_name`, `gh pr checks <n>`. `sandbox.sh check` runs the first one.
 
-Until one of these works, the agent pushes from the sandbox and pull request and check status are read on the host (`gh pr checks`). Re-test on a new sbx release; `sandbox.sh check` tries `gh api` inside and reports `OK` once it works.
+Pitfalls, all hit while setting this up:
+
+- **An empty secret looks stored.** `sbx secret ls` shows `(stored)` or a mask either way; a `read` into a variable in another shell, or a prompt that got nothing, stores an empty value. The daemon log says so: `grep -E 'resolved empty|empty credential' ~/.local/state/sandboxes/sandboxes/sandboxd/daemon.log`. `gh` then gets `401 Bad credentials`, or a rate limit (the request went out without a token). Set it again and paste at the prompt.
+- **Don't add a custom secret for `api.github.com`** (`sbx secret set-custom --env GH_TOKEN`). It competes with the built-in service for the same host, and `GH_TOKEN` stays the built-in stand-in.
+- **After `sbx secret rm github`** the proxy keeps adding a dead stand-in, so even anonymous GitHub requests get 401 (sbx issue #785). Set the secret again rather than removing it.
+- **`forward-bypass` for `api.github.com` in `sbx policy log`** is not the cause; no extra policy rule is needed.
+- **GitHub's remote MCP server does not register:** `sbx mcp add github --url https://api.githubcopilot.com/mcp/` fails with `no dynamic client registration; --client-id is required` (it needs your own OAuth app). Use `gh`.
 
 `sandbox.sh check` warns when no gateway server points at the remote's host (for github.com: when `gh api` fails inside). Verify inside: the agent lists the open merge request and its pipeline.
 
