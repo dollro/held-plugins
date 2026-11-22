@@ -8,6 +8,7 @@ Launch films from the same story as the keynote. motion-craft reads story-craft'
 |-|-|-|
 | `motion-director` | Gate on a PASS narrative; pick the cut and a style; 2-3 direction options as stills; look decisions; `STORYBOARD.md` with one frame per beat and a medium per role; motion spec; animated test; full build via HyperFrames; polish | `<cut>/STORYBOARD.md`, `motion-spec.md`, `direction.md`, renders |
 | `shot-forge` | Generated footage for frames with `medium: generated`: character and continuity sheets, budget estimate and approval, one prompt per shot (no UI, text or logos in generated shots), generation via whichever video MCP is connected, critic loop with a take cap, take log | `shots/shots.json`, `shots/takes.md`, clips |
+| `motion-qa` | Review by a fresh reviewer, not the builder: render checks (codec, size, fps, black and frozen frames, loudness, true peak), text reading time, continuity, end card, delivery per cut; fresh read of every beat against `narrative.md`; then the beat export for the deck | findings per beat, `renders/beats/Bxx.mp4` + `.jpg`, `renders/clips.json` |
 
 In Claude Code the skills are invoked as `/motion-craft:motion-director` and so on, or picked up from the request.
 
@@ -40,6 +41,11 @@ motion/                       next to narrative.md and intake.md
 pip install pyyaml
 python <plugin>/skills/motion-director/scripts/check_storyboard.py examples/atlas/film-60/STORYBOARD.md
 python <plugin>/scripts/validate_shots.py examples/atlas/shots/shots.json --storyboard examples/atlas/film-60/STORYBOARD.md
+# no HyperFrames render at hand: a labelled test-fixture film stands in for it
+python <plugin>/skills/motion-qa/scripts/make_test_film.py examples/atlas --cut film-60 --size 1920x1080
+python <plugin>/skills/motion-qa/scripts/render_checks.py examples/atlas/renders/film-60.mp4 --storyboard examples/atlas/film-60/STORYBOARD.md
+python <plugin>/skills/motion-qa/scripts/export_beats.py examples/atlas --cut film-60     # renders/beats/*, renders/clips.json
+python <deck-craft>/skills/deck-craft/examples/atlas_keynote.py examples/atlas/renders/clips.json   # deck plays B02 and B12
 ```
 
 ## Install (Claude Code)
@@ -52,6 +58,7 @@ claude plugin install motion-craft@held-plugins
 
 - motion-director adapts the staged workflow, options rounds, motion spec and text-treatment ideas of video-director by Sally Slater (github.com/SallyRS/video-director, MIT), rewritten and condensed.
 - shot-forge adapts ideas from Shotkit by WhyStrohm (github.com/whystrohm/shotkit, Apache-2.0; notice in `NOTICE`): the critique schema (reworked for video takes with per-criterion scores and a change-approach verdict), the critique rubric and the shot validator (rewritten as `validate_shots.py` with a no-UI word list and a storyboard cross-check). It also draws on video-director's guide to generated clips (MIT) and on Claude-AI-Video-Producer-Plugin by Daniel Rosehill (github.com/danielrosehill/Claude-AI-Video-Producer-Plugin, MIT): character definition, take log, budget estimate, model recommendation. All text rewritten.
+- motion-qa adapts ideas from video-director (MIT): render check, fresh read, continuity sheets, sound balance, retiming, cutdowns. Its delivery and review checks follow the review role of HyperFrames (Apache-2.0); no HyperFrames files are copied. All text rewritten.
 - `STORYBOARD.md` is format-compatible with HyperFrames (github.com/heygen-com/hyperframes, Apache-2.0), the build backend, used as a separate plugin and never vendored. Launch-film craft (real UI, the end card, tells of a generated film) is informed by its public guidance, restated in our own words.
 
 License: MIT (see `LICENSE`); third-party notices in `NOTICE`.

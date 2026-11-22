@@ -9,6 +9,7 @@ narrative: ../../../../story-craft/examples/atlas/narrative.md
 brand_lock: ../brand-lock.md
 style: "Product close-up + Graded footage and type (styles.md)"
 voiceover: optional (muted-first; VO = shortened beat lines)
+audio: vo+music
 ---
 
 # film-60 · atlas · storyboard

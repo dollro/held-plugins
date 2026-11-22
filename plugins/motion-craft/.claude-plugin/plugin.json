@@ -1,6 +1,6 @@
 {
   "name": "motion-craft",
-  "description": "Launch films from the same story as the keynote: reads story-craft's narrative.md and brand-lock.md, directs each cut (film-60, teaser-20) through direction options, storyboard, motion spec and an animated test, builds in HyperFrames, and forges generated shots with character sheets, budget, critic loop and take log via any connected video MCP. Adds the motion-director and shot-forge skills.",
-  "version": "0.2.0",
+  "description": "Launch films from the same story as the keynote: reads story-craft's narrative.md and brand-lock.md, directs each cut (film-60, teaser-20) through direction options, storyboard, motion spec and an animated test, builds in HyperFrames, forges generated shots via any connected video MCP, checks the render with a fresh reviewer and exports one clip per beat (clips.json) so deck-craft can play them on the matching slides. Adds the motion-director, shot-forge and motion-qa skills.",
+  "version": "0.3.0",
   "license": "MIT"
 }
