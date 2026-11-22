@@ -10,6 +10,7 @@ Official pages behind `agent-sandbox.md`, checked October 2026 (sbx 0.47, MCP sp
 - Git and clone mode: https://docs.docker.com/ai/sandboxes/workflows/git/
 - Kits, version compatibility: https://docs.docker.com/ai/sandboxes/customize/ and https://docs.docker.com/ai/sandboxes/customize/kits-v2/
 - Network policy concepts: https://docs.docker.com/ai/sandboxes/governance/concepts/
+- Credentials (service secrets, `github` injection hosts): https://docs.docker.com/ai/sandboxes/configuration/credentials/
 - MCP gateway and secrets: https://docs.docker.com/ai/sandboxes/mcp-gateway/
 - Environment files (`sbxenv.yaml`): https://docs.docker.com/ai/sandboxes/configuration/environment-files/
 - Credentials (service secrets, `github` service, `gh auth token`, SSH agent forwarding for git): https://docs.docker.com/ai/sandboxes/security/credentials/

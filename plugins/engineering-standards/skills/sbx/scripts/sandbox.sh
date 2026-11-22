@@ -271,9 +271,11 @@ git_check() {
 # host's API, not just git push. Looks for a gateway server (harness static-mcp)
 # whose URL points at the remote's host; a stdio server or a host API kit
 # (gitlab/github kit with glab/gh) cannot be detected and is mentioned instead.
+# For github.com it tries gh inside the sandbox: the github service secret is
+# the working route (GitHub's remote MCP server needs a pre-registered OAuth app).
 api_check() {
-  local ri proto host port r path s url hit="" servers
-  ri=$(remote_info "$1") || return 0
+  local ws=$1 name=${2:-} ri proto host port r path s url hit="" servers
+  ri=$(remote_info "$ws") || return 0
   read -r proto host port r path <<<"$ri"
   [ "$host" = - ] && return 0
   servers=$(paste -sd, "$HARNESS_KIT/static-mcp.txt" 2>/dev/null)
@@ -286,8 +288,15 @@ api_check() {
     [ -n "$hit" ] && break
   done
   if [ -n "$hit" ]; then ok "git host API: MCP server $hit reaches $host (merge request and pipeline status)"; return 0; fi
+  if [ "$host" = github.com ]; then
+    if [ -n "$name" ] && sbx exec "$name" gh api "repos/${path%.git}" --jq .full_name </dev/null >/dev/null 2>&1; then
+      ok "git host API: gh in the sandbox reaches api.github.com (pull request and check status)"
+    else
+      warn "git host API: gh api fails inside, so the agent cannot read pull request or check status on github.com. On the host: sbx secret set github (fine-grained token, paste at the prompt); an empty value shows up as 'resolved empty' or 'empty credential' in the sbx daemon log. See agent-sandbox.md, Merge request and pipeline status. Ignore if the workflow never asks the agent to."
+    fi
+    return 0
+  fi
   local add="sbx mcp add <name> --url https://$host/api/v4/mcp"
-  [ "$host" = github.com ] && add="sbx mcp add github --url https://api.githubcopilot.com/mcp/"
   warn "git host API: no gateway MCP server for $host (static-mcp: ${servers:-none}), so the agent cannot read merge request or pipeline status before moving an issue to review. On the host: $add (OAuth stays on the host), enable it in $HARNESS_KIT/harness.selection.json and run sandbox.sh harness --yes; for the running sandbox now: sbx mcp load <name> --sandbox <sandbox>. Ignore if a stdio server or the gitlab/github kit covers it."
 }
 
@@ -622,7 +631,7 @@ cmd_check() {
   policy_check "$name" "$kit"
   mounts_check "$name" "$ws"
   git_check "$name" "$ws"
-  api_check "$ws"
+  api_check "$ws" "$name"
   branch_check "$ws"
   harness_check "$name"
   echo "ATTACH: sbx run --name $name"
