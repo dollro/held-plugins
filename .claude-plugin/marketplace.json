@@ -161,6 +161,15 @@
       "category": "presentations",
       "tags": ["powerpoint", "pptx", "slides", "presentation", "consulting", "keynote", "pyramid-principle", "design-guide", "template"],
       "keywords": ["powerpoint", "pptx", "deck", "slides", "presentation", "action titles", "pyramid principle", "SCQA", "executive summary", "storyline", "keynote", "product launch", "slide master", "corporate design", "design guide", "chart", "deck review", "python-pptx", "Folien", "Präsentation"]
+    },
+    {
+      "name": "story-craft",
+      "source": "./plugins/story-craft",
+      "description": "The story before any slide or frame: a guided stock-take of purpose, audience, outputs, evidence and assets, written to intake.md, as the medium-neutral start for keynote decks (deck-craft) and launch films (motion-craft). Adds the stock-take skill.",
+      "version": "0.1.0",
+      "category": "presentations",
+      "tags": ["storytelling", "narrative", "launch", "keynote", "presentation", "video"],
+      "keywords": ["story", "stock-take", "intake", "launch story", "keynote", "product launch", "product film", "evidence", "audience", "Bestandsaufnahme", "Präsentation"]
     }
   ]
 }
