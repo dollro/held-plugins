@@ -10,6 +10,7 @@ Turn a brief, notes or data into a deck a partner could present without rewritin
 
 | Step needs | Load |
 |---|---|
+| The story before any slide: purpose, villain, promise, beats, cuts (`narrative.md`) | `story-craft:narrative` (separate plugin, optional) |
 | The argument: governing thought, pyramid, SCQA, ghost deck, executive summary | `deck-storyline` |
 | A launch or keynote arc: sparkline, villain and hero, reveal, rule of three | `deck-keynote` |
 | Which chart or framework proves a message, finishing an exhibit | `deck-exhibits` |
@@ -53,7 +54,7 @@ Do not write python-pptx code (or touch the slides in the add-in) before step 4 
 
 1. **Read the brief.** Audience, the decision or reaction wanted, slide budget, duration, data given and its source, template. Invented or sample data makes the deck illustrative (rule H2).
 2. **Load the design guide.** Template supplied but no guide yet: run `deck-design-guide` first (in Claude Code its profiler takes a minute). Note layout roles and protected zones.
-3. **Write the spine in `storyline.md`.** consult: one action title per slide; read top to bottom, they must tell the whole argument (`deck-storyline`). keynote: one line per slide plus the beat it plays on the sparkline (`deck-keynote`). Fix the story here, not in code. For high-stakes or ambiguous briefs, show the spine (or a ghost deck, `ghost_slide`) before building.
+3. **Write the spine in `storyline.md`.** consult: one action title per slide; read top to bottom, they must tell the whole argument (`deck-storyline`). keynote: one line per slide plus the beat it plays on the sparkline (`deck-keynote`); if story-craft's `narrative.md` exists, the storyboard maps its beats (cut `keynote`) instead of inventing the arc, and every slide carries its beat ID. Fix the story here, not in code. For high-stakes or ambiguous briefs, show the spine (or a ghost deck, `ghost_slide`) before building.
 4. **Assign one exhibit or slide type per line** (`deck-exhibits`; keynote slide types in `deck-keynote`).
 5. **Build.** Python: write `build_deck.py` importing deckkit; one helper per slide line. Add speaker notes to every keynote slide (`notes()`); the talk lives there.
 6. **Check.** `python scripts/check_deck.py deck.pptx`. Fix every ERROR. Read every WARNING and fix it unless you can say why it is wrong.

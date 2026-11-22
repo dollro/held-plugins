@@ -11,10 +11,12 @@ PowerPoint decks two ways, always inside your slide master when you have one:
 |---|---|---|
 | `deck-craft` | Orchestrates and builds: mode, template-first rule, workflow, python-pptx kit, checker, renderer | yes (core rules inline) |
 | `deck-storyline` | Governing thought, pyramid, SCQA, action-title chain, executive summary, ghost deck, scaffolds | yes |
-| `deck-keynote` | Launch and keynote arc, slide types, wording patterns, credibility rules, storyboard | yes |
+| `deck-keynote` | Keynote slide form: maps story-craft beats to slide types when `narrative.md` exists, short inline arc rules otherwise; storyboard with a Beat column | yes (inline arc rules) |
 | `deck-exhibits` | Exhibit selection, chart finishing, data-ink, callouts, frameworks, MECE layout | yes |
 | `deck-design-guide` | Captures a master or brand book into a design guide (md + json); audits against it | yes |
 | `deck-review` | Partner review, keynote review, template audit, flow audit, before/after redesign | yes |
+
+The story itself (headline, villain, beats, evidence, cuts) lives in the separate plugin **story-craft**, which writes `narrative.md`. deck-keynote reads it when present; without it, deck-keynote keeps a short version of the arc rules, so deck-craft works standalone and in the PowerPoint add-in.
 
 In Claude Code they are invoked as `/deck-craft:deck-craft`, `/deck-craft:deck-design-guide`, and so on, or picked up automatically from the request.
 
