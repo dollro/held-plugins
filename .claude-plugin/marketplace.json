@@ -156,8 +156,8 @@
     {
       "name": "deck-craft",
       "source": "./plugins/deck-craft",
-      "description": "PowerPoint decks two ways, template-first: consulting-grade analyst decks (pyramid storyline, action titles, one message per slide, native editable charts, sources) and bold keynote or launch decks (sparkline arc, few words, huge type, one number per slide, reveals, speaker notes), always inside the slide master when one exists. Captures a master or brand book into a design guide, builds with python-pptx (deckkit) or in the PowerPoint add-in, and checks and renders the result. Adds the deck-craft, deck-storyline, deck-keynote, deck-exhibits, deck-design-guide and deck-review skills.",
-      "version": "1.2.0",
+      "description": "PowerPoint decks two ways, template-first: consulting-grade analyst decks (pyramid storyline, action titles, one message per slide, native editable charts, sources) and bold keynote or launch decks (sparkline arc, few words, huge type, one number per slide, reveals, speaker notes), always inside the slide master when one exists. Keynotes build from a story-craft narrative.md when present and can play motion-craft clips per beat. Captures a master or brand book into a design guide and a brand lock for films, builds with python-pptx (deckkit) or in the PowerPoint add-in, and checks and renders the result. Adds the deck-craft, deck-storyline, deck-keynote, deck-exhibits, deck-design-guide and deck-review skills.",
+      "version": "1.2.1",
       "category": "presentations",
       "tags": ["powerpoint", "pptx", "slides", "presentation", "consulting", "keynote", "pyramid-principle", "design-guide", "template"],
       "keywords": ["powerpoint", "pptx", "deck", "slides", "presentation", "action titles", "pyramid principle", "SCQA", "executive summary", "storyline", "keynote", "product launch", "slide master", "corporate design", "design guide", "chart", "deck review", "python-pptx", "Folien", "Präsentation"]

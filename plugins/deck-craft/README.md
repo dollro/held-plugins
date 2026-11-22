@@ -13,7 +13,7 @@ PowerPoint decks two ways, always inside your slide master when you have one:
 | `deck-storyline` | Governing thought, pyramid, SCQA, action-title chain, executive summary, ghost deck, scaffolds | yes |
 | `deck-keynote` | Keynote slide form: maps story-craft beats to slide types when `narrative.md` exists, short inline arc rules otherwise; storyboard with a Beat column | yes (inline arc rules) |
 | `deck-exhibits` | Exhibit selection, chart finishing, data-ink, callouts, frameworks, MECE layout | yes |
-| `deck-design-guide` | Captures a master or brand book into a design guide (md + json); audits against it | yes |
+| `deck-design-guide` | Captures a master or brand book into a design guide (md + json); audits against it; exports `brand-lock.md` for films and HTML | yes |
 | `deck-review` | Partner review, keynote review, template audit, flow audit, before/after redesign | yes |
 
 The story itself (headline, villain, beats, evidence, cuts) lives in the separate plugin **story-craft**, which writes `narrative.md`. deck-keynote reads it when present; without it, deck-keynote keeps a short version of the arc rules, so deck-craft works standalone and in the PowerPoint add-in.
@@ -47,6 +47,7 @@ python <plugin>/skills/deck-craft/examples/atlas_keynote.py <motion-project>/ren
 python <plugin>/skills/deck-craft/scripts/check_deck.py consult_example.pptx
 python <plugin>/skills/deck-craft/scripts/render.py keynote_example.pptx
 python <plugin>/skills/deck-design-guide/scripts/template_profile.py brand.pptx design-guides/brand --sampler
+python <plugin>/skills/deck-design-guide/scripts/export_brand_lock.py design-guides/brand/design-guide.json --template brand.pptx  # brand-lock.md for motion-craft
 ```
 
 ## Sources and credits
