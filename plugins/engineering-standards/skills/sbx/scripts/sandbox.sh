@@ -348,6 +348,57 @@ harness_check() {
   fi
 }
 
+# idle_ff <worktree> <base>: bring the idle branch up to the base branch, so a
+# kit fix committed on the base reaches the sandbox on --recreate. sbx/idle is
+# never pushed and holds no work, so a fast-forward is always safe; anything
+# else (other branch checked out, local changes, diverged) is left alone.
+idle_ff() {
+  local ws=$1 base=$2
+  [ "$(git -C "$ws" branch --show-current 2>/dev/null)" = "sbx/idle" ] || return 0
+  git -C "$ws" merge-base --is-ancestor "$base" HEAD 2>/dev/null && return 0
+  if [ -n "$(git -C "$ws" status --porcelain 2>/dev/null)" ]; then
+    warn "sbx/idle is behind $base but $ws has local changes: not fast-forwarded"
+  elif git -C "$ws" merge -q --ff-only "$base" 2>/dev/null; then
+    ok "sbx/idle fast-forwarded to $base ($(git -C "$ws" rev-parse --short HEAD))"
+  else
+    warn "sbx/idle has diverged from $base: not fast-forwarded (git -C $ws log $base..sbx/idle)"
+  fi
+}
+
+# policy_check <name>: requests the network policy blocked for this sandbox,
+# e.g. a kit install step whose download host is missing from the allow list.
+# Install steps that pipe a failed download into sh still exit 0, so this is
+# often the only trace. The log outlives --recreate: compare LAST SEEN.
+policy_check() {
+  local name=$1 kit=${2:-} rows host
+  rows=$(sbx policy log "$name" --type network 2>/dev/null | awk -v n="$name" '
+    /^Blocked requests:/ {b=1; next}
+    /^[A-Za-z ]+requests:/ {b=0}
+    b && $1==n {print $3 " (last seen " $(NF-2) " " $(NF-1) ", " $NF "x)"}')
+  if [ -z "$rows" ]; then ok "network: no blocked requests"; return; fi
+  while IFS= read -r r; do
+    host=${r%%:*}
+    if [ -n "$kit" ] && grep -qE "^[[:space:]]*-[[:space:]]*\"?${host//./\\.}\"?[[:space:]]*(#.*)?$" "$kit/spec.yaml" 2>/dev/null; then
+      info "network: blocked $r, now in the kit's allow list (entry from before the last --recreate?)"
+    else
+      warn "network: blocked $r; if the work needs it, add the host to the kit's permissions.network.allow and --recreate"
+    fi
+  done <<< "$rows"
+}
+
+# verify_check <name> <kit>: runs each line of <kit>/verify.txt inside the
+# sandbox (e.g. `uv --version`), so a tool the kit failed to install shows up
+# here instead of in the agent's first session.
+verify_check() {
+  local name=$1 kit=$2 line
+  [ -f "$kit/verify.txt" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    case $line in ''|'#'*) continue ;; esac
+    if sbx exec "$name" bash -lc "$line" </dev/null >/dev/null 2>&1; then ok "kit tool: $line"
+    else warn "kit tool fails in sandbox: $line (install step failed? sbx policy log $name)"; fi
+  done < "$kit/verify.txt"
+}
+
 cmd_harness() {
   local out=$HARNESS_KIT yes=""
   while [ $# -gt 0 ]; do
@@ -387,7 +438,9 @@ cmd_preflight() {
   fi
   ok "sbx $(sbx version 2>/dev/null | awk '{print $3}')"
   if sbx daemon status 2>/dev/null | grep -qi 'running'; then ok "daemon running"
-  else fail "daemon not running: sbx daemon start -d"; rc=2; fi
+  elif sbx daemon start -d >/dev/null 2>&1 && sbx daemon status 2>/dev/null | grep -qi 'running'; then
+    ok "daemon was stopped: started it (sbx daemon start -d)"
+  else fail "daemon not running and could not be started: sbx daemon start -d (log: sbx daemon status)"; rc=2; fi
   if [ $rc -eq 0 ]; then
     if sbx ls >/dev/null 2>&1; then ok "signed in"
     else fail "not signed in: run 'sbx login' in a terminal and confirm the code in the browser"; rc=2; fi
@@ -468,9 +521,11 @@ cmd_create() {
           || die "$ws exists and is not a worktree of this repo; move it or pass --path <dir>"
         ws=$(abspath "$ws")
         ok "worktree $ws exists (on $(git -C "$ws" branch --show-current 2>/dev/null || echo 'detached HEAD')): reusing it"
+        idle_ff "$ws" "${base:-$(cd "$root" && default_base)}"
       elif git -C "$root" show-ref -q --verify refs/heads/sbx/idle; then
         git -C "$root" worktree add -q "$ws" sbx/idle || die "git worktree add failed"
         ok "worktree $ws on existing branch sbx/idle"
+        idle_ff "$ws" "${base:-$(cd "$root" && default_base)}"
       else
         base=${base:-$(cd "$root" && default_base)}
         git -C "$root" worktree add -q --no-track -b sbx/idle "$ws" "$base" || die "git worktree add failed"
@@ -562,7 +617,9 @@ cmd_check() {
         else ok "host service $val reachable (HTTP $code)"; fi
       fi
     done < <(kit_env "$kit")
+    verify_check "$name" "$kit"
   fi
+  policy_check "$name" "$kit"
   mounts_check "$name" "$ws"
   git_check "$name" "$ws"
   api_check "$ws"
