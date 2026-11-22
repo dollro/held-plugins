@@ -1,6 +1,6 @@
 # Providers: whichever generation MCP is connected
 
-shot-forge never calls a provider's API itself and never stores a key. It uses the video-generation MCP server the user has connected to Claude Code. Examples of providers that offer one: Higgsfield, Runway, and hosted model aggregators that front several video models. The names are examples only; the skill works with any server that can turn a prompt (and optionally images) into a clip.
+shot-forge never calls a provider's API itself and never stores a key. It uses the video-generation MCP server the user has connected to Claude Code. Dedicated video-generation services and hosted aggregators that front several video models both offer such servers; the skill works with any server that can turn a prompt (and optionally images) into a clip.
 
 ## 1. Find it
 

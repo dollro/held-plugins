@@ -24,6 +24,46 @@ In Claude Code they are invoked as `/deck-craft:deck-craft`, `/deck-craft:deck-d
 
 With a master, every module climbs the same ladder: use the master's layouts and placeholders as they are → put exhibits in the body zone in theme fonts and colours → enhance only within the mode's allowance → never add fonts or colours or touch master artwork. `deck-design-guide` profiles the master once (`template_profile.py`) into `design-guide.json`, which `deckkit.apply_design_guide()` loads, and `design-guide.md`, which people and the PowerPoint add-in read.
 
+## How the three fit together
+
+story-craft decides **what the story is**; deck-craft and motion-craft decide **what it becomes**. They share one contract, `narrative.md`, with numbered beats (`B01..Bn`) and named cuts, and one brand source, the design guide.
+
+```
+prfaq-vision-builder (optional: prfaq.md)
+            │
+            ▼
+STORY-CRAFT   stock-take ─► intake.md
+              narrative  ─► narrative.md   (beats B01..Bn, cuts keynote / film-60 / teaser-20)
+              story-review ─► verdict PASS / REVISE in narrative.md
+            │
+            │   brand: design-guide.json ─► brand-lock.md  (deck-craft:deck-design-guide)
+   ┌────────┴──────────────────────────┐
+   ▼                                   ▼
+DECK-CRAFT                          MOTION-CRAFT
+deck-keynote: beat → slide type     motion-director: direction → look → STORYBOARD.md per cut
+deck-craft: build / check / render    → motion spec → animated test → build (HyperFrames)
+  video_slide(beat) ◄──────────────  motion-qa: render checks, fresh read,
+                     clips.json        export renders/beats/Bxx.mp4 + clips.json
+                                    shot-forge: character sheets, prompts, generation via
+                                      a connected MCP, critic, take log, budget
+```
+
+| Step | Skill | Reads | Writes |
+|-|-|-|-|
+| 1 | story-craft:stock-take | prfaq.md, source docs | `intake.md` |
+| 2 | story-craft:narrative | `intake.md` | `narrative.md` |
+| 3 | story-craft:story-review | `narrative.md`, `intake.md` | `## Review` (PASS / REVISE) |
+| 4 | deck-craft:deck-design-guide | slide master | `design-guide.json`, `brand-lock.md` |
+| 5a | deck-craft:deck-keynote → deck-craft | `narrative.md` (cut keynote), `clips.json` | `storyboard.md`, `.pptx` |
+| 5b | motion-craft:motion-director | `narrative.md` (film cuts), `brand-lock.md` | `<cut>/STORYBOARD.md`, motion spec, build |
+| 5c | motion-craft:shot-forge | frames with `medium: generated` | `shots/shots.json`, takes, clips |
+| 6 | motion-craft:motion-qa | renders, `narrative.md` | `renders/beats/*`, `clips.json` |
+| 7 | deck-craft (again) | `clips.json` | video slides on the matching beats |
+
+Each plugin works alone: deck-craft keeps short inline story rules (and runs in the PowerPoint add-in), motion-craft needs a reviewed `narrative.md` but nothing else from deck-craft except an optional brand lock.
+
+The worked example for the dummy product `atlas` (fictional company Acme) runs the whole chain: `story-craft/examples/atlas/` (intake, narrative, keynote storyboard), `motion-craft/examples/atlas/` (brand lock, film-60 storyboard, motion spec, shots), `deck-craft/skills/deck-craft/examples/atlas_keynote.py` (the deck, with the B02 and B12 clips).
+
 ## Install (Claude Code)
 
 ```bash
@@ -37,6 +77,8 @@ Python side: `pip install python-pptx` (pulls in lxml); optionally LibreOffice, 
 Skills enabled in your Claude account are available in the add-in. Upload each skill folder you want as a skill (zip the folder, e.g. `deck-craft/`, `deck-design-guide/`) in Claude settings. The add-in runs no Python: the skills switch to their add-in path (`deck-craft/references/powerpoint-addin.md`). Paste a brand's "Add-in short form" from its design guide into the add-in's Instructions for persistent brand rules.
 
 ## Quick test
+
+`<plugin>` stands for the plugin's folder (in this repository `plugins/<name>`, or the installed plugin's path). The atlas walkthrough in `plugins/story-craft/examples/atlas/README.md` spells out every path.
 
 ```bash
 cd "$(mktemp -d)"

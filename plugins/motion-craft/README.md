@@ -12,6 +12,46 @@ Launch films from the same story as the keynote. motion-craft reads story-craft'
 
 In Claude Code the skills are invoked as `/motion-craft:motion-director` and so on, or picked up from the request.
 
+## How the three fit together
+
+story-craft decides **what the story is**; deck-craft and motion-craft decide **what it becomes**. They share one contract, `narrative.md`, with numbered beats (`B01..Bn`) and named cuts, and one brand source, the design guide.
+
+```
+prfaq-vision-builder (optional: prfaq.md)
+            │
+            ▼
+STORY-CRAFT   stock-take ─► intake.md
+              narrative  ─► narrative.md   (beats B01..Bn, cuts keynote / film-60 / teaser-20)
+              story-review ─► verdict PASS / REVISE in narrative.md
+            │
+            │   brand: design-guide.json ─► brand-lock.md  (deck-craft:deck-design-guide)
+   ┌────────┴──────────────────────────┐
+   ▼                                   ▼
+DECK-CRAFT                          MOTION-CRAFT
+deck-keynote: beat → slide type     motion-director: direction → look → STORYBOARD.md per cut
+deck-craft: build / check / render    → motion spec → animated test → build (HyperFrames)
+  video_slide(beat) ◄──────────────  motion-qa: render checks, fresh read,
+                     clips.json        export renders/beats/Bxx.mp4 + clips.json
+                                    shot-forge: character sheets, prompts, generation via
+                                      a connected MCP, critic, take log, budget
+```
+
+| Step | Skill | Reads | Writes |
+|-|-|-|-|
+| 1 | story-craft:stock-take | prfaq.md, source docs | `intake.md` |
+| 2 | story-craft:narrative | `intake.md` | `narrative.md` |
+| 3 | story-craft:story-review | `narrative.md`, `intake.md` | `## Review` (PASS / REVISE) |
+| 4 | deck-craft:deck-design-guide | slide master | `design-guide.json`, `brand-lock.md` |
+| 5a | deck-craft:deck-keynote → deck-craft | `narrative.md` (cut keynote), `clips.json` | `storyboard.md`, `.pptx` |
+| 5b | motion-craft:motion-director | `narrative.md` (film cuts), `brand-lock.md` | `<cut>/STORYBOARD.md`, motion spec, build |
+| 5c | motion-craft:shot-forge | frames with `medium: generated` | `shots/shots.json`, takes, clips |
+| 6 | motion-craft:motion-qa | renders, `narrative.md` | `renders/beats/*`, `clips.json` |
+| 7 | deck-craft (again) | `clips.json` | video slides on the matching beats |
+
+Each plugin works alone: deck-craft keeps short inline story rules (and runs in the PowerPoint add-in), motion-craft needs a reviewed `narrative.md` but nothing else from deck-craft except an optional brand lock.
+
+The worked example for the dummy product `atlas` (fictional company Acme) runs the whole chain: `story-craft/examples/atlas/` (intake, narrative, keynote storyboard), `motion-craft/examples/atlas/` (brand lock, film-60 storyboard, motion spec, shots), `deck-craft/skills/deck-craft/examples/atlas_keynote.py` (the deck, with the B02 and B12 clips).
+
 ## Dependencies
 
 - **story-craft** (this marketplace): `narrative.md` with `Verdict: PASS` in its Review. motion-craft does not shape stories.
@@ -36,6 +76,10 @@ motion/                       next to narrative.md and intake.md
 ```
 
 ## Quick test
+
+`<plugin>` stands for the plugin's folder (in this repository `plugins/<name>`, or the installed plugin's path). The atlas walkthrough in `plugins/story-craft/examples/atlas/README.md` spells out every path.
+
+Run from the plugin folder (`examples/...` paths are relative to it); `<deck-craft>` is the deck-craft plugin folder.
 
 ```bash
 pip install pyyaml
