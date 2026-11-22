@@ -1,0 +1,31 @@
+schemaVersion: "2"
+kind: mixin
+name: held-plugins-dev
+setup:
+  install:
+    - description: Install uv (runs the skills' Python scripts, e.g. python-pptx for deck-craft)
+      user: "1000"
+      # Download first: `curl … | sh` exits 0 when the download is blocked.
+      command: |
+        curl -LsSf -o /tmp/uv-install.sh https://astral.sh/uv/install.sh
+        sh /tmp/uv-install.sh
+    - description: Put uv on every PATH
+      user: "0"
+      command: |
+        test -x /home/agent/.local/bin/uv || { echo "uv missing: install step failed"; exit 1; }
+        ln -sf /home/agent/.local/bin/uv /usr/local/bin/uv
+        ln -sf /home/agent/.local/bin/uvx /usr/local/bin/uvx
+permissions:
+  network:
+    allow:
+      # Python toolchain
+      - astral.sh
+      - releases.astral.sh
+      - pypi.org
+      - files.pythonhosted.org
+      # Node toolchain (design-parity, uiux-visual-review scripts)
+      - registry.npmjs.org
+      # Git host
+      - github.com
+      - codeload.github.com
+      - objects.githubusercontent.com

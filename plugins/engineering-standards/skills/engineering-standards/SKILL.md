@@ -7,7 +7,7 @@ description: "Standards for how code gets into a repo: small reviewable pull req
 
 This skill has two parts. **This file** is the method and is organisation-agnostic. **`references/profile.md`** is the organisation profile: where things live, which tools are used, what is still open. **`references/claude-md.md`** is the CLAUDE.md and documentation structure both build on.
 
-**Read `references/profile.md` before any job below.** Read `references/claude-md.md` before writing or reviewing a CLAUDE.md or a `docs/` tree. Read `references/review-merge-release.md` before reviewing, merging or releasing. Read `references/agent-sandbox.md` before setting up or debugging an agent sandbox. Read `references/autonomous-runs.md` before letting an agent run unattended.
+**Read `references/profile.md` before any job below.** Read `references/claude-md.md` before writing or reviewing a CLAUDE.md or a `docs/` tree. Read `references/review-merge-release.md` before reviewing, merging or releasing. Read `references/agent-sandbox.md` before setting up or debugging an agent sandbox, and `references/sbx-kit.md` before writing or changing a repo's `sbx` kit. Read `references/autonomous-runs.md` before letting an agent run unattended.
 
 **These standards win; the official docs are a check.** Anthropic's Claude Code docs change over time. When setting up a repo, a CLAUDE.md, a sandbox or an unattended run, look up the current pages listed in `references/sources.md` (best practices, `/goal`, hooks, skills, sandboxing). Follow this skill. If the docs now contradict it in a way that matters, tell the user what differs and let them decide; minor differences go into the final report as a note.
 
@@ -74,7 +74,7 @@ When code changes behaviour that a `docs/` page describes, the same pull request
 
 ## Work in an agent sandbox
 
-Follow `references/agent-sandbox.md`. Name the sandbox kind first (Docker Sandboxes microVM, native sandbox, dev container), because Docker and host access differ. Principles: the agent runs the stack inside the sandbox to verify its own work; the host Docker socket is never mounted; secrets stay at the proxy or on the host; a check that fails only in the sandbox is a policy question before a code question. The user starts sandboxes with `/sbx` (first time on a machine `/sbx harness`); a host orchestrator talks to a sandboxed agent with `/sbx ask`. To check or migrate a repo, run the reference's audit.
+Follow `references/agent-sandbox.md`. Name the sandbox kind first (Docker Sandboxes microVM, native sandbox, dev container), because Docker and host access differ. Principles: the agent runs the stack inside the sandbox to verify its own work; the host Docker socket is never mounted; secrets stay at the proxy or on the host; a check that fails only in the sandbox is a policy question before a code question. The user starts sandboxes with `/sbx` (first time on a machine `/sbx harness`); when the user asks Claude to set one up instead, read `../sbx/SKILL.md` (this plugin) and follow it, since that skill cannot be invoked by the model; a host orchestrator talks to a sandboxed agent with `/sbx ask`. To check or migrate a repo, run the reference's audit.
 
 ## Run an agent unattended
 
