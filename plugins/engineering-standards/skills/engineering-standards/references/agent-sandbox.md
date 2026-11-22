@@ -188,7 +188,7 @@ sbx run claude --kit ./.sbx/atlas ../atlas-feature ./.git
 
 Proxy-based allowlists decide on the hostname. In `sbx` the default is the Balanced preset: deny, plus a baseline allowlist.
 
-- **Keep the repo's rules in its kit** (`permissions.network.allow` in a v2 kit), so every sandbox for the repo starts with the same rules. Group them: toolchain (`astral.sh`, `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`, `github.com`, `codeload.github.com`, `objects.githubusercontent.com`), the git host, MCP endpoints, model and API providers that tests call.
+- **Keep the repo's rules in its kit** (`permissions.network.allow` in a v2 kit), so every sandbox for the repo starts with the same rules. Group them: toolchain (`astral.sh`, `releases.astral.sh`, `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`, `github.com`, `codeload.github.com`, `objects.githubusercontent.com`), the git host, MCP endpoints, model and API providers that tests call.
 - **Host services:** `sbx policy allow network localhost:<port>` (global, or `--sandbox <name>`); the agent calls `host.docker.internal:<port>`. A `localhost:<port>` entry in the kit's allow list is registered as the same rule (it shows up under the kit in `sbx policy ls`), so keep it in the kit.
 - **A wildcard does not match the bare domain:** `*.example.com` does not allow `example.com`. List both.
 - **Failing integration tests are a policy question first.** Connection refused, timeouts or TLS errors on an external call: read `sbx policy log` before touching code; `sbx policy check` tests a single request. Try a fix with `sbx policy allow network`, then move it into the kit.
@@ -264,48 +264,7 @@ Push is not enough. An agent that moves its issue to review "when the pipeline i
 
 ## Kit for `sbx`
 
-Keep the repo's kit in the repo (e.g. `.sbx/<name>/spec.yaml`, any directory works) and review it like code. Use **schema v2** for a mixin on top of a built-in agent (`sbx run claude --kit ./.sbx/atlas`): the built-in agents select v2 kits, and v3 kits cannot be combined with v1 or v2. v3 (`<name>.yaml` plus a Dockerfile, sbx 0.45+) is for custom workloads. v1 (`commands:`, `network.allowedDomains`) still loads with deprecation warnings; migrate it.
-
-```yaml
-schemaVersion: "2"
-kind: mixin
-name: atlas-dev
-environment:
-  variables:
-    ATLAS_API_URL: "http://host.docker.internal:8000"
-setup:
-  install:
-    - description: Install Task
-      command: "npm install -g @go-task/cli"
-      user: "0"
-    - description: Install uv and pre-warm pinned MCP servers
-      user: "1000"
-      command: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        ~/.local/bin/uv tool install "git+https://github.com/acme/code-index@v1.4.0"
-permissions:
-  network:
-    allow:
-      - astral.sh
-      - pypi.org
-      - files.pythonhosted.org
-      - registry.npmjs.org
-      - github.com
-      - codeload.github.com
-      - objects.githubusercontent.com
-      - git.example.com
-```
-
-- Install as the agent user (`"1000"`); root (`"0"`, the default) only for system paths.
-- **Put user installs on every PATH.** uv, `uv tool` and pipx install into `/home/agent/.local/bin`, which git hooks and non-login shells do not see (`pre-commit not found` on commit). A later root step links them: `ln -sf /home/agent/.local/bin/{uv,uvx,pre-commit} /usr/local/bin/`.
-- **Install what the repo's checks call:** the git-hook runner (`uv tool install pre-commit`), and pnpm pinned to the version in `package.json`'s `packageManager` (`npm install -g pnpm@<ver>`). Corepack without a `packageManager` field picks an unpinned version and may fail to fetch it.
-- Pre-warm everything large or slow (tool environments, model downloads) at install, not at first use.
-- `sbx kit validate ./.sbx/atlas` before committing; local relative paths must start with `./`. A kit can also come from a Git URL pinned to a commit (`git+https://...#ref=<sha>&dir=<dir>`).
-- **A sandbox reads its kit only when it is created.** After changing the kit, recreate it: `sbx rm -f <name>`, then `sbx run claude --kit ./<kit>` (`sbx kit add` also recreates, and only applies environment, install and allow entries). A running or stopped sandbox keeps its old environment.
-- `sbx rm` asks for confirmation; scripts use `sbx rm -f`, or they hang at a prompt that may be hidden.
-- The first `sbx run` with a new kit runs the install steps behind a spinner without progress output; large pre-downloads take minutes.
-- **Check a sandbox from the host:** `sbx exec <name> printenv <VAR>` shows what the kit set; `sbx exec <name> curl -s -o /dev/null -w '%{http_code}' http://host.docker.internal:<port>/` tests a host service (an MCP endpoint answering 406 to a plain request is reachable). `sbx exec` starts a stopped sandbox; `sbx stop <name>` afterwards.
-- For a team, `sbxenv.yaml` (no leading dot) in the repo declares sandboxes and their kits; `~/.sbxenv.yaml` holds personal defaults.
+Keep the repo's kit in the repo (`.sbx/<name>/spec.yaml`, schema v2 mixin) and review it like code. Template, install rules, `verify.txt` and a minimal kit for a repo without a stack: `sbx-kit.md`.
 
 ## Claude Code harness in the sandbox (`sbx`)
 
@@ -358,11 +317,11 @@ SSH and port forwards bind the client side to `127.0.0.1` only; anything else ex
 
 ## Audit a repo's sandbox setup
 
-Run these checks against a repo and report each as `item · finding → fix`, most severe first. Apply repo changes only after the owner agrees, keeping each file's line endings (a CRLF file rewritten as LF turns a small change into a whole-file diff); hand host commands (upgrades, `sbx policy`, `chown`, recreating sandboxes) to the human. Verify the result inside a recreated sandbox with `sbx exec` (Kit section) and `/mcp`.
+Run these checks against a repo and report each as `item · finding → fix`, most severe first. Apply repo changes only after the owner agrees, keeping each file's line endings (a CRLF file rewritten as LF turns a small change into a whole-file diff); hand host commands (upgrades, `sbx policy`, `chown`, recreating sandboxes) to the human. Verify the result inside a recreated sandbox with `sbx exec` (`sbx-kit.md`) and `/mcp`.
 
 1. **No host Docker socket** mounted into any sandbox, dev container or compose service that runs agent code (`grep -rn docker.sock`).
 2. **sbx version** at or above the one this reference was checked against (`sbx version`).
-3. **Kit:** schema v2 for a mixin on a built-in agent; no v1 fields (`commands:`, `network.allowedDomains`); `sbx kit validate ./<kit>` passes; the kit is actually tracked (`git ls-files .sbx`; the common Vim swap rule `[._]s[a-v][a-z]` in `.gitignore` matches `.sbx` and needs `!/.sbx/`); install steps that write outside system paths run as `user: "1000"`; large downloads pre-warmed; tools in `~/.local/bin` linked into `/usr/local/bin`; the git-hook runner and a pinned pnpm installed if the repo uses them.
+3. **Kit:** schema v2 for a mixin on a built-in agent; no v1 fields (`commands:`, `network.allowedDomains`); `sbx kit validate ./<kit>` passes; the kit is actually tracked (`git ls-files .sbx`; the common Vim swap rule `[._]s[a-v][a-z]` in `.gitignore` matches `.sbx` and needs `!/.sbx/`); install steps that write outside system paths run as `user: "1000"`; no download piped into a shell (`curl … | sh` passes when the download is blocked); a `verify.txt` lists the kit's tools and `sandbox.sh check` passes them; large downloads pre-warmed; tools in `~/.local/bin` linked into `/usr/local/bin`; the git-hook runner and a pinned pnpm installed if the repo uses them.
 4. **Network:** host services allowed as `localhost:<port>` (not `host.docker.internal:<port>`); wildcards paired with their bare domain; broad entries justified; rules added on the command line (`sbx policy ls`) copied into the kit.
 5. **Compose:** every service that writes into the bind mount has `user: "${UID}:${GID}"` and a writable `HOME`; `node_modules`, the venv and package stores are out of the mount; ports bind to `127.0.0.1`.
 6. **IDs exported:** the Taskfile (or an untracked `.env`) sets `UID` and `GID`; no reliance on `${UID:-1000}`.
@@ -403,9 +362,9 @@ Run these checks against a repo and report each as `item · finding → fix`, mo
 | `git push` inside: `Permission denied (publickey)` | Host's ssh-agent empty or not running in the terminal that attached | `ssh-add ~/.ssh/<key>`, check `ssh-add -l`, attach again |
 | `git push` over HTTPS to GitLab inside: `HTTP Basic: Access denied` or a prompt for a password | The proxy cannot inject Basic auth for GitLab | SSH remote plus `gitlab-ssh` kit (Git hosts) |
 | `sbx create`/`kit add` refuses a kit from `github.com/docker/…` | `kit.allowedSources` does not list it | `sbx settings set kit.allowedSources '["docker.io/","github.com/docker/"]'` |
-| `pnpm: command not found`, or corepack `Cannot find module …/corepack/pnpm/<ver>/…` | No pnpm in the sandbox image; corepack fetched an unpinned version | `node_modules/.bin/<tool>`, a tool container, or pnpm pinned in the kit (Kit) |
+| `pnpm: command not found`, or corepack `Cannot find module …/corepack/pnpm/<ver>/…` | No pnpm in the sandbox image; corepack fetched an unpinned version | `node_modules/.bin/<tool>`, a tool container, or pnpm pinned in the kit (`sbx-kit.md`) |
 | Playwright: `does not support chromium on ubuntu<ver>` | Sandbox OS newer than Playwright's supported list | Official Playwright image (Test loop, step 2) |
-| `git commit` inside: `` `pre-commit` not found `` | Installed into `~/.local/bin`, not on the hook's PATH | Link into `/usr/local/bin` in the kit (Kit) |
+| `git commit` inside: `` `pre-commit` not found `` | Installed into `~/.local/bin`, not on the hook's PATH | Link into `/usr/local/bin` in the kit (`sbx-kit.md`) |
 | Dev server answers nothing (`curl` code 000) after an edit | Its autoreload hit a syntax error mid-edit and the process exited; the container stays down | `docker compose … up -d --wait <svc>` |
 | Agent inside works around tasks its CLAUDE.md names but the branch lacks | Branch cut before the sandbox setup reached the base | `check` warns `branch: … lacks`; merge the base branch |
 | `docker compose run --no-deps <svc>` never returns | The entrypoint waits for a database that `--no-deps` did not start | `exec` into the running service, or start its dependencies |
