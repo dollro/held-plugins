@@ -21,7 +21,7 @@ plugins/<name>/
 - **product-management** — braindump2prd, prd2issues, prfaq-vision-builder, product-roadmap-3-layers
 - **development** — electron-dev, fullstack-engineering, uiux (skills: uiux-journey-spec, uiux-design-system, uiux-visual-uplift, uiux-visual-review, uiux-design-penpot, uiux-design-figma, uiux-image2design, pencil-pen-generator, design-parity), uiux-design-tailwindv4, uiux-design-vue3
 - **analysis** — equity-research, investment-memo
-- **presentations** — story-craft (skills: stock-take, narrative, story-review), deck-craft (skills: deck-craft, deck-storyline, deck-keynote, deck-exhibits, deck-design-guide, deck-review)
+- **presentations** — story-craft (skills: stock-take, narrative, story-review), deck-craft (skills: deck-craft, deck-storyline, deck-keynote, deck-exhibits, deck-design-guide, deck-review), motion-craft (skills: motion-director)
 
 ## Conventions
 

@@ -1,0 +1,6 @@
+{
+  "name": "motion-craft",
+  "description": "Launch films from the same story as the keynote: reads story-craft's narrative.md and brand-lock.md, directs each cut (film-60, teaser-20) through direction options, storyboard, motion spec and an animated test, builds in HyperFrames, and exports one clip per beat so deck-craft can play them on the matching slides. Adds the motion-director skill.",
+  "version": "0.1.0",
+  "license": "MIT"
+}

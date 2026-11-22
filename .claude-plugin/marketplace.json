@@ -170,6 +170,15 @@
       "category": "presentations",
       "tags": ["storytelling", "narrative", "launch", "keynote", "presentation", "video"],
       "keywords": ["story", "stock-take", "intake", "launch story", "keynote", "product launch", "product film", "evidence", "audience", "Bestandsaufnahme", "Präsentation"]
+    },
+    {
+      "name": "motion-craft",
+      "source": "./plugins/motion-craft",
+      "description": "Launch films from the same story as the keynote: reads story-craft's narrative.md and brand-lock.md, directs each cut (film-60, teaser-20) through direction options, storyboard, motion spec and an animated test, builds in HyperFrames, and exports one clip per beat so deck-craft can play them on the matching slides. Adds the motion-director skill.",
+      "version": "0.1.0",
+      "category": "presentations",
+      "tags": ["video", "motion-graphics", "launch", "film", "storyboard", "hyperframes"],
+      "keywords": ["launch video", "product film", "motion graphics", "storyboard", "HyperFrames", "beat clips", "Launch-Video", "Erklärfilm"]
     }
   ]
 }
