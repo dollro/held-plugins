@@ -29,6 +29,18 @@ Inputs, in order of authority: the brand book or CI rules the user provides > th
 - **PowerPoint add-in**: upload this skill together with the brand's `design-guide.md` in `assets/`, or paste the short form (section "Add-in short form" of the guide) into the add-in's Instructions.
 - **Audit** a slide or deck against the guide and `references/design-rules.md`: list each breach with the slide number, the rule, the measured value and the fix. Template breaches before craft breaches.
 
+## Job C: export the brand lock for motion and HTML
+
+Films (motion-craft) and HTML pages do not read a slide master. They read `brand-lock.md`: colours with roles (accent = hero), heading and body fonts with their font files, logo files, safe zones and the never-do list.
+
+```bash
+python scripts/export_brand_lock.py design-guides/<brand>/design-guide.json --template <master.pptx>
+```
+
+- Logo files come from `--logo`, `assets.logos` in the JSON, or are extracted from the master's pictures into `logos/`.
+- HTML rendering needs the font files, not just the names. The script lists the files it finds and flags missing ones under **Open**; get licensed files from the brand owner rather than substituting.
+- Without a master or Python, fill `assets/brand-lock-template.md` by hand (story-craft's stock-take runs a four-question brand interview for this).
+
 ## Template-first ladder (the rule every module follows)
 
 1. Use the master's layout and its placeholders as they are.
@@ -41,5 +53,8 @@ When the brand book and the master disagree, the brand book wins and the conflic
 ## Files
 
 - `scripts/template_profile.py`: master → design-guide.json + design-guide.md (+ layout sampler).
+- `scripts/export_brand_lock.py`: design-guide.json → brand-lock.md for motion-craft and HTML work.
+- `examples/make_acme_master.py`: builds a fictional master to try both scripts on.
 - `references/design-rules.md`: the default craft rules with thresholds (grid, Gestalt grouping, alignment, spacing, type scale, colour, contrast, icons, density, imagery). A brand guide overrides any of them.
 - `assets/design-guide-template.md`: the guide's structure, for filling by hand.
+- `assets/brand-lock-template.md`: the brand lock's structure, for filling by hand.

@@ -1,6 +1,6 @@
 ---
 name: deck-craft
-description: Builds PowerPoint decks two ways - consulting-grade analyst decks (action titles, pyramid storyline, one message per slide, native editable charts, sources) and bold keynote or product-launch decks (few words, huge type, one number per slide, reveal, story arc) - always inside the user's slide master when one exists. Orchestrates the sibling skills deck-storyline, deck-keynote, deck-exhibits, deck-design-guide and deck-review; builds with python-pptx in Claude Code or works directly in the PowerPoint add-in. Use for any request to create, rebuild or restyle a deck, pitch, board or steering-committee presentation, executive summary, product launch, keynote, "McKinsey-style", "Steve-Jobs-style" or "Apple-style" slides, or "Folien/Präsentation erstellen". Not for reviewing an existing deck only (deck-review) or capturing a brand template (deck-design-guide).
+description: Builds PowerPoint decks two ways - consulting-grade analyst decks (action titles, pyramid storyline, one message per slide, native editable charts, sources) and bold keynote or product-launch decks (few words, huge type, one number per slide, reveal, story arc) - always inside the user's slide master when one exists. Orchestrates the sibling skills deck-storyline, deck-keynote, deck-exhibits, deck-design-guide and deck-review; builds with python-pptx in Claude Code or works directly in the PowerPoint add-in. Use for any request to create, rebuild or restyle a deck, pitch, board or steering-committee presentation, executive summary, product launch, keynote, "consulting-style" or "big-stage launch style" slides, or "Folien/Präsentation erstellen". Not for reviewing an existing deck only (deck-review) or capturing a brand template (deck-design-guide).
 license: MIT
 ---
 
@@ -10,6 +10,7 @@ Turn a brief, notes or data into a deck a partner could present without rewritin
 
 | Step needs | Load |
 |---|---|
+| The story before any slide: purpose, villain, promise, beats, cuts (`narrative.md`) | `story-craft:narrative` (separate plugin, optional) |
 | The argument: governing thought, pyramid, SCQA, ghost deck, executive summary | `deck-storyline` |
 | A launch or keynote arc: sparkline, villain and hero, reveal, rule of three | `deck-keynote` |
 | Which chart or framework proves a message, finishing an exhibit | `deck-exhibits` |
@@ -53,7 +54,7 @@ Do not write python-pptx code (or touch the slides in the add-in) before step 4 
 
 1. **Read the brief.** Audience, the decision or reaction wanted, slide budget, duration, data given and its source, template. Invented or sample data makes the deck illustrative (rule H2).
 2. **Load the design guide.** Template supplied but no guide yet: run `deck-design-guide` first (in Claude Code its profiler takes a minute). Note layout roles and protected zones.
-3. **Write the spine in `storyline.md`.** consult: one action title per slide; read top to bottom, they must tell the whole argument (`deck-storyline`). keynote: one line per slide plus the beat it plays on the sparkline (`deck-keynote`). Fix the story here, not in code. For high-stakes or ambiguous briefs, show the spine (or a ghost deck, `ghost_slide`) before building.
+3. **Write the spine in `storyline.md`.** consult: one action title per slide; read top to bottom, they must tell the whole argument (`deck-storyline`). keynote: one line per slide plus the beat it plays on the sparkline (`deck-keynote`); if story-craft's `narrative.md` exists, the storyboard maps its beats (cut `keynote`) instead of inventing the arc, and every slide carries its beat ID. Fix the story here, not in code. For high-stakes or ambiguous briefs, show the spine (or a ghost deck, `ghost_slide`) before building.
 4. **Assign one exhibit or slide type per line** (`deck-exhibits`; keynote slide types in `deck-keynote`).
 5. **Build.** Python: write `build_deck.py` importing deckkit; one helper per slide line. Add speaker notes to every keynote slide (`notes()`); the talk lives there.
 6. **Check.** `python scripts/check_deck.py deck.pptx`. Fix every ERROR. Read every WARNING and fix it unless you can say why it is wrong.
@@ -103,6 +104,7 @@ Do not write python-pptx code (or touch the slides in the add-in) before step 4 
 | product reveal / hero image | `image_slide(prs, image, caption)` |
 | real customer voice | `quote(prs, text, attribution)` |
 | keynote close | `closing(prs, headline, details, cta)` |
+| film clip for a beat (motion-craft) | `video_slide(prs, clip, poster, beat)` or `video_slide_from_clips(prs, clips_json, beat)` |
 | one simple chart on stage | `keynote_chart_slide` + `bar_chart(...)` |
 
 Every consult content slide starts with `content_slide(prs, title, section=...)` and ends with `source(s, ...)`. `[[word]]` in any text renders in the accent colour.
@@ -112,4 +114,4 @@ Every consult content slide starts with `content_slide(prs, title, section=...)`
 - `references/build-python.md`: deckkit API, layout grid, template handling, check and render, common failures.
 - `references/powerpoint-addin.md`: working in Claude for PowerPoint with the same rules.
 - `scripts/deckkit.py`, `scripts/check_deck.py`, `scripts/render.py`.
-- `examples/consult_example.py` (10-slide steering-committee deck), `examples/keynote_example.py` (14-slide launch; pass a template path to see it inside a master).
+- `examples/consult_example.py` (10-slide steering-committee deck), `examples/keynote_example.py` (14-slide launch; pass a template path to see it inside a master), `examples/atlas_keynote.py` (18 slides from a story-craft narrative; pass a motion-craft `clips.json` to play the B02 and B12 clips).

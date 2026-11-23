@@ -1,0 +1,72 @@
+{
+  "project": "atlas",
+  "cut": "film-60",
+  "aspect": "16:9",
+  "characters": ["characters/site-manager.md"],
+  "shots": [
+    {
+      "id": "S01",
+      "beat": "B02",
+      "frame": 1,
+      "subject": "The site manager (anchor from characters/site-manager.md) in the driver's seat of a parked white van, orange high-vis vest over a charcoal fleece, phone held low in his lap below the frame edge.",
+      "action": "He breathes out slowly and his head sinks a few centimetres; eyes stay down on his lap. Nothing else moves.",
+      "camera": "Medium close-up from the passenger side, eye level, 50 mm, locked off. He sits in the left third, facing right.",
+      "light": "Dusk, deep blue sky; the only warm source is a sodium car-park lamp behind the van on camera right; a cool glow from the phone in his lap lights his chin and eyes from below.",
+      "duration_s": 5,
+      "references": ["characters/site-manager.md", "characters/refs/site-manager-front.png"],
+      "prompt": "A man about 45, medium build with broad shoulders, square jaw, deep-set grey eyes, heavy brows, a small pale scar through his left eyebrow, short dark-blond hair parted on the left and greying at the temples, light stubble. He wears a plain orange high-vis vest over a charcoal fleece. He sits in the driver's seat of a parked white van at dusk, tired, holding a phone low in his lap below the frame edge. He breathes out slowly and his head sinks slightly; his eyes stay down. Medium close-up from the passenger side, eye level, 50 mm lens, locked-off camera; he is in the left third, facing right. Dusk, deep blue sky; the only warm source is a sodium car-park lamp behind the van on camera right; a cool glow from the phone in his lap lights his chin and eyes from below. Muted, slightly desaturated colour, fine film grain, shallow depth of field.",
+      "negative": "text, letters, logos, screen, phone display, license plate, dashboard readout",
+      "continuity": ["vest on, zipped fleece", "hard hat on the passenger seat (seen in S02)", "left third, facing right, as in S04"],
+      "max_takes": 3,
+      "fallback": "still_push"
+    },
+    {
+      "id": "S02",
+      "beat": "B02",
+      "frame": 1,
+      "subject": "The passenger seat of the same van: a white hard hat, a rolled tape measure and a phone lying face down.",
+      "action": "The face-down phone buzzes twice; a thin cool glow pulses around its edge. The camera creeps closer.",
+      "camera": "Top-down close-up, 35 mm, slow push in of about 10 percent over the clip.",
+      "light": "Dusk, deep blue sky; the only warm source is a sodium car-park lamp behind the van on camera right; on the seat it rakes from the top right corner, the hard hat casts a soft shadow to the left.",
+      "duration_s": 3,
+      "references": ["characters/site-manager.md"],
+      "prompt": "Top-down close-up of the passenger seat of a white van at dusk: a scuffed white hard hat, a rolled yellow tape measure and a phone lying face down in a plain dark case. The phone buzzes twice and a thin cool glow pulses around its edge. Slow push in, 35 mm lens. Dusk, deep blue sky; the only warm source is a sodium car-park lamp behind the van on camera right; it rakes across the seat from the top right, the hard hat casts a soft shadow to the left. Muted, slightly desaturated colour, fine film grain.",
+      "negative": "text, letters, logos, stickers on the hard hat, screen, hands",
+      "continuity": ["hard hat white and scuffed, same as S01 seat", "phone in a plain dark case, face down"],
+      "max_takes": 3,
+      "fallback": "motion"
+    },
+    {
+      "id": "S03",
+      "beat": "B15",
+      "frame": 7,
+      "subject": "The site manager (anchor) in the driver's seat of the same white van, vest off and folded on the passenger seat, charcoal fleece, phone in his jacket pocket.",
+      "action": "He leans back into the headrest, closes his eyes for a moment, opens them and almost smiles. Breathing visible.",
+      "camera": "Medium close-up from the passenger side, eye level, 50 mm, locked off. He sits in the left third, facing right (mirrors S01).",
+      "light": "Overcast afternoon, soft even daylight through the windscreen from camera left; no hard shadows.",
+      "duration_s": 4,
+      "references": ["characters/site-manager.md", "characters/refs/site-manager-front.png"],
+      "prompt": "A man about 45, medium build with broad shoulders, square jaw, deep-set grey eyes, heavy brows, a small pale scar through his left eyebrow, short dark-blond hair parted on the left and greying at the temples, light stubble. He wears a charcoal fleece; a folded orange high-vis vest lies on the passenger seat, his phone is in his jacket pocket. He sits in the driver's seat of a parked white van on a building site car park, leans back into the headrest, closes his eyes for a moment, opens them and almost smiles, breathing calmly. Medium close-up from the passenger side, eye level, 50 mm lens, locked-off camera; he is in the left third, facing right. Overcast afternoon, soft even daylight through the windscreen from camera left; no hard shadows. Natural colour, fine film grain, shallow depth of field.",
+      "negative": "text, letters, logos, screen, license plate, signage",
+      "continuity": ["same seat position and framing as S01", "vest folded on the passenger seat", "phone in the left jacket pocket, not in hand"],
+      "max_takes": 3,
+      "fallback": "still_push"
+    },
+    {
+      "id": "S04",
+      "beat": "B16",
+      "frame": 8,
+      "subject": "The site manager (anchor), charcoal fleece, canvas bag on his right shoulder, walking up the short path of a brick terraced house with a green front door standing open.",
+      "action": "Two or three slow steps toward the camera and the open door; his shoulders drop and he smiles. Breathing visible.",
+      "camera": "Medium wide from inside the hallway looking out through the open door, 35 mm, eye level, locked off. He walks toward the camera along the centre line.",
+      "light": "Low golden sun behind him on camera left, long shadows on the path toward camera; warm hallway light falls on his face as he nears the door.",
+      "duration_s": 6,
+      "references": ["characters/site-manager.md", "characters/refs/site-manager-front.png"],
+      "prompt": "A man about 45, medium build with broad shoulders, square jaw, deep-set grey eyes, heavy brows, a small pale scar through his left eyebrow, short dark-blond hair parted on the left and greying at the temples, light stubble. He wears a charcoal fleece and carries a canvas bag on his right shoulder. Early Friday evening, he walks up the short garden path of a brick terraced house toward its open green front door, two or three slow steps toward the camera; his shoulders drop and he smiles, breathing calmly. Medium wide shot from inside the hallway looking out through the open door, 35 mm lens, eye level, locked-off camera. Low golden sun behind him on camera left, long shadows on the path toward camera; warm hallway light falls on his face as he nears the door. Warm natural colour, fine film grain.",
+      "negative": "text, letters, house numbers, logos, signs, second person, car",
+      "continuity": ["no vest, fleece as in S03", "bag on the right shoulder", "first home shot: sets the house for any later cut"],
+      "max_takes": 3,
+      "fallback": "still_push"
+    }
+  ]
+}

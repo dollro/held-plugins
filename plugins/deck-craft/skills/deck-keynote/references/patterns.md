@@ -1,51 +1,19 @@
 # Keynote patterns
 
-## Beat sequences
+Short form for decks built without a narrative. The full set of beat sequences (launch, vision, feature, pitch), wording patterns and number rules lives in story-craft:narrative (`references/arc-patterns.md`); when a `narrative.md` exists, its beats replace this section.
 
-**Product launch (12-18 slides, 10-20 min)**
-1. Cover: product family or event name only
-2. Statement: the moment everyone knows (is)
-3. Statement: the villain, concrete (is)
-4. Big number: the cost of the villain (is)
-5. Statement: "What if …?" (could be)
-6. Image: the reveal, name only (could be)
-7-9. Reveal: three things it does, one per slide (could be)
-10-12. Proof: one number or versus per thing (could be, with fine print)
-13. Three pillars: objections answered (privacy, price, compatibility)
-14. Versus: before vs after (is → could be)
-15. Quote: a real user
-16. STAR moment (demo or physical reveal)
-17. Closing: availability, price, call to action
+## Launch sequence (12-18 slides, 10-20 min)
 
-**Vision / strategy talk (10-14 slides)**
-World today (is) → the shift underway (number) → what it means for us (could be) → three bets → proof each bet is real → what we ask of you → the picture of success.
+Cover → the moment everyone knows (is) → the villain, countable (is) → its cost in one number (is) → "What if …?" (could) → the reveal, name only → three things it does, one slide each → one proof per thing (number or versus, fine print) → objections answered (three) → before vs after (versus) → a real user (quote) → STAR moment → closing: availability, price, call to action.
 
-**Feature or update launch (6-10 slides)**
-What users told us (quote or number) → the one change → how it works (reveal of 3 steps) → the result (versus) → available when, for whom.
+Shorter talks: vision (world today → shift → three bets → proof → ask), feature update (what users told us → the one change → how it works → result → available when), pitch (villain → cost → reveal → three steps → traction → why we win → team → ask).
 
-**Pitch on stage (8-12 slides, 5-10 min)**
-Villain → cost → reveal → how it works in three steps → traction number → why we win (versus) → team in one slide → the ask.
+## Wording in brief
 
-## Wording patterns
-
-- Headline: "<Company> <verb> <familiar thing>" / "<Thing>, finally." / "The <category> that <benefit>."
+- Headline: "<Thing>, finally." · "The <category> that <benefit>."
 - Villain: count the pain: "47 photos. 3 voice memos. Zero report."
-- Turn: "What if <the pain> <disappeared / did itself>?"
-- Number: number alone, then "<what it measures> · <who / when>", then a comparison "That's <familiar unit>."
-- Versus: "<old> → <new>" with two numbers in the same unit.
-- Three things: verbs or one-word benefits, parallel in form ("Capture anything. Understands context. Report in one tap.").
+- Number: the number alone, then what it measures, then a comparison from the audience's world ("most of a working day, every week"). Check the arithmetic.
 - Close: "Available <when>. <Price>. <Where to start>."
-
-## Making numbers meaningful
-
-| Raw | Meaningful |
-|---|---|
-| 5 GB storage | 1,000 songs in your pocket |
-| 6.5 hours per week | most of a working day, every week |
-| 97% satisfaction | one number, one line: "customer satisfaction, iOS 12" |
-| 0.3 s latency | faster than you can blink |
-
-Choose comparisons from the audience's world; check the arithmetic behind every analogy.
 
 ## Visual vocabulary within a master
 
@@ -59,6 +27,7 @@ Choose comparisons from the audience's world; check the arithmetic behind every 
 | Quote | Blank | quote 28-44 pt, attribution 20 pt grey |
 | Close | Blank or the master's closing layout | headline 54 pt, details 24 pt, one CTA button in accent |
 | STAR moment | Blank with dark or accent stage | the only slide(s) with a painted stage |
+| Video | Blank, full bleed | the clip with its poster frame, no text on top, beat statement in the notes; click to play |
 
 ## Delivery notes to put in the speaker notes
 

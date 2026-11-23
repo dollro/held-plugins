@@ -10,10 +10,14 @@ consult: action titles present, sentence-like, <= 95 characters, unique; source 
 keynote: <= 20 words on a slide (excluding fine print), type >= 18 pt outside fine print,
          no bullets, one number per BigNumber slide with fine print, speaker notes present,
          no leftover image placeholders.
+video:   every embedded or linked movie has its media (ERROR if missing) and a poster frame
+         (WARN if only the default loudspeaker icon); WARN above 60 s or 50 MB.
 both:    shapes inside the slide, title not overlapping body shapes, overflow estimate.
 It cannot judge whether the argument is right: read the titles (or statements) in order.
 """
+import os
 import re
+import struct
 import sys
 
 from pptx import Presentation
@@ -95,6 +99,67 @@ def bullets_in(shape):
             if p._p.pPr is not None and p._p.pPr.find(A_NS + "buChar") is not None]
 
 
+MAX_CLIP_S = 60
+MAX_CLIP_MB = 50
+R_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+
+
+def mp4_seconds(blob):
+    """Duration from the mp4 mvhd box, or None."""
+    i = blob.find(b"mvhd")
+    if i < 0:
+        return None
+    version = blob[i + 4]
+    if version == 1:
+        timescale, duration = struct.unpack(">IQ", blob[i + 24:i + 36])
+    else:
+        timescale, duration = struct.unpack(">II", blob[i + 16:i + 24])
+    return duration / timescale if timescale else None
+
+
+def movie_findings(slide, n, deck_dir):
+    """(errors, warnings, count) for movie shapes on a slide."""
+    errors, warnings, count = [], [], 0
+    try:
+        from pptx.media import SPEAKER_IMAGE_BYTES
+    except ImportError:
+        SPEAKER_IMAGE_BYTES = None
+    for shape in slide.shapes:
+        video = shape._element.find(".//" + A_NS + "videoFile")
+        if video is None:
+            continue
+        count += 1
+        label = shape.name if shape.name != "Clip" else "clip"
+        rid = video.get(R_NS + "link")
+        rel = slide.part.rels.get(rid) if rid else None
+        blob = None
+        if rel is None:
+            errors.append(f"slide {n}: {label} has no media relationship")
+        elif rel.is_external:
+            path = os.path.join(deck_dir, rel.target_ref.replace("file:///", "/"))
+            if not os.path.exists(path):
+                errors.append(f"slide {n}: linked clip missing: {rel.target_ref}")
+            else:
+                blob = open(path, "rb").read()
+        else:
+            blob = rel.target_part.blob
+            if not blob:
+                errors.append(f"slide {n}: embedded clip is empty")
+        blip = shape._element.find(".//" + A_NS + "blip")
+        poster_rid = blip.get(R_NS + "embed") if blip is not None else None
+        poster = slide.part.rels.get(poster_rid) if poster_rid else None
+        if poster is None or (SPEAKER_IMAGE_BYTES and poster.target_part.blob == SPEAKER_IMAGE_BYTES):
+            warnings.append(f"slide {n}: {label} has no poster frame; PowerPoint shows a loudspeaker icon before play")
+        if blob:
+            mb = len(blob) / 1e6
+            secs = mp4_seconds(blob)
+            if mb > MAX_CLIP_MB:
+                warnings.append(f"slide {n}: {label} is {mb:.0f} MB (max {MAX_CLIP_MB}); re-encode or shorten")
+            if secs and secs > MAX_CLIP_S:
+                warnings.append(f"slide {n}: {label} runs {secs:.0f} s (max {MAX_CLIP_S}); cut to the beat")
+    return errors, warnings, count
+
+
 def main(path, mode=None):
     prs = Presentation(path)
     kw = prs.core_properties.keywords or ""
@@ -138,6 +203,10 @@ def main(path, mode=None):
                 if shape.name == "BigNumber":
                     numbers += 1
 
+        e, w, clips = movie_findings(slide, n, os.path.dirname(os.path.abspath(path)))
+        errors += e
+        warnings += w
+
         if mode == "keynote":
             if not is_cover and total_words > KEYNOTE_WORD_BUDGET:
                 warnings.append(f"slide {n}: {total_words} words on a keynote slide (budget {KEYNOTE_WORD_BUDGET}; move the rest to notes)")
@@ -151,7 +220,7 @@ def main(path, mode=None):
             if not is_cover and not notes:
                 warnings.append(f"slide {n}: no speaker notes; the talk lives in the notes")
             st = named(slide, "Statement") or named(slide, "CoverTitle") or named(slide, "Title")
-            spine.append((n, st[0].text_frame.text.replace("\n", " ").strip() if st else "(visual)"))
+            spine.append((n, st[0].text_frame.text.replace("\n", " ").strip() if st else ("(video)" if clips else "(visual)")))
 
         if has_data(slide) and not named(slide, "Source"):
             (errors if mode == "consult" else warnings).append(f"slide {n}: chart or table without a source line")
