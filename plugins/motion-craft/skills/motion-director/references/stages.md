@@ -75,7 +75,7 @@ Ask: "[motion-spec.md]. Total [x] s. Seams: [kinds]. Conflicts: [resolved / open
 
 Load: the hyperframes plugin's build step.
 
-Build the first 20-30 s of the cut. Mark every element holding words with its text role so checks can size it. `npx hyperframes check` clean, then `npx hyperframes render`. Pull a still at every seam (`ffmpeg -ss <t>`) and look at both sides.
+Build the first 20-30 s of the cut. Mark every element holding words with its text role so checks can size it. `npx hyperframes check` clean, then `npx hyperframes render` (slow, GPU unused or a large file: `references/render-performance.md`). Pull a still at every seam (`ffmpeg -ss <t>`) and look at both sides.
 
 Ask: "[render]. Covers frames [1-n], [0-x s]. Placeholders: [list or none]. Seams checked: [n]. Watch for pacing and anything that still feels like slides. Does it move right?"
 
